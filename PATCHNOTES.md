@@ -2,6 +2,19 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.20 (29.10.2026)
+- Konten wie bei Pokélings: Beim Start anmelden, registrieren oder als Gast spielen – mit Bestenliste daneben.
+- Alle 3 Spielstände hängen am Konto und werden automatisch mit der Cloud abgeglichen (neuere Fassung gewinnt, gelöschte Plätze verschwinden überall).
+- Profil-Seite mit Elo, Bilanz, Orden, Pokédex und Spielzeit; Passwort ändern, Name ändern, überall abmelden, Konto löschen.
+- Neue Kampf-Kulissen: gemalte Pixel-Panoramen je Gebiet (Route, Wald, Stadt, Strand, Meer, Safari, Höhle, Mondberg, Eis, Kraftwerk, Turm, Arena) mit sauberen Plattformen.
+- Kampfanimationen: Das eigene Pokémon springt bei Nahkampf-Attacken nicht mehr quer durchs Bild.
+- Wilde Pokémon wie in Feuerrot/Blattgrün – beide Editionen gemischt, nur wenige Extras. Level-Anstieg tiefer im Gebiet sanfter.
+- Wieder mehr wilde Begegnungen (75 % der Original-Rate, 4 sichere Schritte nach einem Kampf).
+- Starter-Wahl auf der leuchtenden Bühne: drei Pokébälle, der gewählte öffnet sich.
+- Optionen mit Bereichen (Spiel, Grafik, Sound, Konto) und Erklärung zu jeder Einstellung.
+- PC neu: Boxen mit 30 Plätzen, Team daneben, Pokémon greifen und ablegen oder tauschen.
+- Dächer mit Firstkappe und Regenrinne, Schornsteine, Bäume in leicht unterschiedlichen Grüntönen.
+
 ## v0.19 (29.10.2026)
 - Neu: ONLINE im Titelmenü – eigenes Konto mit Name und Passwort.
 - Live-Duell gegen Freunde: schnelle Suche oder Raum mit 4-stelligem Code. Du kämpfst mit dem Team deines letzten Spielstands (bis zu 6 Pokémon, alle auf Lv. 50), ohne Items. Dein Spielstand bleibt unverändert.
