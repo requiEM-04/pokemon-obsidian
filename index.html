@@ -3288,10 +3288,10 @@ const SKIES={day:[0x3c78dc,0x8ec8ff,0xeef6ff,0],sunset:[0x2c3c8c,0xe87c7c,0xffc4
 const GFX_LV={hoch:{pr:1.5,sh:2048,d:1,p:1,an:8,cam:4,ll:4},mittel:{pr:1,sh:1024,d:.75,p:.7,an:4,cam:3,ll:3},niedrig:{pr:.75,sh:0,d:.45,p:.45,an:2,cam:2,ll:2}};
 const GFX_ORDER=["hoch","mittel","niedrig"];
 const GFX={mode:"auto",auto:"hoch",acc:0,n:0,warm:0,last:0,get lv(){return this.mode==="auto"?this.auto:this.mode;}};
-try{const v=localStorage.getItem("pokelings_gfx");if(v){const[m,a]=v.split(":");if(m==="auto"||GFX_LV[m])GFX.mode=m;if(GFX_LV[a])GFX.auto=a;}}catch(e){}
+try{const v=localStorage.getItem("obs_gfx");if(v){const[m,a]=v.split(":");if(m==="auto"||GFX_LV[m])GFX.mode=m;if(GFX_LV[a])GFX.auto=a;}}catch(e){}
 function gfxQ(){return GFX_LV[GFX.lv]||GFX_LV.hoch;}
 function gfxPR(){return Math.min(gfxQ().pr,window.devicePixelRatio||1);}
-function gfxSave(){try{localStorage.setItem("pokelings_gfx",GFX.mode==="auto"?"auto:"+GFX.auto:GFX.mode);}catch(e){}}
+function gfxSave(){try{localStorage.setItem("obs_gfx",GFX.mode==="auto"?"auto:"+GFX.auto:GFX.mode);}catch(e){}}
 function gfxApply(rebuild){
   if(typeof GL==="undefined"||!GL)return;const q=gfxQ(),pr=gfxPR();
   GL.r.setPixelRatio(pr);GL.fr.setPixelRatio(pr);
@@ -6605,13 +6605,18 @@ async function openStartMenu(){
     if(G.save.party.length)opts.push({ic:"mon",l:"POKéMON",f:()=>partyMenu({mode:"field"}),d:"Dein Team ansehen und ordnen."});
     opts.push({ic:"bag",l:"BEUTEL",f:()=>bagMenu({}),d:"Items benutzen und geben."},{ic:"map",l:"KARTE",f:openTownMap,d:canFly()?"Ganz Kanto – und mit Fliegen zu besuchten Städten reisen.":"Ganz Kanto auf einen Blick."},{ic:"pc",l:"PC",f:openPC,d:"Pokémon-Boxen – von überall erreichbar."},
       {ic:"card",l:G.save.name,f:trainerCard,d:"Dein Trainerpass."},{ic:"save",l:"SPEICHERN",f:saveMenu,d:"Den Spielstand sichern."},
-      {ic:"opt",l:"OPTIONEN",f:optionsMenu,d:"Text, Sound, Rennen, Folge-Pokémon …"},{ic:"back",l:"ZURÜCK",f:null,d:"Menü schließen."});
+      {ic:"opt",l:"OPTIONEN",f:optionsMenu,d:"Text, Sound, Rennen, Folge-Pokémon …"},{ic:"back",l:"ZUM TITEL",f:toTitle,d:"Speichert automatisch und geht zurück zum Titelbildschirm (dort auch Abmelden). B schließt das Menü."});
     const c=await startMenuScene(opts,START_IDX);
     if(c<0||!opts[c].f)return;START_IDX=c;
     await opts[c].f();
     if(W._close){W._close=false;return;}
   }
 }
+// Zum Titelbildschirm: automatisch speichern (+ Cloud), dann Welt verlassen
+async function toTitle(){if(!(await yesNo("Speichern und zum Titelbildschirm?")))return;
+  saveGame();sfx("save");if(typeof ON!=="undefined"&&ON.sess&&typeof accPush==="function"){clearTimeout(ACC_UP);ACC_UP=0;accPush();}
+  W._close=true;await fadeTo(1,16);Scenes.length=0;G.save=null;W.npcs={};W.popup=null;
+  push(TitleScene);TitleScene.ph=1;TitleScene.pt=0;TitleScene.i=0;TitleScene.refresh();await fadeTo(0,16);}
 /* ---------- verzierte Fenster fürs Startmenü (PokéRogue-Rahmen + Verlauf, Rautenmuster, Pokéball-Wasserzeichen) ---------- */
 let _diaPat=null;
 function diaPattern(){if(_diaPat)return _diaPat;const c=document.createElement("canvas");c.width=c.height=8;const g=c.getContext("2d");
@@ -7033,9 +7038,16 @@ async function capNurse(){
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.21",d:"29.10.2026",items:[
+    "Eigener Server nur für Pokémon Obsidian: Konten, Spielstände und Bestenliste sind komplett eigenständig. Bitte einmal neu registrieren – jeder Name ist wieder frei.",
+    "Neu: Kampfkarte mit deinem Lieblings-Pokémon (aus Team oder Box), Hintergrund nach Orden, Elo, Bilanz und Orden. Unter ONLINE → PROFIL & KONTO → KAMPFKARTE.",
+    "Bestenliste direkt im Titelmenü. Mit A siehst du die Kampfkarte jedes Trainers.",
+    "Vor jedem Live-Duell erscheint ein VS-Bildschirm mit beiden Kampfkarten.",
+    "Im Spiel-Menü bringt dich ZUM TITEL zurück zum Titelbildschirm – der Spielstand wird vorher automatisch gespeichert (B schließt das Menü wie gewohnt).",
+    "Im Titelmenü: ABMELDEN speichert alles in der Cloud und meldet dich ab. Danach liegen die Spielstände nur noch in der Cloud und sind beim nächsten Anmelden wieder da."]},
   {v:"0.20.1",d:"29.10.2026",items:["Passwort braucht jetzt nur noch mindestens 4 Zeichen (Registrieren und Passwort ändern)."]},
   {v:"0.20",d:"29.10.2026",items:[
-    "Konten wie bei Pokélings: Beim Start anmelden, registrieren oder als Gast spielen – mit Bestenliste daneben.",
+    "Konten: Beim Start anmelden, registrieren oder als Gast spielen – mit Bestenliste daneben.",
     "Alle 3 Spielstände hängen am Konto und werden automatisch mit der Cloud abgeglichen (neuere Fassung gewinnt, gelöschte Plätze verschwinden überall).",
     "Profil-Seite mit Elo, Bilanz, Orden, Pokédex und Spielzeit; Passwort ändern, Name ändern, überall abmelden, Konto löschen.",
     "Neue Kampf-Kulissen: gemalte Pixel-Panoramen je Gebiet (Route, Wald, Stadt, Strand, Meer, Safari, Höhle, Mondberg, Eis, Kraftwerk, Turm, Arena) mit sauberen Plattformen.",
@@ -7096,12 +7108,12 @@ function patchInfo(){return new Promise(res=>{
 
 /* ===== online.js ===== */
 /* ================================ ONLINE: Konten, Cloud-Spielstand, Bestenliste, Live-Duell ================================
-   Server: das kostenlose Supabase-Projekt (gleiches Projekt wie Pokélings, eigene Tabellen obs_*).
+   Server: eigenes kostenloses Supabase-Projekt „pokemon-obsidian“ (Einrichtung: tools/supabase_setup.sql).
    - Konten: Name + Passwort. Intern eine Pseudo-Adresse aus dem Namens-Hash, das Passwort wird vorher gehasht.
    - Duell: Supabase Realtime (Broadcast). Beide Rechner rechnen den Kampf selbst – mit gleichem Startwert und
      getrennten Zufallsströmen je Spieler (lrnd in battle.js), dazu werden pro Runde nur die Entscheidungen getauscht.
    - Zum Testen ohne Server: ?mp=local verbindet zwei Tabs im selben Browser (BroadcastChannel). */
-const CLOUD={url:"https://wysjmsrkmadkhwjonhbx.supabase.co",key:"sb_publishable_RSTomimx_J4XXysBRdVwGg_cwKTWHyK"};
+const CLOUD={url:"https://qcllsqfawgamoxsyfibf.supabase.co",key:"sb_publishable_Yl1_q5kNPFmTEbhyPnAJvQ_yFgNTKmc"};
 const ON_PROTO=1;
 const ON={sess:null,board:null,busy:false,upT:0};
 const onLocal=()=>/[?&]mp=local/.test(location.search);
@@ -7129,15 +7141,32 @@ function onErrText(r){const m=String((r.j&&(r.j.msg||r.j.error_description||r.j.
   if(/invalid login|invalid_grant|credentials/i.test(m))return"Name oder Passwort falsch.";
   if(/not confirmed/i.test(m))return"Konto noch nicht freigeschaltet (Server-Einstellung). Bitte REQUIEM Bescheid sagen.";
   if(/rate limit|too many/i.test(m))return"Zu viele Versuche – bitte kurz warten.";
+  if(/banned/i.test(m))return"Dieses Konto ist gesperrt.";
+  if(/name_taken/i.test(m))return"Dieser Name ist schon vergeben.";
+  if(/name_reserved/i.test(m))return"Dieser Name ist reserviert.";
+  if(/reg_closed/i.test(m))return"Neue Konten sind gerade nicht möglich. Bitte später nochmal versuchen.";
   return m?"Server: "+m.slice(0,80):"Unbekannter Fehler ("+r.status+").";}
 async function onLogin(name,pw){const r=await onFetch("/auth/v1/token?grant_type=password",{method:"POST",auth:false,body:{email:await onEmail(name),password:await onPw(name,pw)}});
-  if(!r.ok||!onSetSess(r.j,name.trim()))return onErrText(r);await onLoadBoard(true);return null;}
-async function onRegister(name,pw){name=name.trim();
+  if(!r.ok||!onSetSess(r.j,name.trim()))return onErrText(r);await onLoadBoard(true);onAfterLogin();return null;}
+async function onRegister(name,pw){name=name.trim();if(/^admin/i.test(name))return"Dieser Name ist reserviert.";
+  await onLoadCfg();if(onCfgOff("reg"))return"Neue Konten sind gerade nicht möglich. Bitte später nochmal versuchen.";
   const ex=await onFetch(`/rest/v1/obs_board?select=id&name=ilike.${encodeURIComponent(name)}`,{auth:false});if(ex.ok&&Array.isArray(ex.j)&&ex.j.length)return"Dieser Name ist schon vergeben.";
   const r=await onFetch("/auth/v1/signup",{method:"POST",auth:false,body:{email:await onEmail(name),password:await onPw(name,pw),data:{name}}});
   if(!r.ok)return onErrText(r);if(!onSetSess(r.j,name)){const e=await onLogin(name,pw);if(e)return e;}
-  await onLoadBoard(true);return null;}
+  await onLoadBoard(true);onAfterLogin();return null;}
 function onLogout(){ON.sess=null;ON.board=null;LS.del("obs_acc");}
+/* ---------- Server-Einstellungen (Nachricht an alle, Mindestversion, Sperren), Online-Status ---------- */
+ON.cfg={};ON.cfgAt=0;
+async function onLoadCfg(force){if(!force&&Date.now()-ON.cfgAt<60000)return ON.cfg;const r=await onFetch("/rest/v1/obs_config?select=k,v",{auth:false,timeout:8000});
+  if(r.ok&&Array.isArray(r.j)){const c={};for(const x of r.j)c[x.k]=x.v;ON.cfg=c;ON.cfgAt=Date.now();}return ON.cfg;}
+const onCfgOff=k=>!!(ON.cfg[k]&&ON.cfg[k].off);
+const onVerNum=v=>String(v||"0").split(".").reduce((a,x,i)=>a+(+x||0)*Math.pow(1000,2-i),0);
+function onOutdated(){const m=ON.cfg.minver&&ON.cfg.minver.v;return!!m&&onVerNum(VERSION)<onVerNum(m);}
+function onPing(){if(ON.sess)onReady().then(ok=>{if(ok)onFetch("/rest/v1/rpc/obs_ping",{method:"POST",body:{v:VERSION},timeout:8000});});}
+setInterval(()=>{if(ON.sess&&!document.hidden)onPing();},60000);
+function onAfterLogin(){onPing();onLoadCfg();if(typeof cardLoadTitle==="function")cardLoadTitle();}
+// Nachricht an alle: einmal pro Nachricht nach dem Anmelden bzw. im Titel zeigen
+async function onMotd(){await onLoadCfg();const m=ON.cfg.motd;if(!m||!m.text)return;if(LS.get("obs_motd_seen",0)===m.id)return;LS.set("obs_motd_seen",m.id);await onMsgBox(m.text,"NACHRICHT");}
 // eigene Zeile der Bestenliste laden bzw. anlegen
 async function onLoadBoard(create){if(!(await onReady()))return null;
   const r=await onFetch(`/rest/v1/obs_board?select=*&id=eq.${ON.sess.uid}`);if(r.ok&&Array.isArray(r.j)&&r.j[0]){ON.board=r.j[0];return ON.board;}
@@ -7154,7 +7183,7 @@ async function onDownload(){if(!(await onReady()))return null;const r=await onFe
   if(r.ok&&Array.isArray(r.j)&&r.j[0])return r.j[0];return r.ok?{}:null;}
 // Automatisch hochladen, wenn das Spiel speichert (gebündelt, höchstens alle 20 s)
 // beim Start still wieder anmelden
-setTimeout(async()=>{const t=LS.get("obs_acc",null);if(t&&t.rt){ON.sess={access_token:"",refresh_token:t.rt,uid:t.uid,exp:0,name:t.name};if(await onRefresh()){onLoadBoard(true);if(typeof accSync==="function")accSync();}else ON.sess=null;}},1500);
+setTimeout(async()=>{const t=LS.get("obs_acc",null);if(t&&t.rt){ON.sess={access_token:"",refresh_token:t.rt,uid:t.uid,exp:0,name:t.name};if(await onRefresh()){onLoadBoard(true);onAfterLogin();if(typeof accSync==="function")accSync();}else ON.sess=null;}},1500);
 
 /* ---------- Eingabefenster (HTML über dem Spiel, damit Tastatur/Handy-Tastatur normal funktionieren) ---------- */
 function onForm(o){return new Promise(res=>{let el=document.getElementById("onForm");if(el)el.remove();el=document.createElement("div");el.id="onForm";
@@ -7176,7 +7205,7 @@ function onForm(o){return new Promise(res=>{let el=document.getElementById("onFo
       f.querySelectorAll("button,input").forEach(b=>b.disabled=false);if(e2){err.style.color="#ff8a7a";err.textContent=e2;return;}}
     close(v);};
   setTimeout(()=>{const i=f.querySelector("input");if(i)i.focus();},50);});}
-const ON_NOTE="Das Konto gilt nur für Pokémon Obsidian. Dein Name ist in der Bestenliste öffentlich sichtbar. Gespeichert werden Name, ein verschlüsseltes Passwort, dein Spielstand und Duell-Werte (kostenloser Server bei Supabase, EU/Frankfurt).";
+const ON_NOTE="Das Konto gilt nur für Pokémon Obsidian. Dein Name ist in der Bestenliste öffentlich sichtbar. Gespeichert werden Name, ein verschlüsseltes Passwort, dein Spielstand und Duell-Werte (kostenloser Server bei Supabase, EU/Paris).";
 async function onAccountFlow(){const c=await onMenu("ONLINE","",[["ANMELDEN","card"],["KONTO ERSTELLEN","save"],["ZURÜCK","back"]],["Melde dich an, um online zu spielen.","Konten, Cloud-Spielstand, Bestenliste und Live-Duelle"]);
   if(c===0)return!!(await onForm({title:"ANMELDEN",ok:"Anmelden",fields:[{id:"n",label:"Name",max:12,ac:"username"},{id:"p",label:"Passwort",type:"password",max:64,ac:"current-password"}],
     check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen.":v.p.length<4?"Passwort: mindestens 4 Zeichen.":null,submit:v=>onLogin(v.n,v.p)}));
@@ -7189,8 +7218,8 @@ function onMenu(title,right,items,foot,o={}){let i=o.i||0;return run({opaque:tru
     if(Input.nav("up")){i=(i+n-1)%n;sfx("move");}if(Input.nav("down")){i=(i+1)%n;sfx("move");}
     if(Input.hit("a")){sfx("select");this.done(i);}if(Input.hit("b")){sfx("back");this.done(-1);}},
   draw(){obBg();obHeader(title,typeof right==="function"?right():right);const RH=Math.min(24,Math.floor((PRH-48-34)/items.length));let y=30;
-    items.forEach((it,j)=>{const sel=j===i;obCard(10,y,PRW*.56,RH-3,sel);if(it[1])drawUiIcon(it[1],16,y+(RH-3-16)/2,16);prT(it[0],40,y+(RH-3-14)/2-1,{size:14,c:sel?"#fff":OB.dim});y+=RH;});
-    if(o.side)o.side(PRW*.6,30);const F=typeof foot==="function"?foot():foot;obFoot(F&&F[0],F&&F[1]);prEnd();}});}
+    const MW=o.mw||.56;items.forEach((it,j)=>{const sel=j===i;obCard(10,y,PRW*MW,RH-3,sel);if(it[1])drawUiIcon(it[1],16,y+(RH-3-16)/2,16);prT(it[0],40,y+(RH-3-14)/2-1,{size:14,c:sel?"#fff":OB.dim});y+=RH;});
+    if(o.side)o.side(PRW*(o.mw?o.mw+.04:.6),30);const F=typeof foot==="function"?foot():foot;obFoot(F&&F[0],F&&F[1]);prEnd();}});}
 function onWait(lines,o={}){let t=0;const sc={opaque:true,cancel:false,update(){t++;if(o.cancel!==false&&Input.hit("b")){sfx("back");this.cancel=true;this.done&&this.done("cancel");}},
   draw(){obBg();obHeader(o.title||"LIVE-DUELL",o.right||"");const L=typeof lines==="function"?lines():lines;
     L.forEach((l,j)=>prT(l,PRW/2,70+j*20,{align:"center",size:j===0?18:14,c:j===0?"#fff":OB.dim}));
@@ -7199,23 +7228,27 @@ function onWait(lines,o={}){let t=0;const sc={opaque:true,cancel:false,update(){
     obFoot(o.foot||"",o.cancel===false?"":"B: Abbrechen");prEnd();}};return sc;}
 
 /* ---------- Bestenliste ---------- */
-async function onBoardScreen(){let tab=0,rows=null,err=null,sc=0;
-  const load=async()=>{rows=null;err=null;const ord=tab===0?"elo.desc,wins.desc":"badges.desc,dex.desc";const r=await onFetch(`/rest/v1/obs_board?select=id,name,elo,wins,losses,badges,dex&order=${ord}&limit=100`,{auth:false});
-    if(r.ok&&Array.isArray(r.j))rows=r.j;else err=onErrText(r);sc=0;};
+async function onBoardScreen(){let tab=0,rows=null,err=null,sc=0,sel=0,titles={};
+  const load=async()=>{rows=null;err=null;const ord=tab===0?"elo.desc,wins.desc":"badges.desc,dex.desc";
+    const [r,t]=await Promise.all([onFetch(`/rest/v1/obs_board?select=id,name,elo,wins,losses,badges,dex,card,created_at&order=${ord}&limit=100`,{auth:false}),typeof cardTitles==="function"?cardTitles():{}]);
+    titles=t||{};if(r.ok&&Array.isArray(r.j)){rows=r.j;const me=ON.sess?rows.findIndex(x=>x.id===ON.sess.uid):-1;sel=Math.max(0,me);}else err=onErrText(r);sc=Math.max(0,sel-4);};
   load();
-  await run({opaque:true,update(){if(Input.hit("b")||Input.hit("a")){sfx("back");this.done();}
-      if(Input.nav("left")||Input.nav("right")){tab^=1;sfx("move");load();}
-      if(rows){const max=Math.max(0,rows.length-8);if(Input.nav("down")&&sc<max){sc++;sfx("move");}if(Input.nav("up")&&sc>0){sc--;sfx("move");}}},
+  await run({opaque:true,busy:false,update(){if(this.busy)return;if(Input.hit("b")){sfx("back");this.done();return;}
+      if(Input.nav("left")||Input.nav("right")){tab^=1;sfx("move");load();return;}
+      if(rows&&rows.length){if(Input.nav("down")&&sel<rows.length-1){sel++;sfx("move");}if(Input.nav("up")&&sel>0){sel--;sfx("move");}
+        if(sel<sc)sc=sel;if(sel>=sc+8)sc=sel-7;
+        if(Input.hit("a")){sfx("select");this.busy=true;const r=rows[sel];if(r.card&&r.card.fav)animData(r.card.fav,false,!!r.card.sh);cardView(r,titles,sel+1).then(()=>{this.busy=false;});}}},
     draw(){obBg();obHeader("BESTENLISTE",tab===0?"◀ DUELL-ELO ▶":"◀ FORTSCHRITT ▶");
       ctx.fillStyle="rgba(255,255,255,.08)";ctx.fillRect(8,27,PRW-16,14);
       const H=[["#",14],["NAME",34],["ELO",168],["S / N",210],["ORDEN",252],["DEX",292]];H.forEach(([h,x])=>prT(h,x,27,{size:12,c:OB.gold,sh:"transparent"}));
       if(!rows){prT(err||"Lade …",PRW/2,90,{align:"center",size:14,c:err?"#ff8a7a":OB.dim});}
       else if(!rows.length)prT("Noch keine Einträge – sei der Erste!",PRW/2,90,{align:"center",size:14,c:OB.dim});
-      else rows.slice(sc,sc+8).forEach((r,j)=>{const y=44+j*15,me=ON.sess&&r.id===ON.sess.uid,rk=sc+j+1;if(me)obSel(8,y,PRW-16,14);
-        const c=rk===1?"#ffd860":rk===2?"#d8e0f0":rk===3?"#e8a870":"#fff";prT(String(rk),14,y,{size:13,c});prT(r.name,34,y,{size:13,c:me?"#fff":OB.dim});
+      else rows.slice(sc,sc+8).forEach((r,j)=>{const y=44+j*15,me=ON.sess&&r.id===ON.sess.uid,rk=sc+j+1;if(sc+j===sel)obSel(8,y,PRW-16,14);else if(me){ctx.fillStyle="rgba(255,216,144,.10)";ctx.fillRect(8,y,PRW-16,14);}
+        const c=rk===1?"#ffd860":rk===2?"#d8e0f0":rk===3?"#e8a870":"#fff";prT(String(rk),14,y,{size:13,c});prT(r.name,34,y,{size:13,c:me||sc+j===sel?"#fff":OB.dim});
+        const t=titles[r.id];if(t&&typeof titleDraw==="function")titleDraw(t.text.slice(0,12),t.style,36+prW(r.name,13)+4,y+2,10);
         prT(String(r.elo),168,y,{size:13,c:"#fff"});prT(`${r.wins}/${r.losses}`,210,y,{size:13,c:OB.dim});prT(String(r.badges),262,y,{size:13,c:OB.dim});prT(String(r.dex),292,y,{size:13,c:OB.dim});});
       if(rows&&sc>0)obArrow(PRW-10,48,true);if(rows&&sc<rows.length-8)obArrow(PRW-10,PRH-56,false);
-      obFoot(ON.board?`Du: ${ON.board.elo} Elo · ${ON.board.wins} ${ON.board.wins===1?"Sieg":"Siege"} · ${ON.board.losses} ${ON.board.losses===1?"Niederlage":"Niederlagen"}`:"Melde dich an, um mitzuspielen.","◀▶ Liste wechseln · B: zurück");prEnd();}});}
+      obFoot(ON.board?`Du: ${ON.board.elo} Elo · ${ON.board.wins} ${ON.board.wins===1?"Sieg":"Siege"} · ${ON.board.losses} ${ON.board.losses===1?"Niederlage":"Niederlagen"}`:"Melde dich an, um mitzuspielen.","A: Kampfkarte · ◀▶ Liste · B: zurück");prEnd();}});}
 
 /* ---------- Duell-Team (aus dem zuletzt gespielten Spielstand, alle auf Lv. 50) ---------- */
 function onTeamSource(){const sl=slotInfo(),li=lastSlot(sl);return li?sl[li-1]:null;}
@@ -7280,7 +7313,8 @@ function duelGone(){if(!DUEL||DUEL.gone)return;DUEL.gone=true;for(const k in DUE
 function duelClose(){if(!DUEL)return;clearInterval(DUEL.pi);if(DUEL.tr){try{duelSend("bye",{});}catch(e){}const t=DUEL.tr;setTimeout(()=>t.close(),300);}DUEL=null;RNGF=null;}
 
 /* ---------- Gegner finden ---------- */
-function onMyInfo(team){const sv=onTeamSource();return{id:Math.random().toString(36).slice(2,10),name:ON.sess?ON.sess.name:"Gast",elo:ON.board?ON.board.elo:1000,ch:sv&&sv.gender==="f"?"playerF":"player",gender:sv&&sv.gender==="f"?"f":"m",team};}
+function onMyInfo(team){const sv=onTeamSource();const card=typeof cardMine==="function"?cardMine():null,ci=typeof cardInfoMine==="function"?cardInfoMine():null;
+  return{id:Math.random().toString(36).slice(2,10),name:ON.sess?ON.sess.name:"Gast",elo:ON.board?ON.board.elo:1000,ch:sv&&sv.gender==="f"?"playerF":"player",gender:sv&&sv.gender==="f"?"f":"m",team,card,ci};}
 // Raum betreten und warten, bis der Gegner da ist. Ergebnis: true (los geht's) oder Fehlertext / "cancel"
 function onRoom(room,host,me,waitSc){return new Promise(res=>{
   DUEL={host,me,peer:null,seed:host?(Math.random()*2147483647)|0:0,started:false,tr:null,inbox:{},waiters:{},seen:{},out:{},repIn:0,repOut:0,gone:false,last:Date.now(),owner:"S",err:null};
@@ -7314,6 +7348,8 @@ async function onRunDuel(){const D=DUEL;const real=G.save;const sv=onTeamSource(
       part:new Set(),screens:[{},{}],turn:0,runs:0,used:{},result:null,money:0,lvUps:new Set(),moneyBonus:0};
     Music.play("trainer");bvInit();if(BV.ok)bvSetBg("grass");PFX.length=0;BV.idle=false;
     await Promise.all([animData(foes[0].sp,false,foes[0].shiny).p,animData(tmp.party[0].sp,true,tmp.party[0].shiny).p]);
+    if(typeof cardVs==="function"){try{if(D.peer.card&&D.peer.card.fav)animData(D.peer.card.fav,false,!!D.peer.card.sh);if(D.me.card&&D.me.card.fav)animData(D.me.card.fav,false,!!D.me.card.sh);
+      const vs=cardVs(D.me,onSafePeer(D.peer));await fadeTo(0,8);await vs;await fadeTo(1,8);}catch(e){console.error(e);}}
     await battleTransition("trainer",{ch:D.peer.ch,name:D.peer.name});
     if(typeof BV!=="undefined")BV.scr={};
     fade.a=1;fade.target=1;const scene=push(BattleScene);await fadeTo(0,10);
@@ -7322,6 +7358,10 @@ async function onRunDuel(){const D=DUEL;const real=G.save;const sv=onTeamSource(
     await fadeTo(1,10);pop(scene); // erst abblenden, dann Szene schließen (sonst landen Tasten im Titelmenü)
   }finally{B=null;G.save=real;RNGF=null;}
   return res;}
+// Daten vom Gegner nur in sauberer Form anzeigen
+function onSafePeer(p){const c=p.card&&typeof p.card==="object"?p.card:{};const ci=p.ci&&typeof p.ci==="object"?p.ci:{};const n=x=>Math.max(0,Math.min(99999,Math.floor(+x||0)));
+  return{name:String(p.name||"?").slice(0,12),elo:n(p.elo),card:{fav:SPECIES[c.fav]?+c.fav:0,sh:!!c.sh,bg:CARD_BG[c.bg]?c.bg:"obsidian"},
+    ci:{name:String(p.name||"?").slice(0,12),title:ci.title?String(ci.title).slice(0,20):"",tstyle:TITLE_FX[ci.tstyle]?ci.tstyle:"gold",elo:n(p.elo),wins:n(ci.wins),losses:n(ci.losses),badges:Math.min(8,n(ci.badges)),dex:n(ci.dex)}};}
 function onElo(me,op,score){const e=1/(1+Math.pow(10,(op-me)/400));return Math.max(0,Math.round(me+32*(score-e)));}
 async function onAfterDuel(res){const D=DUEL;const peer=D.peer;duelClose();
   const score=res==="win"?1:res==="lose"?0:res==="draw"?.5:null;let line="";
@@ -7334,6 +7374,8 @@ async function onAfterDuel(res){const D=DUEL;const peer=D.peer;duelClose();
       prT(`gegen ${peer.name}`,PRW/2,92,{align:"center",size:16,c:OB.dim});if(line)prT(line,PRW/2,116,{align:"center",size:16,c:"#fff"});
       obFoot("A: weiter","");prEnd();}});await fadeTo(0,10);await shown;}
 async function onDuelFlow(kind){if(ON.busy)return;const team=onMyTeam();
+  await onLoadCfg(true);if(onOutdated()){await onMsgBox("Es gibt eine neue Version. Bitte das Spiel neu laden (Strg+F5), dann klappt es mit dem Duell.");return;}
+  if(onCfgOff("duels")){await onMsgBox("Live-Duelle sind gerade kurz geschlossen. Bitte später nochmal versuchen.");return;}
   if(!team.length){await onMsgBox("Du brauchst ein Team. Starte zuerst ein Spiel und fange Pokémon.");return;}
   const me=onMyInfo(team);let room=null,host=false;
   if(kind==="join"){const v=await onForm({title:"RAUM BEITRETEN",ok:"Beitreten",fields:[{id:"c",label:"Raum-Code (4 Ziffern)",max:4,mode:"numeric"}],check:v=>/^\d{4}$/.test(v.c.trim())?null:"Der Code hat 4 Ziffern."});if(!v)return;room=v.c.trim();host=false;}
@@ -7348,8 +7390,8 @@ async function onDuelFlow(kind){if(ON.busy)return;const team=onMyTeam();
     if(r2!==true){if(Scenes.includes(w2))w2.done();duelClose();if(typeof r2==="string"&&r2!=="cancel")await onMsgBox(r2);return;}
     await fadeTo(1,10);if(Scenes.includes(w2))w2.done();res=await onRunDuel();await onAfterDuel(res);
   }finally{ON.busy=false;if(DUEL)duelClose();}}
-function onMsgBox(text){return run({opaque:true,t:0,update(){this.t++;if(this.t>8&&(Input.hit("a")||Input.hit("b"))){sfx("select");this.done();}},
-  draw(){obBg();obHeader("ONLINE","");prWrap(text,280,16).forEach((l,i)=>prT(l,PRW/2,60+i*20,{align:"center",c:"#fff"}));obFoot("A: OK","");prEnd();}});}
+function onMsgBox(text,head){return run({opaque:true,t:0,update(){this.t++;if(this.t>8&&(Input.hit("a")||Input.hit("b"))){sfx("select");this.done();}},
+  draw(){obBg();obHeader(head||"ONLINE","");prWrap(text,280,16).forEach((l,i)=>prT(l,PRW/2,60+i*20,{align:"center",c:"#fff"}));obFoot("A: OK","");prEnd();}});}
 
 /* ---------- Cloud-Spielstand ---------- */
 async function onCloudUp(){const sl=slotInfo(),li=lastSlot(sl);if(!li){await onMsgBox("Es gibt noch keinen Spielstand zum Hochladen.");return;}
@@ -7375,7 +7417,7 @@ async function onlineMenu(){
 window.addEventListener("pagehide",()=>{try{if(DUEL&&DUEL.tr)duelSend("bye",{});}catch(e){}});
 
 /* ===== account.js ===== */
-/* ================================ KONTEN v0.20 (nach Vorbild Pokélings) ================================
+/* ================================ KONTEN v0.20/v0.21 ================================
    - Beim Start: Anmelden / Konto erstellen / Als Gast spielen (Fenster mit Bestenliste daneben).
    - Spielstände hängen am Konto: eigener lokaler Bereich je Konto + automatischer Abgleich aller 3 Plätze mit der Cloud
      (neuere Fassung gewinnt, gelöschte Plätze werden auch in der Cloud gelöscht).
@@ -7385,7 +7427,10 @@ function accTomb(){return LS.get((accNs()||"saga")+"_del",{});}
 function slotDel(i){const t=accTomb();t[i]=Date.now();LS.set((accNs()||"saga")+"_del",t);LS.del(slotKey(i));if(ON.sess)accPushSoon(2000);}
 // „Angemeldet bleiben“: Sitzung nur für diesen Tab merken, wenn abgewählt
 {const _set=onSetSess;onSetSess=function(j,name){const ok=_set(j,name);if(ok&&ON.remember===false){LS.del("obs_acc");try{sessionStorage.setItem("obs_acc",JSON.stringify({name,rt:j.refresh_token,uid:ON.sess.uid}));}catch(e){}}return ok;};}
-{const _lo=onLogout;onLogout=function(){_lo();try{sessionStorage.removeItem("obs_acc");}catch(e){}ON.remember=true;if(typeof TitleScene!=="undefined"&&TitleScene.refresh)TitleScene.refresh();};}
+// Abmelden: Spielstände liegen in der Datenbank. Die lokale Kopie des Kontos wird nur entfernt, wenn der letzte Stand sicher hochgeladen ist.
+async function accSignOut(global){let ok=false;if(ON.sess){clearTimeout(ACC_UP);ACC_UP=0;ok=await accPush();if(global)await onFetch("/auth/v1/logout?scope=global",{method:"POST"});}
+  const ns=accNs();onLogout();if(ok&&ns){for(let k=1;k<=SLOTS;k++)LS.del(ns+"_slot"+k);LS.del(ns+"_del");}return ok;}
+{const _lo=onLogout;onLogout=function(){_lo();ON.title=null;try{sessionStorage.removeItem("obs_acc");}catch(e){}ON.remember=true;if(typeof TitleScene!=="undefined"&&TitleScene.refresh)TitleScene.refresh();};}
 setTimeout(async()=>{if(ON.sess)return;let t=null;try{t=JSON.parse(sessionStorage.getItem("obs_acc")||"null");}catch(e){}if(t&&t.rt){ON.remember=false;ON.sess={access_token:"",refresh_token:t.rt,uid:t.uid,exp:0,name:t.name};if(await onRefresh()){onLoadBoard(true);accSync();}else ON.sess=null;}},1600);
 
 /* ---------- Abgleich der Spielstände ---------- */
@@ -7426,14 +7471,14 @@ function onConfirm(title,text,yes="Ja",no="Nein",danger){return new Promise(res=
   el.style.zoom=String(Math.min(1.6,Math.max(1,Math.min(innerHeight/600,innerWidth/700))));document.body.appendChild(el);Input.textMode=true;const close=v=>{el.remove();Input.textMode=false;Input.clear();res(v);};
   el.querySelector(".n").onclick=()=>close(false);el.querySelector(".y").onclick=()=>close(true);el.addEventListener("keydown",e=>{e.stopPropagation();if(e.key==="Escape")close(false);if(e.key==="Enter")close(true);});setTimeout(()=>el.querySelector(".y").focus(),30);});}
 
-/* ---------- Start-Anmeldung (wie Pokélings) ---------- */
+/* ---------- Start-Anmeldung ---------- */
 function accGate(){return new Promise(res=>{let el=document.getElementById("accGate");if(el)el.remove();el=document.createElement("div");el.id="accGate";
   el.style.cssText="position:fixed;inset:0;z-index:55;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:12px;box-sizing:border-box;background:rgba(10,6,22,.55);font-family:'Pixelify Sans',sans-serif;overflow:auto";
   const inp="width:100%;box-sizing:border-box;margin:3px 0 9px;padding:9px 10px;font:600 17px 'Pixelify Sans',sans-serif;color:#2a2238;background:#fbf7ee;border:2px solid #4a3c62;border-radius:5px;outline:none";
   const lab="font:700 12px 'Pixelify Sans',sans-serif;color:#ffd890;letter-spacing:.5px";
   const btn=(c,w)=>`${w?"width:100%;":""}padding:10px 14px;font:700 16px 'Pixelify Sans',sans-serif;color:#fff;border-radius:6px;cursor:pointer;border:2px solid ${c?"#ffd0b8":"#5a4c78"};background:${c?"linear-gradient(#ff8a60,#c8402a)":"linear-gradient(#3e3258,#2a2240)"}`;
   const panel="background:linear-gradient(#251d38,#17121f);border:2px solid #e85a3a;border-radius:10px;padding:16px;color:#d8d0e0;box-shadow:0 10px 40px #000b";
-  el.innerHTML=`<form style="width:min(360px,94vw);${panel}">
+  el.innerHTML=`<div class="ban" style="display:none;width:min(680px,94vw);flex-basis:100%;${panel};padding:10px 14px;font-size:14px;line-height:1.4"></div><form style="width:min(360px,94vw);${panel}">
     <div style="display:flex;gap:6px;margin-bottom:12px"><button type="button" data-t="0" style="flex:1;${btn(1)}">ANMELDEN</button><button type="button" data-t="1" style="flex:1;${btn(0)}">REGISTRIEREN</button></div>
     <div style="${lab}">BENUTZERNAME</div><input name="n" maxlength="12" autocomplete="username" style="${inp}">
     <div style="${lab}">PASSWORT</div><input name="p" type="password" maxlength="64" autocomplete="current-password" style="${inp}">
@@ -7451,7 +7496,13 @@ function accGate(){return new Promise(res=>{let el=document.getElementById("accG
   el.addEventListener("keydown",e=>e.stopPropagation());
   const close=v=>{el.remove();Input.textMode=false;Input.clear();res(v);};
   el.querySelector(".guest").onclick=()=>{try{sessionStorage.setItem("obs_guest","1");}catch(e){}close("guest");};
+  onLoadCfg(true).then(c=>{const b=el.querySelector(".ban");if(!b)return;const L=[];if(onOutdated())L.push(`<b style="color:#ff8a7a">Neue Version verfügbar!</b> Bitte neu laden (Strg+F5), sonst klappen Duelle nicht.`);
+    if(c.motd&&c.motd.text){L.push(`<b style="color:#ffd890">NACHRICHT</b><br>${String(c.motd.text).replace(/[&<>]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[x])).replace(/\n/g,"<br>")}`);LS.set("obs_motd_seen",c.motd.id);}
+    if(L.length){b.innerHTML=L.join("<hr style='border:0;border-top:1px solid #4a3c62;margin:8px 0'>");b.style.display="block";}});
   f.onsubmit=async e=>{e.preventDefault();const n=f.elements.n.value.trim(),p=f.elements.p.value,p2=f.elements.p2.value;
+    if(typeof admIsName==="function"&&admIsName(n)){if(tab){err.textContent="Dieser Name ist reserviert.";return;}if(p.length<4){err.textContent="Passwort: mindestens 4 Zeichen.";return;}
+      err.style.color="#ffd890";err.textContent="Einen Moment …";const ae=await admLogin(p);if(ae){err.style.color="#ff8a7a";err.textContent=ae;return;}
+      err.textContent="";f.elements.p.value="";el.style.display="none";await admPanel();el.style.display="flex";Input.textMode=true;return;}
     if(!onNameOk(n)){err.textContent="Name: 3–12 Zeichen (Buchstaben, Zahlen, - _ .).";return;}if(p.length<4){err.textContent="Passwort: mindestens 4 Zeichen.";return;}if(tab&&p!==p2){err.textContent="Die Passwörter sind verschieden.";return;}
     ON.remember=f.elements.r.checked;err.style.color="#ffd890";err.textContent="Einen Moment …";f.querySelectorAll("button,input").forEach(b=>b.disabled=true);
     const e2=tab?await onRegister(n,p):await onLogin(n,p);f.querySelectorAll("button,input").forEach(b=>b.disabled=false);
@@ -7469,13 +7520,11 @@ function accStats(){const sl=slotInfo().filter(Boolean);let time=0,badges=0,caug
   const last=onTeamSource();return{slots:sl.length,time,badges,caught,seen,last};}
 async function accProfile(){let i=0;
   while(ON.sess){const B0=ON.board||{elo:1000,wins:0,losses:0};const S=accStats();
-    const c=await onMenu("PROFIL",ON.sess.name,[["JETZT ABGLEICHEN","save"],["PASSWORT ÄNDERN","card"],["NAME ÄNDERN","card"],["ÜBERALL ABMELDEN","opt"],["ABMELDEN","back"],["KONTO LÖSCHEN","opt"],["ZURÜCK","back"]],
+    const c0=await onMenu("PROFIL",ON.sess.name,[["KAMPFKARTE","card"],["JETZT ABGLEICHEN","save"],["PASSWORT ÄNDERN","card"],["NAME ÄNDERN","card"],["ÜBERALL ABMELDEN","opt"],["ABMELDEN","back"],["KONTO LÖSCHEN","opt"],["ZURÜCK","back"]],
       ()=>[ON.lastSync?`Zuletzt abgeglichen: ${fmtDate(ON.lastSync)}`:"Spielstände werden automatisch abgeglichen.",`${S.slots} Spielstand${S.slots===1?"":"e"} am Konto`],
-      {i,side:(x,y)=>{const w=PRW-x-8;obCard(x,y,w,124,false);
-        const ch=S.last&&S.last.gender==="f"?"playerF":"player";const im=TRIMG[ch];if(im&&im.complete){prEnd();const sc=Math.min(.75,62/im.height);ctx.drawImage(im,Math.round((x+2)*PRK),Math.round((y+20)*PRK),Math.round(im.width*sc),Math.round(im.height*sc));prBegin();}
-        const L=[["Elo",B0.elo],["Bilanz",`${B0.wins}–${B0.losses}`],["Orden",S.badges],["Dex",S.caught],["Zeit",fmtTime(S.time)],["Seit",B0.created_at?fmtDate(Date.parse(B0.created_at)).slice(0,6)+String(new Date(B0.created_at).getFullYear()).slice(2):"–"]];
-        L.forEach(([k,v],j)=>{const yy=y+8+j*19;prT(k,x+52,yy,{size:11,c:OB.mute,sh:"transparent"});prT(String(v),x+w-6,yy,{size:13,align:"right",c:"#fff"});});}});
-    if(c<0||c===6)return;i=c;
+      {i:Math.min(i,7),mw:.47,side:(x,y)=>{const w=PRW-x-8,cx=x+Math.max(0,(w-CARD_W)/2);cardDraw(cx,y,cardMine(),cardInfoMine());
+        prT(`Spielzeit ${fmtTime(S.time)} · Seit ${B0.created_at?fmtDate(Date.parse(B0.created_at)).slice(0,6)+String(new Date(B0.created_at).getFullYear()).slice(2):"–"}`,cx+CARD_W/2,y+CARD_H+6,{size:11,align:"center",c:OB.mute,sh:"transparent"});}});
+    if(c0<0||c0===7)return;i=c0;if(c0===0){await cardEditor();continue;}const c=c0-1;
     if(c===0){const ok=await accSync();await onMsgBox(ok?"Alle Spielstände sind abgeglichen.":"Abgleich fehlgeschlagen. Prüfe dein Internet.");}
     if(c===1){const v=await onForm({title:"PASSWORT ÄNDERN",ok:"Ändern",fields:[{id:"o",label:"Aktuelles Passwort",type:"password",max:64,ac:"current-password"},{id:"p",label:"Neues Passwort (mind. 4 Zeichen)",type:"password",max:64,ac:"new-password"},{id:"p2",label:"Neues Passwort wiederholen",type:"password",max:64,ac:"new-password"}],
       check:v=>v.p.length<4?"Neues Passwort: mindestens 4 Zeichen.":v.p!==v.p2?"Die neuen Passwörter sind verschieden.":null,
@@ -7490,12 +7539,271 @@ async function accProfile(){let i=0;
         const oldNs=accNs();const slots=accLocalSlots(),tomb=accTomb();const e=await onLogin(nn,v.o);if(e)return e;
         const nsNew=accNs();if(oldNs!==nsNew){for(const k in slots)LS.set(slotKey(+k),slots[k]);LS.set(nsNew+"_del",tomb);for(let k=1;k<=SLOTS;k++)LS.del(oldNs+"_slot"+k);LS.del(oldNs+"_del");}return null;}});
       if(v)await onMsgBox(`Du heißt jetzt ${ON.sess.name}.`);}
-    if(c===3){if(await onConfirm("ÜBERALL ABMELDEN","Meldet dich auf allen Geräten ab (auch hier). Deine Spielstände bleiben in der Cloud.","Abmelden","Abbrechen")){await accPush();await onFetch("/auth/v1/logout?scope=global",{method:"POST"});onLogout();return;}}
-    if(c===4){await accPush();onLogout();return;}
+    if(c===3){if(await onConfirm("ÜBERALL ABMELDEN","Meldet dich auf allen Geräten ab (auch hier). Deine Spielstände bleiben in der Cloud.","Abmelden","Abbrechen")){await accSignOut(true);return;}}
+    if(c===4){await accSignOut(false);return;}
     if(c===5){if(await onConfirm("KONTO LÖSCHEN",`Konto <b>${ON.sess.name}</b> mit Cloud-Spielständen, Elo und Bestenlisten-Eintrag endgültig löschen? Die Spielstände auf diesem Gerät bleiben als Gast-Spielstände erhalten.`,"Endgültig löschen","Abbrechen",true)){
         const slots=accLocalSlots();const r=await onFetch("/rest/v1/rpc/obs_delete_me",{method:"POST",body:{}});
         if(!r.ok){await onMsgBox("Löschen fehlgeschlagen: "+onErrText(r));continue;}const ns=accNs();onLogout();for(const k in slots)if(!LS.get("saga_slot"+k,null))LS.set("saga_slot"+k,slots[k]);for(let k=1;k<=SLOTS;k++)LS.del(ns+"_slot"+k);
         await onMsgBox("Dein Konto wurde gelöscht.");return;}}}}
+
+/* ===== card.js ===== */
+/* ================================ KAMPFKARTE v0.21 ================================
+   Jeder Trainer mit Konto hat eine Kampfkarte: Name, Sondertitel, Lieblings-Pokémon, Elo, Bilanz, Orden, Pokédex.
+   Das Lieblings-Pokémon wählst du aus deinem Team oder deinen Boxen (alle Spielstände des Kontos).
+   Gespeichert in obs_board.card ({fav,sh,lv,bg}); sichtbar im Profil, in der Bestenliste und im VS-Bildschirm vor Live-Duellen. */
+const CARD_W=148,CARD_H=96;
+const CARD_BG={
+  obsidian:{n:"Obsidian",a:"#2c1f4a",b:"#110b1d",c:"#b48cff",need:0},
+  wald:{n:"Vertania-Wald",a:"#1c4a2c",b:"#07170d",c:"#6ad87a",need:1},
+  glut:{n:"Glut",a:"#5c1c10",b:"#1e0806",c:"#ff8a50",need:2},
+  ozean:{n:"Ozean",a:"#123c5e",b:"#061420",c:"#6cc8ff",need:3},
+  donner:{n:"Donner",a:"#4c4212",b:"#171404",c:"#ffd84a",need:5},
+  geist:{n:"Lavandia",a:"#36204e",b:"#0c0616",c:"#d08aff",need:6},
+  champion:{n:"Champion",a:"#6a4c12",b:"#1a1004",c:"#ffe680",need:8}};
+const TITLE_FX={gold:"Gold",chrom:"Chrom",regenbogen:"Regenbogen",feuer:"Feuer",eis:"Eis",neon:"Neon",smaragd:"Smaragd"};
+// Titel-Schrift als animierter Verlauf (Canvas)
+function titleFill(sty,x,w){const t=FRAME;const g=ctx.createLinearGradient(x,0,x+Math.max(20,w),0);
+  const pal={gold:["#fff6c0","#ffd23f","#b07a10","#ffe680"],chrom:["#ffffff","#9aa6b8","#f4f7fb","#768498"],regenbogen:["#ff5a5a","#ffd23f","#4dffa6","#5cf2ff","#c27cff"],
+    feuer:["#fff3a0","#ff9a2a","#ff3a1a"],eis:["#ffffff","#c8f4ff","#5cc8ff"],neon:["#ffe0f6","#ff3ec9","#ffe0f6"],smaragd:["#e0ffe8","#4de08a","#0e8a4a","#7af0aa"]}[sty]||["#fff6c0","#ffd23f"];
+  const sh=(t/90)%1;pal.forEach((c,i)=>g.addColorStop(((i/(pal.length-1))+sh)%1,c));if(pal.length>1)g.addColorStop(sh,pal[0]);return g;}
+function titleDraw(text,sty,x,y,size=12,align="left"){if(!text)return;const w=prW(text,size);const x0=align==="center"?x-w/2:align==="right"?x-w:x;
+  prT(text,x,y,{size,align,c:titleFill(sty,x0,w),sh:sty==="neon"?"#7a1060":"rgba(0,0,0,.65)"});}
+// Standard-Karte, wenn noch nichts gewählt ist: Erstes Pokémon im Team des letzten Spielstands
+function cardDefault(){const sv=typeof onTeamSource==="function"?onTeamSource():null;const m=sv&&sv.party&&sv.party[0];return{fav:m?m.sp:25,sh:!!(m&&m.shiny),lv:m?m.lv||m.level||5:5,bg:"obsidian"};}
+function cardMine(){const c=(ON.board&&ON.board.card)||LS.get(cardKey(),null);return Object.assign(cardDefault(),c||{});}
+function cardKey(){return((typeof accNs==="function"&&accNs())||"saga")+"_card";}
+// info: {name,title,tstyle,elo,wins,losses,badges,dex}
+function cardDraw(x,y,card,info,o={}){card=card||{};const T=CARD_BG[card.bg]||CARD_BG.obsidian,W=CARD_W,H=CARD_H;
+  ctx.save();ctx.fillStyle="rgba(0,0,0,.45)";ctx.fillRect(x+2,y+3,W,H);
+  const g=ctx.createLinearGradient(x,y,x+W*.6,y+H);g.addColorStop(0,T.a);g.addColorStop(1,T.b);ctx.fillStyle=g;ctx.fillRect(x,y,W,H);
+  ctx.beginPath();ctx.rect(x,y,W,H);ctx.clip();
+  // Schräg-Streifen + Lichtkreis hinter dem Pokémon
+  ctx.globalAlpha=.07;ctx.fillStyle="#fff";for(let i=-6;i<14;i++){ctx.beginPath();const sx=x+i*16;ctx.moveTo(sx,y+H);ctx.lineTo(sx+8,y+H);ctx.lineTo(sx+8+H*.5,y);ctx.lineTo(sx+H*.5,y);ctx.fill();}
+  ctx.globalAlpha=1;const rg=ctx.createRadialGradient(x+W-38,y+52,4,x+W-38,y+52,46);rg.addColorStop(0,T.c+"66");rg.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=rg;ctx.fillRect(x,y,W,H);
+  // Glanz läuft über die Karte
+  const sp=((FRAME*1.4)%(W*3))-W;const sg=ctx.createLinearGradient(x+sp,0,x+sp+30,0);sg.addColorStop(0,"rgba(255,255,255,0)");sg.addColorStop(.5,"rgba(255,255,255,.10)");sg.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=sg;ctx.fillRect(x,y,W,H);
+  ctx.restore();
+  ctx.strokeStyle=T.c;ctx.lineWidth=1.5;ctx.strokeRect(x+.75,y+.75,W-1.5,H-1.5);ctx.fillStyle=T.c;ctx.fillRect(x,y,W,2);
+  ctx.fillStyle="rgba(0,0,0,.35)";ctx.fillRect(x+2,y+H-28,W-4,26);
+  // Name + Titel
+  prT(String(info.name||"?").slice(0,12),x+7,y+5,{size:16,c:"#fff",sh:"rgba(0,0,0,.7)"});
+  if(info.title)titleDraw(info.title,info.tstyle||"gold",x+7,y+22,12);
+  else prT("KAMPFKARTE",x+7,y+23,{size:10,c:T.c,sh:"transparent"});
+  // Werte
+  const st=[["ELO",info.elo!=null?info.elo:1000],["S/N",`${info.wins||0}/${info.losses||0}`],["DEX",info.dex||0]];
+  st.forEach(([k,v],i)=>{const sx=x+7+[0,29,55][i];prT(k,sx,y+H-26,{size:9,c:"rgba(255,255,255,.55)",sh:"transparent"});prT(String(v),sx,y+H-16,{size:12,c:"#fff",sh:"rgba(0,0,0,.6)"});});
+  // Orden als 8 Punkte
+  const bd=Math.max(0,Math.min(8,info.badges||0));for(let i=0;i<8;i++){const bx=x+8+i*8,by=y+40;ctx.fillStyle=i<bd?T.c:"rgba(255,255,255,.14)";ctx.fillRect(bx,by,5,5);if(i<bd){ctx.fillStyle="rgba(255,255,255,.6)";ctx.fillRect(bx,by,2,2);}}
+  prT(`${bd} Orden`,x+8,y+48,{size:9,c:"rgba(255,255,255,.6)",sh:"transparent"});
+  // Lieblings-Pokémon
+  const mx=x+W-32,my=y+H-8;ctx.fillStyle="rgba(0,0,0,.4)";ctx.beginPath();ctx.ellipse(mx,my-2,22,4,0,0,7);ctx.fill();
+  if(card.fav&&SPECIES[card.fav]){const bob=Math.floor(FRAME/24)%2;obSW(()=>{ctx.save();ctx.beginPath();ctx.rect(PX(x+W*.56),PX(y+2),PX(W*.44-2),PX(H-4));ctx.clip();
+      drawAnim(card.fav,PX(mx),PX(my-bob),{shiny:!!card.sh,s:o.big?.8:.7});ctx.restore();});
+    if(card.sh){const k=Math.floor(FRAME/8)%4;ctx.fillStyle="#fff6a0";const sx=x+W-14,sy=y+30;ctx.fillRect(sx-(k%2?2:1),sy,k%2?5:3,1);ctx.fillRect(sx,sy-(k%2?2:1),1,k%2?5:3);}
+    prT(SPECIES[card.fav].n,x+W-5,y+H-11,{size:9,align:"right",c:"rgba(255,255,255,.7)",sh:"transparent"});}
+  prT("OBSIDIAN",x+W-5,y+5,{size:8,align:"right",c:"rgba(255,255,255,.3)",sh:"transparent"});}
+function cardInfoMine(){const S=typeof accStats==="function"?accStats():{badges:0,caught:0};const B0=ON.board||{};
+  return{name:ON.sess?ON.sess.name:"Gast",title:ON.title&&ON.title.text,tstyle:ON.title&&ON.title.style,elo:B0.elo!=null?B0.elo:1000,wins:B0.wins||0,losses:B0.losses||0,badges:Math.max(S.badges||0,B0.badges||0),dex:Math.max(S.caught||0,B0.dex||0)};}
+function cardInfoRow(r,titles){const t=titles&&titles[r.id];return{name:r.name,title:t&&t.text,tstyle:t&&t.style,elo:r.elo,wins:r.wins,losses:r.losses,badges:r.badges,dex:r.dex};}
+// eigener Sondertitel (vom Admin vergeben) und alle Titel für die Bestenliste
+async function cardLoadTitle(){if(!ON.sess)return;const r=await onFetch(`/rest/v1/obs_titles?select=text,style&uid=eq.${ON.sess.uid}`,{auth:false});ON.title=r.ok&&Array.isArray(r.j)&&r.j[0]?r.j[0]:null;}
+async function cardTitles(){const r=await onFetch("/rest/v1/obs_titles?select=uid,text,style",{auth:false});const o={};if(r.ok&&Array.isArray(r.j))for(const t of r.j)o[t.uid]=t;return o;}
+
+/* ---------- Pokémon zur Auswahl: Team + Boxen aller Spielstände des Kontos ---------- */
+function cardChoices(){const seen=new Set(),L=[];const sl=slotInfo().filter(Boolean);
+  for(const sv of sl)for(const m of [...(sv.party||[]),...(sv.box||[])]){if(!m||!SPECIES[m.sp])continue;const k=m.sp+(m.shiny?"s":"");if(seen.has(k))continue;seen.add(k);L.push({sp:m.sp,sh:!!m.shiny,lv:m.lv||m.level||1});}
+  L.sort((a,b)=>a.sp-b.sp||(a.sh?1:0)-(b.sh?1:0));return L;}
+async function cardSave(c){LS.set(cardKey(),c);if(ON.sess&&ON.board){ON.board.card=c;await onPatchBoard({card:c});}}
+
+/* ---------- Editor: Lieblings-Pokémon + Hintergrund ---------- */
+async function cardEditor(){const L=cardChoices();const C=cardMine();const bgs=Object.keys(CARD_BG);const S=typeof accStats==="function"?accStats():{badges:0};
+  let foc=L.length?1:0,i=Math.max(0,L.findIndex(m=>m.sp===C.fav&&m.sh===!!C.sh)),bi=Math.max(0,bgs.indexOf(C.bg)),off=0,msgT=0,msg="";const COLS=4,ROWS=4;
+  const unlocked=k=>(CARD_BG[k].need||0)<=Math.max(S.badges||0,(ON.board&&ON.board.badges)||0);
+  await run({opaque:true,update(){if(msgT)msgT--;
+      if(Input.hit("b")){sfx("back");this.done();return;}
+      if(foc===0){if(Input.nav("left")){bi=(bi+bgs.length-1)%bgs.length;sfx("move");}if(Input.nav("right")){bi=(bi+1)%bgs.length;sfx("move");}
+        if(Input.hit("a")){if(unlocked(bgs[bi])){C.bg=bgs[bi];sfx("select");}else{sfx("deny");msg=`Ab ${CARD_BG[bgs[bi]].need} Orden freigeschaltet.`;msgT=90;}}
+        if(Input.nav("down")&&L.length){foc=1;sfx("move");}return;}
+      const n=L.length;if(!n)return;
+      if(Input.nav("left")&&i%COLS>0){i--;sfx("move");}if(Input.nav("right")&&i%COLS<COLS-1&&i<n-1){i++;sfx("move");}
+      if(Input.nav("down")&&i+COLS<n){i+=COLS;sfx("move");}if(Input.nav("up")){if(i-COLS>=0){i-=COLS;sfx("move");}else{foc=0;sfx("move");}}
+      const row=Math.floor(i/COLS);if(row<off)off=row;if(row>=off+ROWS)off=row-ROWS+1;
+      if(Input.hit("a")){const m=L[i];C.fav=m.sp;C.sh=m.sh;C.lv=m.lv;sfx("select");animData(m.sp,false,m.sh);}},
+    draw(){obBg();obHeader("KAMPFKARTE",ON.sess?ON.sess.name:"");
+      cardDraw(8,30,Object.assign({},C,{bg:foc===0?bgs[bi]:C.bg}),cardInfoMine(),{big:1});
+      // Hintergrund-Wahl
+      const k=bgs[bi],ok=unlocked(k);obCard(8,134,CARD_W,22,foc===0);prT("◀",14,138,{size:12,c:OB.gold});prT("▶",CARD_W-2,138,{size:12,c:OB.gold,align:"right"});
+      prT(ok?CARD_BG[k].n:`${CARD_BG[k].n} · ab ${CARD_BG[k].need} Orden`,8+CARD_W/2,138,{size:12,align:"center",c:ok?(C.bg===k?OB.gold:"#fff"):OB.mute});
+      // Pokémon-Raster
+      const gx=172,gy=30,cw=35,ch=30;prT("LIEBLINGS-POKÉMON",gx,gy-2,{size:10,c:OB.gold,sh:"transparent"});
+      if(!L.length)prWrap("Noch keine Pokémon. Fang welche – dann kannst du hier dein Lieblings-Pokémon wählen.",140,12).forEach((l,r)=>prT(l,gx,gy+14+r*14,{size:12,c:OB.dim}));
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const j=(off+r)*COLS+c;if(j>=L.length)continue;const m=L[j],x=gx+c*cw,y=gy+10+r*ch;const on=C.fav===m.sp&&!!C.sh===m.sh;
+        obCard(x,y,cw-3,ch-3,foc===1&&j===i,on?"rgba(255,216,144,.25)":null);
+        obSW(()=>{const ii=m.sp-1,f=foc===1&&j===i?Math.floor(FRAME/10)%2:0;ctx.drawImage(IMG.icon,(ii%16)*40,Math.floor(ii/16)*30,40,30,Math.round(PX(x+1)),Math.round(PX(y-1))-f,30,22.5);});
+        if(m.sh){ctx.fillStyle="#fff6a0";ctx.fillRect(x+cw-8,y+3,2,2);}}
+      if(off>0)obArrow(PRW-6,gy+14,true);if((off+ROWS)*COLS<L.length)obArrow(PRW-6,gy+10+ROWS*ch-4,false);
+      const cur=L[i];obFoot(msgT?msg:foc===0?"Hintergrund wählen (A). Weitere Hintergründe gibt es mit mehr Orden.":cur?`${SPECIES[cur.sp].n}${cur.sh?" (schillernd)":""} · aus Team oder Box`:"",
+        "A: wählen · B: speichern und zurück");prEnd();}});
+  await cardSave(C);}
+
+/* ---------- Karte eines anderen Trainers ansehen (Bestenliste) ---------- */
+function cardView(row,titles,rank){return run({opaque:true,t:0,update(){this.t++;if(this.t>6&&(Input.hit("a")||Input.hit("b"))){sfx("back");this.done();}},
+  draw(){obBg();obHeader("KAMPFKARTE",rank?`Platz ${rank}`:"");const k=easeOut(Math.min(1,this.t/14));
+    ctx.save();ctx.globalAlpha=k;cardDraw(PRW/2-CARD_W/2,40+(1-k)*14,row.card||{fav:0},cardInfoRow(row,titles),{big:1});ctx.restore();
+    const tot=(row.wins||0)+(row.losses||0);prT(tot?`Siegquote ${Math.round((row.wins||0)*100/tot)} % aus ${tot} Duellen`:"Noch keine Duelle gespielt.",PRW/2,146,{size:12,align:"center",c:OB.dim});
+    obFoot(row.created_at?`Dabei seit ${fmtDate(Date.parse(row.created_at)).slice(0,6)}${String(new Date(row.created_at).getFullYear()).slice(2)}`:"","A/B: zurück");prEnd();}});}
+
+/* ---------- VS-Bildschirm vor dem Live-Duell ---------- */
+function cardVs(me,peer){return run({opaque:true,t:0,update(){this.t++;if(this.t>170||(this.t>50&&(Input.hit("a")||Input.hit("start"))))this.done();},
+  draw(){const t=this.t;ctx.fillStyle="#0a0614";ctx.fillRect(0,0,SW,SH);prBegin();
+    // geteilter Hintergrund mit Blitz in der Mitte
+    const L=CARD_BG[(me.card||{}).bg]||CARD_BG.obsidian,R=CARD_BG[(peer.card||{}).bg]||CARD_BG.obsidian;
+    ctx.fillStyle=L.b;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(PRW/2+18,0);ctx.lineTo(PRW/2-18,PRH);ctx.lineTo(0,PRH);ctx.fill();
+    ctx.fillStyle=R.b;ctx.beginPath();ctx.moveTo(PRW/2+18,0);ctx.lineTo(PRW,0);ctx.lineTo(PRW,PRH);ctx.lineTo(PRW/2-18,PRH);ctx.fill();
+    ctx.strokeStyle=`rgba(255,255,255,${.5+Math.sin(t/3)*.3})`;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(PRW/2+18,0);ctx.lineTo(PRW/2-18,PRH);ctx.stroke();
+    const kl=easeOut(Math.min(1,t/20)),kr=easeOut(Math.min(1,Math.max(0,t-8)/20));
+    cardDraw(-CARD_W+(CARD_W+10)*kl,12,me.card,me.ci||{name:me.name,elo:me.elo},{big:1});
+    cardDraw(PRW+(-CARD_W-10)*kr,PRH-CARD_H-14,peer.card,peer.ci||{name:peer.name,elo:peer.elo},{big:1});
+    const v=easeBack(seg(t,22,36));if(v>0){ctx.save();ctx.translate(PRW*.26,PRH*.72);ctx.scale(v*2,v*2);prT("VS",0,-12,{size:28,align:"center",c:"#ffd890",sh:"#7a2a10"});ctx.restore();
+      ctx.save();ctx.translate(PRW*.74,PRH*.27);ctx.scale(v*1.2,v*1.2);prT("LIVE-DUELL",0,-8,{size:16,align:"center",c:"#ffffff",sh:"#2a1840"});ctx.restore();}
+    if(t<6){ctx.fillStyle=`rgba(255,255,255,${1-t/6})`;ctx.fillRect(0,0,PRW,PRH);}
+    prEnd();}});}
+
+/* ===== admin.js ===== */
+/* ================================ ADMIN (nur für REQUIEM) ================================
+   Anmeldung im Startfenster mit dem Namen "Admin" + eigenem Passwort. Intern ist das ein normales Konto
+   ("obsidian-admin"); das Passwort steht nirgends im Code. Alle Rechte prüft der Server (obs_admins + obs_admin_*-Funktionen).
+   Das allererste Mal: "Admin" + Passwort unter ANMELDEN eingeben → das Spiel bietet an, den Admin anzulegen.
+   Bereiche: Spieler (Status, Version, Titel, Passwort, Name, Sperre, Elo, löschen) · Nachricht an alle · Server · Protokoll. */
+const ADM={name:"obsidian-admin",sess:null,list:[],q:"",tab:"players"};
+const admIsName=n=>/^\s*admin\s*$/i.test(n||"");
+const admEsc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function admFetch(path,o={}){const h={apikey:CLOUD.key,"Content-Type":"application/json"};if(ADM.sess)h.Authorization="Bearer "+ADM.sess.access_token;if(o.prefer)h.Prefer=o.prefer;
+  try{const r=await fetch(CLOUD.url+path,{method:o.method||"POST",headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});const tx=await r.text();let j=null;try{j=tx?JSON.parse(tx):null;}catch(e){}return{ok:r.ok,status:r.status,j};}
+  catch(e){return{ok:false,status:0,net:true,j:null};}}
+async function admRpc(fn,body){if(ADM.sess&&Date.now()>ADM.sess.exp-60000){const s=ADM.sess;ADM.sess=null;const r=await admFetch("/auth/v1/token?grant_type=refresh_token",{body:{refresh_token:s.refresh_token}});
+    ADM.sess=r.ok?{access_token:r.j.access_token,refresh_token:r.j.refresh_token,exp:Date.now()+(r.j.expires_in||3600)*1000}:s;}
+  return admFetch("/rest/v1/rpc/"+fn,{body:body||{}});}
+const admErr=r=>{const m=String((r.j&&(r.j.message||r.j.msg||r.j.error_description||r.j.hint))||"");if(r.net)return"Keine Verbindung zum Server.";
+  return{forbidden:"Keine Admin-Rechte.",admin:"Das Admin-Konto kann man so nicht ändern.",name_taken:"Dieser Name ist schon vergeben.",name_invalid:"Ungültiger Name (3–12 Zeichen)."}[m]||m||("Fehler "+r.status);};
+// Anmelden; gibt null (ok) oder Fehlertext zurück
+async function admLogin(pw){const body={email:await onEmail(ADM.name),password:await onPw(ADM.name,pw)};
+  let r=await admFetch("/auth/v1/token?grant_type=password",{body});
+  if(!r.ok&&!r.net&&/invalid/i.test(JSON.stringify(r.j||""))){
+    if(!(await onConfirm("ADMIN","Anmeldung fehlgeschlagen. Gibt es noch kein Admin-Konto? Dann jetzt mit diesem Passwort anlegen. (Geht nur ein einziges Mal – danach ist der Admin fest.)","Admin anlegen","Abbrechen")))return"Passwort falsch.";
+    const s=await admFetch("/auth/v1/signup",{body:Object.assign({data:{name:"Admin"}},body)});
+    if(!s.ok)return/admin_exists|already/i.test(JSON.stringify(s.j||""))?"Passwort falsch – das Admin-Konto gibt es schon.":admErr(s);
+    r=await admFetch("/auth/v1/token?grant_type=password",{body});}
+  if(!r.ok)return r.net?"Keine Verbindung zum Server.":/rate|many/i.test(JSON.stringify(r.j||""))?"Zu viele Versuche – kurz warten.":"Passwort falsch.";
+  ADM.sess={access_token:r.j.access_token,refresh_token:r.j.refresh_token,exp:Date.now()+(r.j.expires_in||3600)*1000};
+  const chk=await admRpc("obs_is_admin");if(!chk.ok||chk.j!==true){ADM.sess=null;return"Dieses Konto hat keine Admin-Rechte.";}return null;}
+
+/* ---------- Panel ---------- */
+function admPanel(){return new Promise(res=>{let el=document.getElementById("admWrap");if(el)el.remove();el=document.createElement("div");el.id="admWrap";
+  el.style.cssText="position:fixed;inset:0;z-index:58;display:flex;justify-content:center;align-items:flex-start;padding:10px;box-sizing:border-box;background:rgba(8,5,16,.9);font-family:'Pixelify Sans',sans-serif;overflow:auto";
+  const css=`#admWrap .p{width:min(1000px,100%);background:linear-gradient(#251d38,#17121f);border:2px solid #e85a3a;border-radius:10px;padding:14px;color:#d8d0e0;box-shadow:0 10px 40px #000b}
+   #admWrap h2{margin:0;font:700 22px 'Pixelify Sans',sans-serif;color:#fff;border-left:5px solid #e85a3a;padding-left:8px}
+   #admWrap button{font:600 14px 'Pixelify Sans',sans-serif;color:#fff;border-radius:6px;cursor:pointer;border:2px solid #5a4c78;background:linear-gradient(#3e3258,#2a2240);padding:6px 10px}
+   #admWrap button.on,#admWrap button.pri{border-color:#ffd0b8;background:linear-gradient(#ff8a60,#c8402a)} #admWrap button.dng{border-color:#ff9a9a;background:linear-gradient(#c83030,#801010)}
+   #admWrap button.sm{padding:3px 7px;font-size:12px}
+   #admWrap input,#admWrap textarea,#admWrap select{box-sizing:border-box;padding:7px 9px;font:600 15px 'Pixelify Sans',sans-serif;color:#2a2238;background:#fbf7ee;border:2px solid #4a3c62;border-radius:5px;outline:none}
+   #admWrap .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+   #admWrap .tiles{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}#admWrap .tile{flex:1;min-width:110px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px}
+   #admWrap .tile b{display:block;font-size:22px;color:#fff}#admWrap .tile small{color:#a89cb8}
+   #admWrap .tw{overflow:auto}#admWrap table{width:100%;border-collapse:collapse;font-size:13px}#admWrap th{text-align:left;color:#ffd890;font-weight:700;padding:5px;border-bottom:1px solid #4a3c62;white-space:nowrap}
+   #admWrap td{padding:5px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}#admWrap tr.ban td{background:rgba(200,40,40,.12)}#admWrap td.act{white-space:normal;min-width:250px}#admWrap td.act button{margin:1px 0}
+   #admWrap .on1{color:#6ae88a}#admWrap .old{color:#ff8a7a}#admWrap .note{font-size:12px;color:#8a8098;margin-top:8px;line-height:1.4}
+   #admWrap .tt{font-size:11px;color:#ffd890}#admWrap .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+   #admWrap .box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px;margin-bottom:10px}`;
+  el.innerHTML=`<style>${css}</style><div class="p"><div class="row" style="margin:0"><h2>ADMIN · POKÉMON OBSIDIAN</h2><span style="flex:1"></span><button id="admRef">Aktualisieren</button><button id="admOut">Abmelden</button></div>
+    <div class="tabs">${[["players","SPIELER"],["msg","NACHRICHT"],["server","SERVER"],["log","PROTOKOLL"]].map(([k,n])=>`<button data-at="${k}" class="${ADM.tab===k?"on":""}">${n}</button>`).join("")}</div><div id="admBody"></div></div>`;
+  el.style.zoom=String(Math.min(1.4,Math.max(1,innerWidth/1100)));document.body.appendChild(el);Input.textMode=true;el.addEventListener("keydown",e=>e.stopPropagation());
+  const $=s=>el.querySelector(s);
+  el.querySelector("#admOut").onclick=()=>{ADM.sess=null;el.remove();Input.textMode=false;Input.clear();res();};
+  el.querySelector("#admRef").onclick=()=>admLoad();
+  el.querySelectorAll("[data-at]").forEach(b=>b.onclick=()=>{ADM.tab=b.dataset.at;el.querySelectorAll("[data-at]").forEach(x=>x.classList.toggle("on",x===b));admLoad();});
+  admLoad();});}
+function admBody(){return document.querySelector("#admWrap #admBody");}
+async function admLoad(){const B=admBody();if(!B)return;B.innerHTML="<p>Lade …</p>";
+  if(ADM.tab==="players")return admPlayers();if(ADM.tab==="msg")return admMsg();if(ADM.tab==="server")return admServer();if(ADM.tab==="log")return admLog();}
+const admFmt=d=>d?new Date(d).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}):"–";
+const admAgo=d=>{if(!d)return"–";const s=(Date.now()-Date.parse(d))/1000;if(s<90)return"gerade eben";if(s<3600)return"vor "+Math.round(s/60)+" Min.";if(s<86400)return"vor "+Math.round(s/3600)+" Std.";return"vor "+Math.round(s/86400)+" Tg.";};
+const admVer=v=>String(v||"0").split(".").reduce((a,x,i)=>a+(+x||0)*Math.pow(1000,2-i),0);
+
+/* ---------- SPIELER ---------- */
+async function admPlayers(){const B=admBody();const r=await admRpc("obs_admin_stats");if(!admBody()||ADM.tab!=="players")return;
+  if(!r.ok){B.innerHTML=`<p class="old">${admEsc(admErr(r))}</p>`;return;}const s=r.j||{};const t=(l,v)=>`<div class="tile"><b>${(+v||0).toLocaleString("de-DE")}</b><small>${l}</small></div>`;
+  const vers=Object.entries(s.versions||{}).sort((a,b)=>admVer(b[0])-admVer(a[0])).map(([v,n])=>`v${admEsc(v)}: ${n}`).join(" · ")||"–";
+  B.innerHTML=`<div class="tiles">${t("Konten",s.accounts)+t("online jetzt",s.online)+t("neu (7 Tage)",s.new7)+t("aktiv (24 Std.)",s.active1)+t("gesperrt",s.banned)+t("Duelle",s.duels)}</div>
+    <div class="note" style="margin:-4px 0 8px">Versionen (7 Tage): ${vers}</div>
+    <div class="row"><input id="admQ" placeholder="Name suchen …" maxlength="12" value="${admEsc(ADM.q)}" style="flex:1;min-width:160px"><span id="admCnt"></span></div>
+    <div class="tw" id="admList"></div><p class="note">Online = in den letzten 3 Minuten im Spiel. Gäste spielen nur lokal und tauchen hier nicht auf.</p>`;
+  let tm=0;B.querySelector("#admQ").addEventListener("input",e=>{clearTimeout(tm);tm=setTimeout(()=>{ADM.q=e.target.value.trim();admList();},300);});admList();}
+async function admList(){const L=document.querySelector("#admWrap #admList");if(!L)return;L.innerHTML="<p>Lade Konten …</p>";const r=await admRpc("obs_admin_list",{q:ADM.q||""});if(!document.querySelector("#admWrap #admList"))return;
+  if(!r.ok){L.innerHTML=`<p class="old">${admEsc(admErr(r))}</p>`;return;}ADM.list=Array.isArray(r.j)?r.j:[];document.querySelector("#admWrap #admCnt").textContent=ADM.list.length+" Treffer";
+  if(!ADM.list.length){L.innerHTML="<p>Keine Konten gefunden.</p>";return;}
+  L.innerHTML=`<table><thead><tr><th>Name</th><th>Status</th><th>Version</th><th>Elo</th><th>S/N</th><th>Orden</th><th>Dex</th><th>Erstellt</th><th>Gespeichert</th><th></th></tr></thead><tbody>${ADM.list.map((a,i)=>{
+    const on=a.seen&&Date.now()-Date.parse(a.seen)<180000,bn=a.banned_until&&Date.parse(a.banned_until)>Date.now();
+    return `<tr class="${bn?"ban":""}"><td><b style="color:#fff">${admEsc(a.name)}</b>${a.title?`<div class="tt">★ ${admEsc(a.title)} (${admEsc(TITLE_FX[a.title_style]||a.title_style)})</div>`:""}</td>
+      <td>${bn?`<span class="old" title="${admEsc(a.ban_reason||"")}">gesperrt${a.ban_reason?": "+admEsc(a.ban_reason):""}</span>`:on?`<span class="on1">● online</span>`:admAgo(a.seen||a.last_sign_in_at)}</td>
+      <td>${a.ver?`<span class="${admVer(a.ver)<admVer(VERSION)?"old":""}">v${admEsc(a.ver)}</span>`:"–"}</td><td>${a.elo}</td><td>${a.wins}/${a.losses}</td><td>${a.badges}</td><td>${a.dex}</td>
+      <td>${admFmt(a.created_at)}</td><td>${admFmt(a.saved_at)}</td>
+      <td class="act"><button class="sm" data-k="tt" data-i="${i}">Titel</button> <button class="sm" data-k="pw" data-i="${i}">Passwort</button> <button class="sm" data-k="rn" data-i="${i}">Name</button>
+        <button class="sm ${bn?"pri":""}" data-k="ban" data-i="${i}">${bn?"Entsperren":"Sperren"}</button> <button class="sm" data-k="elo" data-i="${i}">Elo 1000</button> <button class="sm dng" data-k="del" data-i="${i}">Löschen</button></td></tr>`;}).join("")}</tbody></table>`;
+  L.querySelectorAll("button[data-k]").forEach(b=>b.onclick=()=>admAct(b.dataset.k,ADM.list[+b.dataset.i]));}
+async function admAct(k,a){if(!a)return;let r=null,msg="";
+  if(k==="tt")return admTitle(a);
+  if(k==="pw"){const v=await onForm({title:"NEUES PASSWORT",ok:"Setzen",note:`Für <b>${admEsc(a.name)}</b>. Sag es dem Spieler, er kann es danach im Profil ändern.`,fields:[{id:"p",label:"Neues Passwort (mind. 4 Zeichen)",max:64,ac:"off"}],check:v=>v.p.length<4?"Mindestens 4 Zeichen.":null,
+      submit:async v=>{const x=await admRpc("obs_admin_set_pw",{target:a.id,pw:await onPw(a.name,v.p)});return x.ok?null:admErr(x);}});if(v)msg=`Passwort für ${a.name} gesetzt.`;}
+  if(k==="rn"){const v=await onForm({title:"NAME ÄNDERN",ok:"Ändern",note:`Für <b>${admEsc(a.name)}</b>. Weil der Login am Namen hängt, braucht das Konto dabei ein neues Passwort – sag es dem Spieler.`,
+      fields:[{id:"n",label:"Neuer Name (3–12 Zeichen)",max:12},{id:"p",label:"Neues Passwort (mind. 4 Zeichen)",max:64,ac:"off"}],check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen.":/^admin/i.test(v.n.trim())?"Dieser Name ist reserviert.":v.p.length<4?"Passwort: mindestens 4 Zeichen.":null,
+      submit:async v=>{const n=v.n.trim();const x=await admRpc("obs_admin_rename",{target:a.id,newname:n,newemail:await onEmail(n),pw:await onPw(n,v.p)});return x.ok?null:admErr(x);}});if(v)msg=`${a.name} heißt jetzt ${v.n.trim()}.`;}
+  if(k==="ban"){const bn=a.banned_until&&Date.parse(a.banned_until)>Date.now();
+    if(bn){if(await onConfirm("ENTSPERREN",`<b>${admEsc(a.name)}</b> wieder freigeben?`,"Entsperren","Abbrechen")){r=await admRpc("obs_admin_unban",{target:a.id});msg=r.ok?`${a.name} ist entsperrt.`:admErr(r);}}
+    else{const v=await onForm({title:"SPERREN",ok:"Sperren",note:`<b>${admEsc(a.name)}</b> kann sich danach nicht mehr anmelden.`,fields:[{id:"h",label:"Dauer in Stunden (0 = dauerhaft)",max:5,mode:"numeric",value:"24"},{id:"g",label:"Grund (optional)",max:120}],check:v=>/^\d+$/.test(v.h.trim())?null:"Dauer als Zahl angeben.",
+      submit:async v=>{const x=await admRpc("obs_admin_ban",{target:a.id,h:+v.h,reason:v.g.trim()});return x.ok?null:admErr(x);}});if(v)msg=`${a.name} ist gesperrt${+v.h?` für ${v.h} Std.`:" (dauerhaft)"}.`;}}
+  if(k==="elo"){if(await onConfirm("ELO ZURÜCKSETZEN",`Elo, Siege und Niederlagen von <b>${admEsc(a.name)}</b> auf 1000 / 0 / 0 setzen?`,"Zurücksetzen","Abbrechen")){r=await admRpc("obs_admin_board_reset",{target:a.id});msg=r.ok?"Elo zurückgesetzt.":admErr(r);}}
+  if(k==="del"){if(await onConfirm("KONTO LÖSCHEN",`Konto <b>${admEsc(a.name)}</b> mit allen Cloud-Spielständen und Bestenlisten-Eintrag endgültig löschen?`,"Endgültig löschen","Abbrechen",true)){r=await admRpc("obs_admin_delete",{target:a.id});msg=r.ok?`${a.name} wurde gelöscht.`:admErr(r);}}
+  if(msg)await onConfirm("ADMIN",admEsc(msg),"OK","Schließen");if(document.getElementById("admWrap"))Input.textMode=true;admList();}
+function admTitle(a){return new Promise(res=>{let sty=TITLE_FX[a.title_style]?a.title_style:"gold";const d=document.createElement("div");
+  d.style.cssText="position:fixed;inset:0;z-index:61;display:flex;align-items:center;justify-content:center;background:rgba(8,6,16,.62)";
+  d.innerHTML=`<div style="width:min(420px,92vw);background:linear-gradient(#221a33,#16111f);border:2px solid #e85a3a;border-radius:10px;padding:16px;color:#d8d0e0;font-family:'Pixelify Sans',sans-serif">
+    <div style="font:700 20px 'Pixelify Sans',sans-serif;color:#fff;border-left:5px solid #e85a3a;padding-left:8px;margin-bottom:8px">TITEL FÜR ${admEsc(a.name)}</div>
+    <div style="font-size:13px;margin-bottom:8px">Erscheint auf der Kampfkarte, in der Bestenliste und im VS-Bildschirm. Leer lassen = Titel entfernen.</div>
+    <input id="tT" maxlength="20" value="${admEsc(a.title||"")}" placeholder="z. B. Entwickler" style="width:100%;box-sizing:border-box;padding:8px;font:600 16px 'Pixelify Sans',sans-serif;border-radius:5px;border:2px solid #4a3c62">
+    <div id="tS" style="display:flex;gap:5px;flex-wrap:wrap;margin:10px 0">${Object.entries(TITLE_FX).map(([k,n])=>`<button data-s="${k}" style="padding:4px 8px;border-radius:5px;cursor:pointer;font:600 13px 'Pixelify Sans',sans-serif;color:#fff;border:2px solid ${k===sty?"#ffd0b8":"#5a4c78"};background:${k===sty?"#c8402a":"#2a2240"}">${n}</button>`).join("")}</div>
+    <div class="err" style="min-height:16px;color:#ff8a7a;font-size:13px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button class="x" style="padding:8px 14px;border-radius:6px;cursor:pointer;color:#fff;border:2px solid #5a4c78;background:#2a2240;font:600 15px 'Pixelify Sans',sans-serif">Abbrechen</button>
+      <button class="y" style="padding:8px 14px;border-radius:6px;cursor:pointer;color:#fff;border:2px solid #ffd0b8;background:linear-gradient(#ff8a60,#c8402a);font:600 15px 'Pixelify Sans',sans-serif">Speichern</button></div></div>`;
+  document.body.appendChild(d);d.addEventListener("keydown",e=>e.stopPropagation());const close=()=>{d.remove();res();admList();};
+  d.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{sty=b.dataset.s;d.querySelectorAll("[data-s]").forEach(x=>{const on=x.dataset.s===sty;x.style.borderColor=on?"#ffd0b8":"#5a4c78";x.style.background=on?"#c8402a":"#2a2240";});});
+  d.querySelector(".x").onclick=close;d.querySelector(".y").onclick=async()=>{const r=await admRpc("obs_admin_title",{target:a.id,txt:d.querySelector("#tT").value.trim(),sty});if(!r.ok){d.querySelector(".err").textContent=admErr(r);return;}close();};
+  setTimeout(()=>d.querySelector("#tT").focus(),30);});}
+
+/* ---------- NACHRICHT AN ALLE ---------- */
+async function admMsg(){const B=admBody();const r=await admFetch("/rest/v1/obs_config?select=k,v,updated_at",{method:"GET"});if(!admBody()||ADM.tab!=="msg")return;
+  const cfg={};if(r.ok&&Array.isArray(r.j))for(const c of r.j)cfg[c.k]=c.v;const m=cfg.motd||null;
+  B.innerHTML=`<div class="box"><b style="color:#fff">Nachricht an alle</b><div class="note" style="margin-top:2px">Erscheint beim Start im Anmeldefenster und einmalig nach dem Anmelden.</div>
+    <textarea id="mT" rows="4" maxlength="400" style="width:100%;margin-top:8px">${admEsc(m&&m.text||"")}</textarea>
+    <div class="row"><button class="pri" id="mGo">Senden</button><button id="mDel">Entfernen</button><span class="note" id="mInfo">${m?"Aktiv seit "+admFmt(m.at):"Keine Nachricht aktiv."}</span></div></div>`;
+  B.querySelector("#mGo").onclick=async()=>{const t=B.querySelector("#mT").value.trim();if(!t)return;const x=await admRpc("obs_admin_config",{key:"motd",val:{text:t,at:new Date().toISOString(),id:Date.now()}});B.querySelector("#mInfo").textContent=x.ok?"Gesendet.":admErr(x);};
+  B.querySelector("#mDel").onclick=async()=>{const x=await admRpc("obs_admin_config",{key:"motd",val:null});B.querySelector("#mInfo").textContent=x.ok?"Entfernt.":admErr(x);if(x.ok)B.querySelector("#mT").value="";};}
+
+/* ---------- SERVER ---------- */
+async function admServer(){const B=admBody();const r=await admFetch("/rest/v1/obs_config?select=k,v",{method:"GET"});if(!admBody()||ADM.tab!=="server")return;
+  const cfg={};if(r.ok&&Array.isArray(r.j))for(const c of r.j)cfg[c.k]=c.v;const off=k=>!!(cfg[k]&&cfg[k].off);
+  B.innerHTML=`<div class="box"><b style="color:#fff">Neue Konten</b><div class="row"><button data-tg="reg" class="${off("reg")?"":"on"}">${off("reg")?"Gesperrt – freigeben":"Offen – sperren"}</button><span class="note">Gesperrt: niemand kann sich neu registrieren, Anmelden geht weiter.</span></div></div>
+    <div class="box"><b style="color:#fff">Live-Duelle</b><div class="row"><button data-tg="duels" class="${off("duels")?"":"on"}">${off("duels")?"Gesperrt – freigeben":"Offen – sperren"}</button><span class="note">Gesperrt: Schnelles Duell und Räume sind kurz geschlossen (z. B. bei Fehlern).</span></div></div>
+    <div class="box"><b style="color:#fff">Mindestversion</b><div class="row"><input id="sV" maxlength="10" value="${admEsc(cfg.minver&&cfg.minver.v||"")}" placeholder="z. B. ${admEsc(VERSION)}" style="width:120px">
+      <button class="pri" id="sVgo">Setzen</button><button id="sVdel">Entfernen</button><span class="note" id="sVi">Ältere Versionen sehen „Bitte neu laden (Strg+F5)“ und können nicht online spielen. Aktuell: v${admEsc(VERSION)}</span></div></div>`;
+  B.querySelectorAll("[data-tg]").forEach(b=>b.onclick=async()=>{const k=b.dataset.tg;const x=await admRpc("obs_admin_config",{key:k,val:{off:!off(k)}});if(!x.ok){b.textContent=admErr(x);return;}admServer();});
+  B.querySelector("#sVgo").onclick=async()=>{const v=B.querySelector("#sV").value.trim();if(!/^\d+(\.\d+){0,2}$/.test(v)){B.querySelector("#sVi").textContent="Format: 0.21 oder 0.21.1";return;}const x=await admRpc("obs_admin_config",{key:"minver",val:{v}});B.querySelector("#sVi").textContent=x.ok?`Mindestversion v${v} gesetzt.`:admErr(x);};
+  B.querySelector("#sVdel").onclick=async()=>{const x=await admRpc("obs_admin_config",{key:"minver",val:null});B.querySelector("#sVi").textContent=x.ok?"Keine Mindestversion.":admErr(x);if(x.ok)B.querySelector("#sV").value="";};}
+
+/* ---------- PROTOKOLL ---------- */
+async function admLog(){const B=admBody();const r=await admRpc("obs_admin_log_list");if(!admBody()||ADM.tab!=="log")return;
+  if(!r.ok){B.innerHTML=`<p class="old">${admEsc(admErr(r))}</p>`;return;}const L=Array.isArray(r.j)?r.j:[];
+  B.innerHTML=L.length?`<div class="tw"><table><thead><tr><th>Zeit</th><th>Aktion</th><th>Spieler / Schlüssel</th><th>Details</th></tr></thead><tbody>${L.map(x=>`<tr><td>${admFmt(x.at)}</td><td>${admEsc(x.action)}</td><td>${admEsc(x.target)}</td><td style="white-space:normal">${admEsc(x.detail)}</td></tr>`).join("")}</tbody></table></div>`:"<p>Noch keine Admin-Aktionen.</p>";}
 
 /* ===== prsum.js ===== */
 /* ================================ STATUSSEITE im PokéRogue-Stil (Profil · Werte · Attacken) ================================
@@ -10902,7 +11210,7 @@ Object.assign(K.mart,{route4:K.mart.route3||K.mart.cerulean,route10:K.mart.route
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.20.1";
+const VERSION="0.21";
 function newSave(o){
   const R=REGIONS[o.region||"kanto"];
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
@@ -10977,10 +11285,11 @@ const TitleScene={opaque:true,
   enter(){this.t=0;this.ph=0;this.pt=0;this.i=0;this.sp=pick(TITLE_MONS);this.sw=0;Music.play("title");ivInit();this.refresh();},
   refresh(){this.sl=slotInfo();this.last=lastSlot(this.sl);},
   keepGL(){this.bg();},
-  opts(){const o=[];if(this.last){o.push(["WEITER",()=>continueGame(this.last),"save"]);o.push(["SPIELSTÄNDE",loadGame,"pc"]);}o.push(["NEUES SPIEL",newGame,"mon"]);o.push(["ONLINE",()=>onlineMenu(),"pc"]);o.push(["RUN-BONI",metaShop,"card"]);o.push(["OPTIONEN",()=>optionsMenu(),"opt"]);o.push(["PATCH-INFO",()=>patchInfo(),"card"]);return o;},
+  opts(){const o=[];if(this.last){o.push(["WEITER",()=>continueGame(this.last),"save"]);o.push(["SPIELSTÄNDE",loadGame,"pc"]);}o.push(["NEUES SPIEL",newGame,"mon"]);o.push(["ONLINE",()=>onlineMenu(),"pc"]);o.push(["BESTENLISTE",()=>onBoardScreen(),"dex"]);o.push(["RUN-BONI",metaShop,"card"]);o.push(["OPTIONEN",()=>optionsMenu(),"opt"]);o.push(["PATCH-INFO",()=>patchInfo(),"card"]);
+    if(typeof ON!=="undefined"&&ON.sess)o.push(["ABMELDEN",()=>titleSignOut(),"back"]);else o.push(["ANMELDEN",()=>accGate(),"card"]);return o;},
   update(){this.t++;
     if(this.t%420===0)this.sw=1;if(this.sw){this.sw++;if(this.sw===16){let n;do n=pick(TITLE_MONS);while(n===this.sp);this.sp=n;animData(n,false,false);}if(this.sw>32)this.sw=0;}
-    if(this.ph===0){if(this.gating)return;if(this.t>16&&(Input.hit("a")||Input.hit("start"))){sfx("select");const go=()=>{this.ph=1;this.pt=0;this.i=0;this.refresh();if(!patchSeen())patchInfo();};
+    if(this.ph===0){if(this.gating)return;if(this.t>16&&(Input.hit("a")||Input.hit("start"))){sfx("select");const go=()=>{this.ph=1;this.pt=0;this.i=0;this.refresh();const motd=()=>{if(typeof onMotd==="function"&&ON.sess)onMotd();};if(!patchSeen())patchInfo().then(motd);else motd();};
       if(typeof accNeedsGate==="function"&&accNeedsGate()){this.gating=true;accGate().then(()=>{this.gating=false;go();});}else go();}return;}
     this.pt++;const opts=this.opts();this.i=Math.min(this.i,opts.length-1);
     if(Input.nav("up")){this.i=(this.i+opts.length-1)%opts.length;sfx("move");}if(Input.nav("down")){this.i=(this.i+1)%opts.length;sfx("move");}
@@ -11014,14 +11323,15 @@ const TitleScene={opaque:true,
       ctx.fillStyle=gl;ctx.fillRect(70,190,180,1);prT("DRÜCKE START",PRW/2,174,{align:"center",c:"#fff6e0",sh:"#5a3a2a"});ctx.globalAlpha=1;prEnd();
     }else{
       // Titelmenü im PokéRogue-Stil
-      const opts=this.opts();const D={WEITER:"Deinen letzten Spielstand fortsetzen.",SPIELSTÄNDE:"Einen anderen Spielstand laden.",["NEUES SPIEL"]:"Ein neues Abenteuer in Kanto beginnen.",["RUN-BONI"]:"Obsidian-Splitter gegen dauerhafte Run-Boni tauschen.",OPTIONEN:"Text, Sound, Licht, Steuerung …",["PATCH-INFO"]:"Was in den letzten Updates behoben und neu ist.",ONLINE:"Live-Duelle gegen Freunde, Bestenliste und Cloud-Spielstand."};
+      const opts=this.opts();const D={WEITER:"Deinen letzten Spielstand fortsetzen.",SPIELSTÄNDE:"Einen anderen Spielstand laden.",["NEUES SPIEL"]:"Ein neues Abenteuer in Kanto beginnen.",["RUN-BONI"]:"Obsidian-Splitter gegen dauerhafte Run-Boni tauschen.",OPTIONEN:"Text, Sound, Licht, Steuerung …",["PATCH-INFO"]:"Was in den letzten Updates behoben und neu ist.",ONLINE:"Live-Duelle gegen Freunde, Profil, Kampfkarte und Konto.",BESTENLISTE:"Die besten Trainer nach Duell-Elo und Fortschritt – mit Kampfkarten.",
+        ABMELDEN:"Speichert alles in der Cloud und meldet dich ab.",ANMELDEN:"Mit deinem Konto anmelden – Spielstände liegen dann in der Cloud."};
       prBegin();
-      const wx=8-(1-mk)*200,wy=this.last?38:60,ww=178,RH=this.last?14:18,SV=28;let h=12;opts.forEach(o=>h+=o[2]==="save"?SV:RH);prWin(wx,wy,ww,h);
+      const n=opts.length,SV=this.last?24:0,wy=this.last?34:52,wx=8-(1-mk)*200,ww=178,RH=clamp(Math.floor((163-wy-12-SV)/(n-(this.last?1:0))),12,18);let h=12;opts.forEach(o=>h+=o[2]==="save"?SV:RH);prWin(wx,wy,ww,h);
       let y=wy+6;opts.forEach((o,j)=>{const sel=j===this.i,rh=o[2]==="save"?SV:RH,fs=rh<16?13:rh<20?14:16;
         if(sel){const hg=ctx.createLinearGradient(0,y,0,y+rh);hg.addColorStop(0,"rgba(255,255,255,.17)");hg.addColorStop(1,"rgba(255,255,255,.05)");ctx.fillStyle=hg;ctx.fillRect(wx+5,y,ww-10,rh);ctx.fillStyle="#e85a3a";ctx.fillRect(wx+5,y,2,rh);prCursor(wx+12,y+rh/2);}
-        drawUiIcon(o[2],wx+18,y+(rh<20?0:1)+(sel?Math.round(Math.sin(FRAME/6)):0),rh<20?15:17);prT(o[0],wx+40,y+(rh<20?1:2),{size:fs,c:sel?"#ffffff":"#d8d0e0"});
+        drawUiIcon(o[2],wx+18,y+(rh<14?-1:rh<20?0:1)+(sel?Math.round(Math.sin(FRAME/6)):0),rh<14?13:rh<20?15:17);prT(o[0],wx+40,y+(rh<20?1:2),{size:fs,c:sel?"#ffffff":"#d8d0e0"});
         if(o[2]==="save"){const sv=this.sl[this.last-1];if(sv){const bd=(sv.badges||[]).filter(Boolean).length;
-          prT(`${sv.name||"?"} · ${bd} Orden · ${fmtTime(sv.time)}`,wx+40,y+16,{size:12,c:"#c8c0d4"});prT(sv.mode==="run"?"RUN":"KLASSISCH",wx+ww-10,y+4,{size:12,align:"right",c:sv.mode==="run"?"#ff8a7a":"#8ab4ff"});}}
+          prT(`${sv.name||"?"} · ${bd} Orden · ${fmtTime(sv.time)}`,wx+40,y+(SV<28?13:16),{size:SV<28?11:12,c:"#c8c0d4"});prT(sv.mode==="run"?"RUN":"KLASSISCH",wx+ww-10,y+4,{size:12,align:"right",c:sv.mode==="run"?"#ff8a7a":"#8ab4ff"});}}
         y+=rh;});
       prBar();const L=prWrap(D[opts[this.i][0]]||"",296);L.slice(0,2).forEach((l,r)=>prT(l,12,PRH-39+r*16));
       prEnd();
@@ -11031,6 +11341,10 @@ const TitleScene={opaque:true,
     if(META.sp&&ph===0)txt(`Obsidian-Splitter: ${META.sp}`,SW-4,3,{size:6,w:600,c:"rgba(255,255,255,.75)",sh:"transparent",align:"right"});
     if(t<24){ctx.fillStyle=`rgba(255,255,255,${1-t/24})`;ctx.fillRect(0,0,SW,SH);}
   }};
+// Abmelden im Titelmenü: erst alles in die Cloud, dann abmelden und das Anmeldefenster zeigen
+async function titleSignOut(){if(!(await onConfirm("ABMELDEN",`Als <b>${ON.sess.name}</b> abmelden? Deine Spielstände werden vorher in der Cloud gesichert und sind nach dem nächsten Anmelden wieder da.`,"Abmelden","Abbrechen")))return;
+  const ok=await accSignOut(false);if(!ok)await onMsgBox("Hinweis: Der letzte Stand konnte nicht hochgeladen werden (offline?). Er bleibt auf diesem Gerät und wird beim nächsten Anmelden abgeglichen.");
+  try{sessionStorage.removeItem("obs_guest");}catch(e){}TitleScene.refresh();await accGate();TitleScene.refresh();}
 async function continueGame(slot){
   const s=slotGet(slot);if(!s)return;G.save=migrate(s);G.save.slot=slot;sfx("save");
   await fadeTo(1,18);pop(TitleScene);await startWorld();
