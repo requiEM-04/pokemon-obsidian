@@ -2,6 +2,13 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.19 (29.10.2026)
+- Neu: ONLINE im Titelmenü – eigenes Konto mit Name und Passwort.
+- Live-Duell gegen Freunde: schnelle Suche oder Raum mit 4-stelligem Code. Du kämpfst mit dem Team deines letzten Spielstands (bis zu 6 Pokémon, alle auf Lv. 50), ohne Items. Dein Spielstand bleibt unverändert.
+- Bestenliste mit Duell-Elo, Siegen und Niederlagen sowie Fortschritt (Orden, Pokédex).
+- Cloud-Spielstand: hochladen und auf jedem Gerät wieder laden. Angemeldet wird beim Speichern automatisch gesichert.
+- Behoben: Die Bildschirm-Abblendung konnte in seltenen Fällen hängen bleiben.
+
 ## v0.18 (29.10.2026)
 - Attacken-Animationen komplett neu: eigene Pixel-Effekte im GBA/DS-Stil (Funken, Krallen, Flammen, Wellen, Blitze, Eis, Blätter, Felsen, Schattenball …) in Typ-Farben.
 - Treffer mit Wucht: kurzer Trefferstopp, Rückstoß mit weißem Aufblitzen, Pokémon glühen in Typ-Farbe, Aufladen vor Strahlen und Kugeln, Nachbilder bei Geschossen.
