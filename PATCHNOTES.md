@@ -2,11 +2,19 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.21 (29.10.2026)
+- Eigener Server nur für Pokémon Obsidian: Konten, Spielstände und Bestenliste sind komplett eigenständig. Bitte einmal neu registrieren – jeder Name ist wieder frei.
+- Neu: Kampfkarte mit deinem Lieblings-Pokémon (aus Team oder Box), Hintergrund nach Orden, Elo, Bilanz und Orden. Unter ONLINE → PROFIL & KONTO → KAMPFKARTE.
+- Bestenliste direkt im Titelmenü. Mit A siehst du die Kampfkarte jedes Trainers.
+- Vor jedem Live-Duell erscheint ein VS-Bildschirm mit beiden Kampfkarten.
+- Im Spiel-Menü bringt dich ZUM TITEL zurück zum Titelbildschirm – der Spielstand wird vorher automatisch gespeichert (B schließt das Menü wie gewohnt).
+- Im Titelmenü: ABMELDEN speichert alles in der Cloud und meldet dich ab. Danach liegen die Spielstände nur noch in der Cloud und sind beim nächsten Anmelden wieder da.
+
 ## v0.20.1 (29.10.2026)
 - Passwort braucht jetzt nur noch mindestens 4 Zeichen (Registrieren und Passwort ändern).
 
 ## v0.20 (29.10.2026)
-- Konten wie bei Pokélings: Beim Start anmelden, registrieren oder als Gast spielen – mit Bestenliste daneben.
+- Konten: Beim Start anmelden, registrieren oder als Gast spielen – mit Bestenliste daneben.
 - Alle 3 Spielstände hängen am Konto und werden automatisch mit der Cloud abgeglichen (neuere Fassung gewinnt, gelöschte Plätze verschwinden überall).
 - Profil-Seite mit Elo, Bilanz, Orden, Pokédex und Spielzeit; Passwort ändern, Name ändern, überall abmelden, Konto löschen.
 - Neue Kampf-Kulissen: gemalte Pixel-Panoramen je Gebiet (Route, Wald, Stadt, Strand, Meer, Safari, Höhle, Mondberg, Eis, Kraftwerk, Turm, Arena) mit sauberen Plattformen.
