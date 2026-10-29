@@ -267,6 +267,12 @@ const rnd=()=>Math.random();
 const rint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const chance=p=>Math.random()<p;
+// Kampflogik-Zufall: im Online-Duell aus festen Strömen je Spieler (beide Rechner würfeln exakt gleich), sonst Math.random
+let RNGF=null;
+const lrnd=()=>RNGF?RNGF():Math.random();
+const lrint=(a,b)=>a+Math.floor(lrnd()*(b-a+1));
+const lpick=a=>a[Math.floor(lrnd()*a.length)];
+const lchance=p=>lrnd()<p;
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function seeded(seed){let s=seed>>>0||1;return()=>{s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
 function strHash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
@@ -344,7 +350,7 @@ function loop(now){
   // 3D-Ebene unter deckenden Menüs weiter aktuell halten (verhindert Hänger beim Zurückkehren)
   if(start>0&&typeof V3!=="undefined"&&V3.ok){for(let i=start-1;i>=0;i--){if(Scenes[i].keepGL){Scenes[i].keepGL();break;}}}
   for(let i=Math.max(0,start);i<Scenes.length;i++){const sc=Scenes[i];sc.draw&&sc.draw();}
-  if(fade.a!==fade.target){fade.a+=Math.sign(fade.target-fade.a)*Math.min(fade.speed,Math.abs(fade.target-fade.a));if(fade.a===fade.target&&fade.res){const r=fade.res;fade.res=null;r();}}
+  if(fade.a!==fade.target){fade.a+=Math.sign(fade.target-fade.a)*Math.min(fade.speed,Math.abs(fade.target-fade.a));if(Math.abs(fade.target-fade.a)<1e-6)fade.a=fade.target;if(fade.a===fade.target&&fade.res){const r=fade.res;fade.res=null;r();}}
   if(fade.a>0){ctx.setTransform(SC,0,0,SC,0,0);ctx.globalAlpha=fade.a;ctx.fillStyle=fade.col;ctx.fillRect(0,0,SW,SH);ctx.globalAlpha=1;}
   if(FRAME%6===0)updateAmb();
   requestAnimationFrame(loop);
@@ -2316,7 +2322,7 @@ const STG=s=>s>=0?(2+s)/2:2/(2-s);
 const ACC=s=>s>=0?(3+s)/3:3/(3-s);
 const STG_N=["Angriff","Verteidigung","Spezial-Angriff","Spezial-Verteidigung","Initiative","Genauigkeit","Ausweichwert"];
 const AIL={1:"par",2:"slp",3:"frz",4:"brn",5:"psn"};
-const FIXED={"counter":a=>a.v.took?a.v.took.d*2:0,"mirror-coat":a=>a.v.took?a.v.took.d*2:0,"dragon-rage":()=>40,"sonic-boom":()=>20,"seismic-toss":a=>a.m.lv,"night-shade":a=>a.m.lv,"super-fang":(a,d)=>Math.max(1,Math.floor(d.m.hp/2)),"psywave":a=>Math.max(1,Math.floor(a.m.lv*(rint(50,150)/100))),"endeavor":(a,d)=>Math.max(0,d.m.hp-a.m.hp)};
+const FIXED={"counter":a=>a.v.took?a.v.took.d*2:0,"mirror-coat":a=>a.v.took?a.v.took.d*2:0,"dragon-rage":()=>40,"sonic-boom":()=>20,"seismic-toss":a=>a.m.lv,"night-shade":a=>a.m.lv,"super-fang":(a,d)=>Math.max(1,Math.floor(d.m.hp/2)),"psywave":a=>Math.max(1,Math.floor(a.m.lv*(lrint(50,150)/100))),"endeavor":(a,d)=>Math.max(0,d.m.hp-a.m.hp)};
 const FAIL_MOVES=new Set(["bide","mirror-move","sketch","light-screen-x","gravity","wish","helping-hand","follow-me","ally-switch","after-you","quash","lucky-chant","magic-coat","snatch","grudge","foresight","odor-sleuth","charm-x","nightmare","torment","imprison","camouflage","defog","power-trick","telekinesis","magic-room","wonder-room","simple-beam","entrainment","skill-swap","embargo","heal-block","curse-ghost","sticky-web","roost-x","teeter-dance-x","last-resort-x","assist","nature-power","me-first","conversion-2","celebrate","hold-hands","happy-hour","instruct","court-change","teatime","octolock","coaching","corrosive-gas","jungle-healing","tar-shot","decorate","obstruct-x","chilly-reception","shed-tail","doodle","fillet-away-x","tidy-up","revival-blessing","lunar-blessing","take-heart","power-shift","misty-terrain","psychic-terrain","aurora-veil","haze-x"]);
 class Battler{
   constructor(m,side){this.m=m;this.side=side;this.reset();}
@@ -2349,9 +2355,9 @@ function foeOf(b){return B.act[1-b.side];}
 
 /* ---------- Einstieg ---------- */
 async function wildEncounter(map,encOverride){
-  const enc=encOverride||map.enc;const list=enc.list;let tot=list.reduce((a,e)=>a+e[3],0),r=rnd()*tot,e=list[0];
+  const enc=encOverride||map.enc;const list=enc.list;let tot=list.reduce((a,e)=>a+e[3],0),r=lrnd()*tot,e=list[0];
   for(const x of list){r-=x[3];if(r<0){e=x;break;}}
-  let sp=e[0];let lv=rint(e[1],e[2]);
+  let sp=e[0];let lv=lrint(e[1],e[2]);
   // je tiefer man ins Gebiet vordringt (Laufrichtung des Gebiets), desto höher das Level: bis +span
   if(enc.dir&&!encOverride){const lx=PL.x-map.ox,ly=PL.y-map.oy,W=Math.max(1,map.w-1),H=Math.max(1,map.h-1);
     const f=clamp(enc.dir==="n"?(H-ly)/H:enc.dir==="s"?ly/H:enc.dir==="e"?lx/W:(W-lx)/W,0,1);lv=Math.min(100,lv+Math.round(f*(enc.span||3)));}
@@ -2420,7 +2426,7 @@ async function battleMain(){
   }
   await trainerOut(0);await sendOut(0,B.act[0].m,true);
   B.part.add(B.act[0].m.uid);
-  await switchInAbility(B.act[0]);await switchInAbility(B.act[1]);
+  for(const b of duelHostFirst([B.act[0],B.act[1]])){rngOwn(b);await switchInAbility(b);}
   if(B.type==="wild"&&G.save.mode==="run")await runAreaCheck();
   while(true){
     B.turn++;
@@ -2444,21 +2450,28 @@ async function playerTurn(){
   while(!act){
     const c=await cmdMenu();
     if(c===0){const mvI=await moveMenu();if(mvI===-1)continue;if(mvI==="struggle")act={k:"move",id:165};else act={k:"move",slot:mvI,id:me.m.moves[mvI].id};}
+    else if(B.duel&&(c===1||c==="quick")){await msg("Im Online-Duell sind keine Items erlaubt!");B.lastCmd=0;continue;}
+    else if(B.duel&&c===3){if(await askB("Duell aufgeben?")){act={k:"forfeit"};}else continue;}
     else if(c===1||c==="quick"){let it;if(c==="quick")it=quickBall();else{const r=await ballInBattle();it=r==="items"?await bagInBattle():r;}if(!it){B.lastCmd=0;continue;}act={k:"item",it};}
     else if(c===2){const i=await partyMenu({mode:"battle",cur:G.save.party.indexOf(me.m)});if(i==null||i<0){B.lastCmd=0;continue;}act={k:"switch",i};}
     else if(c===3){if(B.type!=="wild"){await msg("Du kannst nicht aus einem Trainerkampf fliehen!");continue;}act={k:"run"};}
   }
-  // Gegner wählt
+  // Gegner wählt (im Online-Duell: Wahl des Gegenspielers abwarten)
   let fAct=foe.v.charge?{k:"move",id:foe.v.charge}:foe.v.recharge?{k:"recharge"}:null;
+  if(B.duel){const ra=await duelExchange(act);if(ra==="gone")return"win";if(act.k==="forfeit"){await msg("Du hast aufgegeben.");return"lose";}
+    if(ra.k==="forfeit"){await msg(`${B.tr.name} hat aufgegeben!`);return"win";}
+    if(!fAct){fAct=ra.k==="switch"?{k:"switch",i:ra.i}:ra.k==="move"?{k:"move",id:ra.id,slot:ra.slot}:{k:"move",id:165};
+      if(foe.v.encore&&foe.m.moves.some(x=>x.id===foe.v.encore.id&&x.pp>0))fAct={k:"move",id:foe.v.encore.id,slot:foe.m.moves.findIndex(x=>x.id===foe.v.encore.id)};}}
   if(!fAct){const sw=act.k==="move"?aiWantsSwitch(foe,me):-1;fAct=sw>=0?{k:"switch",i:sw}:Object.assign({k:"move"},aiChoose(foe,me));}
   // Vor-Zug-Aktionen
   if(act.k==="run"){
     B.runs++;const s1=me.stat(5),s2=foe.stat(5);const odds=(s1*128/Math.max(1,s2)+30*B.runs)/256;
-    if(me.ab==="run-away"||s1>=s2||chance(odds)){sfx("run");await msg("Du bist entkommen!");return"run";}
+    if(me.ab==="run-away"||s1>=s2||lchance(odds)){sfx("run");await msg("Du bist entkommen!");return"run";}
     await msg("Flucht gescheitert!");
   }
-  if(act.k==="switch"){await doSwitch(0,act.i,true);}
-  if(fAct.k==="switch"){await msg(`${B.tr.cls?B.tr.cls+" ":""}${B.tr.name} ruft ${foe.short} zurück!`);await doSwitch(1,fAct.i,true);}
+  const swMe=async()=>{if(act.k==="switch"){await doSwitch(0,act.i,true);}};
+  const swFoe=async()=>{if(fAct.k==="switch"){await msg(`${B.tr.cls?B.tr.cls+" ":""}${B.tr.name} ruft ${foe.short} zurück!`);await doSwitch(1,fAct.i,true);}};
+  if(B.duel&&!B.duel.host){await swFoe();await swMe();}else{await swMe();await swFoe();} // Online: Wechsel immer in Gastgeber-Reihenfolge
   if(act.k==="item"){const r=await useItemBattle(act.it);if(r==="caught")return"caught";if(r===false){return null;}}
   // Reihenfolge
   const order=[];
@@ -2467,10 +2480,10 @@ async function playerTurn(){
   if(order.length===2){
     const pr=x=>{if(x[1].k!=="move")return 0;const m=mv(x[1].id),u=x[0];if(!m)return 0;let p=m.pr||0;
       if(u.ab==="prankster"&&m.c===1)p++;if(u.ab==="gale-wings"&&m.t===3&&u.m.hp>=maxHp(u.m))p++;return p;};
-    const br=x=>{const it=x[0].m.item;if(it==="quick-claw"&&chance(.2)){x.qc=1;return 1;}if(it==="lagging-tail"||it==="full-incense")return -1;return 0;};
+    const br=x=>{rngOwn(x[0]);const it=x[0].m.item;if(it==="quick-claw"&&lchance(.2)){x.qc=1;return 1;}if(it==="lagging-tail"||it==="full-incense")return -1;return 0;};
     order.forEach(x=>x.br=br(x));
     const spd=x=>x[0].stat(5)*(B.trick?-1:1);
-    order.sort((a,b)=>pr(b)-pr(a)||b.br-a.br||spd(b)-spd(a)||(rnd()<.5?-1:1));
+    const tie=duelTie();order.sort((a,b)=>pr(b)-pr(a)||b.br-a.br||spd(b)-spd(a)||tie(a[0],b[0]));
     if(order[0].qc)await msg(`Die Flinkklaue lässt ${order[0][0].name} zuerst handeln!`);
   }
   const startFoe={0:B.act[1],1:B.act[0]};
@@ -2479,7 +2492,7 @@ async function playerTurn(){
     if(foeOf(u)!==startFoe[u.side])continue;
     if(B.act[u.side]!==u)continue;
     if(a.k==="recharge"){u.v.recharge=0;await msg(`${u.name} muss sich erholen!`);continue;}
-    await useMove(u,a.id,a.slot);
+    rngOwn(u);await useMove(u,a.id,a.slot);
     if(u.v.boom){u.v.boom=0;if(alive(u.m))await dealDamage(u,u.m.hp);}
     if(B.result)return B.result;
     const r=await checkFaints();if(r)return r;
@@ -2539,7 +2552,7 @@ function calcDamage(att,def,move,crit,roll=true){
   const p=movePower(att,def,move);
   let dmg=Math.floor(Math.floor(Math.floor(2*att.m.lv/5+2)*p*a/Math.max(1,d))/50)+2;
   if(crit)dmg=Math.floor(dmg*(att.ab==="sniper"?2.25:1.5));
-  if(roll)dmg=Math.floor(dmg*rint(85,100)/100);
+  if(roll)dmg=Math.floor(dmg*lrint(85,100)/100);
   if(move.id!=="struggle"&&att.types.includes(move.t))dmg=Math.floor(dmg*(att.ab==="adaptability"?2:1.5));
   const W=B.weather&&B.weather.k;if(W==="rain"){if(move.t===11)dmg=Math.floor(dmg*1.5);if(move.t===10)dmg=Math.floor(dmg*.5);}if(W==="sun"){if(move.t===10)dmg=Math.floor(dmg*1.5);if(move.t===11)dmg=Math.floor(dmg*.5);}
   const TR=B.terrain&&B.terrain.k;if(TR==="grassy"&&move.t===12||TR==="electric"&&move.t===13)dmg=Math.floor(dmg*1.3);
@@ -2560,7 +2573,7 @@ async function useMove(u,id,slot){
     else if(!["sleep-talk","snore"].includes(move.id)){await statusAnim(u,"slp");await msg(`${u.name} schläft tief und fest.`);u.v.charge=0;return;}
   }
   if(u.m.st==="frz"){
-    if(chance(.2)||move.f.includes("defrost")){u.m.st="";await msg(`${u.name} ist wieder aufgetaut!`);}
+    if(lchance(.2)||move.f.includes("defrost")){u.m.st="";await msg(`${u.name} ist wieder aufgetaut!`);}
     else{u.v.charge=0;await msg(`${u.name} ist eingefroren!`);return;}
   }
   if(u.v.flinch){await msg(`${u.name} schreckt zurück und kann nicht angreifen!`);u.v.charge=0;return;}
@@ -2568,12 +2581,12 @@ async function useMove(u,id,slot){
     u.v.conf--;
     if(u.v.conf<=0){await msg(`${u.name} ist nicht mehr verwirrt!`);}
     else{await msg(`${u.name} ist verwirrt!`);
-      if(chance(1/3)){const d=Math.max(1,Math.floor(Math.floor(Math.floor(2*u.m.lv/5+2)*40*u.stat(1)/u.stat(2))/50)+2);await hitAnim(u);await dealDamage(u,d);await msg("Es hat sich vor Verwirrung selbst verletzt!");u.v.charge=0;return;}}
+      if(lchance(1/3)){const d=Math.max(1,Math.floor(Math.floor(Math.floor(2*u.m.lv/5+2)*40*u.stat(1)/u.stat(2))/50)+2);await hitAnim(u);await dealDamage(u,d);await msg("Es hat sich vor Verwirrung selbst verletzt!");u.v.charge=0;return;}}
   }
-  if(u.v.attract&&alive(foeOf(u).m)&&foeOf(u)===u.v.attract){await statusAnim(u,"attract");await msg(`${u.name} ist verliebt in ${foeOf(u).short}!`);if(chance(.5)){await msg(`${u.name} ist starr vor Liebe!`);u.v.charge=0;return;}}
+  if(u.v.attract&&alive(foeOf(u).m)&&foeOf(u)===u.v.attract){await statusAnim(u,"attract");await msg(`${u.name} ist verliebt in ${foeOf(u).short}!`);if(lchance(.5)){await msg(`${u.name} ist starr vor Liebe!`);u.v.charge=0;return;}}
   if(u.v.dis&&u.v.dis.id===id){await msg(`${u.name} kann ${move.n} wegen Aussetzer nicht einsetzen!`);return;}
   if(u.v.taunt&&move.c===1){await msg(`${u.name} kann nach Verhöhner keine Statusattacken einsetzen!`);return;}
-  if(u.m.st==="par"&&chance(.25)){await statusAnim(u,"par");await msg(`${u.name} ist paralysiert und kann nicht angreifen!`);u.v.charge=0;return;}
+  if(u.m.st==="par"&&lchance(.25)){await statusAnim(u,"par");await msg(`${u.name} ist paralysiert und kann nicht angreifen!`);u.v.charge=0;return;}
   // Zwei-Runden-Attacken: erste Runde lädt auf
   if(move.f.includes("charge")&&!u.v.charge&&!(move.id==="solar-beam"&&B.weather&&B.weather.k==="sun")){
     if(slot!=null)u.m.moves[slot].pp--;
@@ -2581,7 +2594,7 @@ async function useMove(u,id,slot){
   }
   if(u.v.charge){u.v.charge=0;}
   else if(slot!=null&&id!==165){u.m.moves[slot].pp=Math.max(0,u.m.moves[slot].pp-1);}
-  if(move.id==="metronome"){await msg(`${u.name} setzt Metronom ein!`);const all=Object.keys(MOVES).map(Number).filter(i=>MOVES[i].id!=="metronome"&&i!==165);id=pick(all);move=mv(id);}
+  if(move.id==="metronome"){await msg(`${u.name} setzt Metronom ein!`);const all=Object.keys(MOVES).map(Number).filter(i=>MOVES[i].id!=="metronome"&&i!==165);id=lpick(all);move=mv(id);}
   u.v.last=id;B.lastAny=id;if(move.id!=="destiny-bond")u.v.dbond=0;
   await msg(`${u.name} setzt ${move.n} ein!`);
   if(["self-destruct","explosion","misty-explosion"].includes(move.id))u.v.boom=1;
@@ -2599,7 +2612,7 @@ async function useMove(u,id,slot){
     let acc=move.a*ACC(clamp(u.st[5]-t.st[6],-6,6));
     if(u.ab==="compound-eyes")acc*=1.3;if(u.ab==="hustle"&&move.c===2)acc*=.8;
     if(move.m[0]===9){acc=30+(u.m.lv-t.m.lv);if(u.m.lv<t.m.lv)acc=0;}
-    if(rnd()*100>=acc){await msg(`${t.name} weicht aus!`);if(move.id==="jump-kick"||move.id==="high-jump-kick"){await dealDamage(u,Math.floor(maxHp(u.m)/2));await msg(`${u.name} ist hingefallen!`);}return;}
+    if(lrnd()*100>=acc){await msg(`${t.name} weicht aus!`);if(move.id==="jump-kick"||move.id==="high-jump-kick"){await dealDamage(u,Math.floor(maxHp(u.m)/2));await msg(`${u.name} ist hingefallen!`);}return;}
   }
   await moveAnim(u,t,move);
   if(move.c===1)await statusMove(u,t,move);
@@ -2618,12 +2631,12 @@ async function damageMove(u,t,move){
   // K.O.-Attacke
   if(move.m[0]===9){if(t.ab==="sturdy"){await abPop(t);await msg(`${t.name} hält mit Robustheit stand!`);return;}await hitAnim(t);await dealDamage(t,t.m.hp);await msg("Ein K.O.-Treffer!");return;}
   let hits=1;const[mn,mx]=[move.m[2],move.m[3]];
-  if(mn&&mx){if(mn===mx)hits=mn;else if(u.ab==="skill-link")hits=mx;else{const r=rnd();hits=mn===2&&mx===5?(r<.35?2:r<.7?3:r<.85?4:5):rint(mn,mx);}}
+  if(mn&&mx){if(mn===mx)hits=mn;else if(u.ab==="skill-link")hits=mx;else{const r=lrnd();hits=mn===2&&mx===5?(r<.35?2:r<.7?3:r<.85?4:5):lrint(mn,mx);}}
   let total=0,n=0,crits=0,subHit=false;
   for(let h=0;h<hits;h++){
     if(!alive(t.m))break;
     const cs=(move.m[8]||0)+(u.v.focus?2:0)+(u.ab==="super-luck"?1:0);
-    const crit=!FIXED[move.id]&&t.ab!=="battle-armor"&&t.ab!=="shell-armor"&&chance([1/24,1/8,1/2,1,1][Math.min(4,cs)]);
+    const crit=!FIXED[move.id]&&t.ab!=="battle-armor"&&t.ab!=="shell-armor"&&lchance([1/24,1/8,1/2,1,1][Math.min(4,cs)]);
     let dmg=calcDamage(u,t,move,crit);
     if(move.id==="false-swipe"&&dmg>=t.m.hp)dmg=t.m.hp-1;
     // Robustheit: übersteht bei voller KP
@@ -2641,10 +2654,10 @@ async function damageMove(u,t,move){
     // Kontakt-Fähigkeiten
     if(move.f.includes("contact")&&alive(u.m)&&!u.m.st){
       const ab=t.ab;
-      if(ab==="static"&&chance(.3)){await abPop(t);await inflict(u,"par",t,true);}
-      else if(ab==="poison-point"&&chance(.3)){await abPop(t);await inflict(u,"psn",t,true);}
-      else if(ab==="flame-body"&&chance(.3)){await abPop(t);await inflict(u,"brn",t,true);}
-      else if(ab==="effect-spore"&&chance(.3)&&!u.types.includes(12)){await abPop(t);await inflict(u,pick(["psn","par","slp"]),t,true);}
+      if(ab==="static"&&lchance(.3)){await abPop(t);await inflict(u,"par",t,true);}
+      else if(ab==="poison-point"&&lchance(.3)){await abPop(t);await inflict(u,"psn",t,true);}
+      else if(ab==="flame-body"&&lchance(.3)){await abPop(t);await inflict(u,"brn",t,true);}
+      else if(ab==="effect-spore"&&lchance(.3)&&!u.types.includes(12)){await abPop(t);await inflict(u,lpick(["psn","par","slp"]),t,true);}
     }
     await berryCheck(t);
   }
@@ -2665,21 +2678,21 @@ async function damageMove(u,t,move){
   if(alive(t.m)&&t.ab!=="shield-dust"&&!subHit){
     const sg=u.ab==="serene-grace"?2:1;
     const ail=move.m[1],ch=move.m[9];
-    if(ail&&ch&&chance(ch*sg/100)){
+    if(ail&&ch&&lchance(ch*sg/100)){
       if(AIL[ail])await inflict(t,AIL[ail],u);
       else if(ail===6)await confuse(t);
-      else if(ail===8&&!t.v.trap){t.v.trap=rint(4,5);t.v.trapBy=move.n;await msg(`${t.name} wurde von ${move.n} gefangen!`);}
+      else if(ail===8&&!t.v.trap){t.v.trap=lrint(4,5);t.v.trapBy=move.n;await msg(`${t.name} wurde von ${move.n} gefangen!`);}
     }
-    if(move.m[10]&&chance(move.m[10]*sg/100)){if(t.ab==="inner-focus"){await abPop(t);if(move.id==="fake-out")await msg(`Konzentrator schützt ${t.name} vor dem Zurückschrecken!`);}else t.v.flinch=1;}
+    if(move.m[10]&&lchance(move.m[10]*sg/100)){if(t.ab==="inner-focus"){await abPop(t);if(move.id==="fake-out")await msg(`Konzentrator schützt ${t.name} vor dem Zurückschrecken!`);}else t.v.flinch=1;}
   }
   if(move.sc.length&&(move.m[0]===6||move.m[0]===7)){
     const sc=move.m[11]||100,sg=u.ab==="serene-grace"?2:1;
-    if(chance(sc*sg/100)){const who=move.m[0]===7?u:t;if(alive(who.m)&&!(who===t&&t.ab==="shield-dust"))for(const[s,c]of move.sc)await statChange(who,u,s-2,c);}
+    if(lchance(sc*sg/100)){const who=move.m[0]===7?u:t;if(alive(who.m)&&!(who===t&&t.ab==="shield-dust"))for(const[s,c]of move.sc)await statChange(who,u,s-2,c);}
   }
   // Wechsel-Attacken
   if(["u-turn","volt-switch","flip-turn"].includes(move.id)&&alive(u.m)&&alive(t.m)){
-    if(u.side===0&&G.save.party.filter(alive).length>1){const i=await partyMenu({mode:"forced",cur:G.save.party.indexOf(u.m),title:"Welches Pokémon soll kommen?"});if(i>=0)await doSwitch(0,i,true);}
-    if(u.side===1&&B.type==="trainer"){const i=aiNextMon(true);if(i>=0)await doSwitch(1,i,true);}
+    if(u.side===0&&G.save.party.filter(alive).length>1){const i=duelMine(await partyMenu({mode:"forced",cur:G.save.party.indexOf(u.m),title:"Welches Pokémon soll kommen?"}));if(i>=0)await doSwitch(0,i,true);}
+    if(u.side===1&&B.type==="trainer"&&B.foes.filter(alive).length>1){const i=B.duel?await duelFoeRep():aiNextMon(true);if(i>=0)await doSwitch(1,i,true);}
   }
 }
 async function statusMove(u,t,move){
@@ -2689,7 +2702,7 @@ async function statusMove(u,t,move){
   switch(id){
     case"protect":case"detect":case"spiky-shield":case"kings-shield":case"baneful-bunker":
       {const n=u.v.protN||0;u.v.protTurn=B.turn;
-      if(n>0&&!chance(1/Math.pow(3,n))){u.v.protN=0;await msg("Aber es schlug fehl!");return;}
+      if(n>0&&!lchance(1/Math.pow(3,n))){u.v.protN=0;await msg("Aber es schlug fehl!");return;}
       u.v.protect=1;u.v.protN=n+1;await msg(`${u.name} schützt sich selbst!`);return;}
     case"rest":if(u.m.hp>=maxHp(u.m)){await msg("Aber es schlug fehl!");return;}u.m.st="slp";u.m.slp=3;await heal(u,maxHp(u.m));await msg(`${u.name} schläft ein und tankt Kraft!`);return;
     case"reflect":case"light-screen":{const k=id==="reflect"?"reflect":"light";if(B.screens[u.side][k]){await msg("Aber es schlug fehl!");return;}B.screens[u.side][k]=5;await msg(id==="reflect"?"Reflektor verringert physischen Schaden!":"Lichtschild verringert speziellen Schaden!");return;}
@@ -2701,7 +2714,7 @@ async function statusMove(u,t,move){
         if(id==="teleport"){await msg(u.side===1?`${u.name} ist geflohen!`:"Du bist entkommen!");B.result="run";return;}
         await msg(u.side===0?`${t.name} ist geflohen!`:`${t.short} wurde weggeweht! Der Kampf ist vorbei.`);B.result="run";return;}
       if(B.type==="trainer"&&id!=="teleport"){const side=t.side;const opts=side===0?G.save.party.map((m,i)=>i).filter(i=>alive(G.save.party[i])&&G.save.party[i]!==t.m):B.foes.map((m,i)=>i).filter(i=>alive(B.foes[i])&&B.foes[i]!==t.m);
-        if(!opts.length){await msg("Aber es schlug fehl!");return;}await doSwitch(side,pick(opts),false,true);return;}
+        if(!opts.length){await msg("Aber es schlug fehl!");return;}await doSwitch(side,lpick(opts),false,true);return;}
       await msg("Aber es schlug fehl!");return;
     case"belly-drum":if(u.m.hp*2<=maxHp(u.m)||u.st[0]>=6){await msg("Aber es schlug fehl!");return;}await dealDamage(u,Math.floor(maxHp(u.m)/2));u.st[0]=6;sfx("stat_up");await msg(`${u.name} maximiert seinen Angriff!`);return;
     case"pain-split":{const avg=Math.floor((u.m.hp+t.m.hp)/2);await setHp(u,avg);await setHp(t,avg);await msg("Die KP wurden geteilt!");return;}
@@ -2738,13 +2751,13 @@ async function inflict(t,st,src,fromAbility,loud){
   if(st==="par"&&(ty.includes(13)||ab==="limber"))return fail();
   if(st==="frz"&&(ty.includes(15)||ab==="magma-armor"))return fail();
   if(st==="slp"&&(ab==="insomnia"||ab==="vital-spirit"))return fail();
-  t.m.st=st;if(st==="slp")t.m.slp=rint(2,4)-(ab==="early-bird"?1:0);if(st==="tox")t.v.toxN=1;
+  t.m.st=st;if(st==="slp")t.m.slp=lrint(2,4)-(ab==="early-bird"?1:0);if(st==="tox")t.v.toxN=1;
   await statusAnim(t,st);
   const T={brn:"hat Verbrennungen erlitten!",psn:"wurde vergiftet!",tox:"wurde schwer vergiftet!",par:"ist paralysiert! Es kann eventuell nicht angreifen!",slp:"ist eingeschlafen!",frz:"wurde eingefroren!"};
   await msg(`${t.name} ${T[st]}`);
   return true;
 }
-async function confuse(t,loud){if(t.v.conf){if(loud)await msg(`${t.name} ist bereits verwirrt!`);return;}if(t.ab==="own-tempo"||t.ab==="oblivious"){if(loud)await msg(`Es hat keine Wirkung auf ${t.name}...`);return;}t.v.conf=rint(2,5);await statusAnim(t,"conf");await msg(`${t.name} wurde verwirrt!`);}
+async function confuse(t,loud){if(t.v.conf){if(loud)await msg(`${t.name} ist bereits verwirrt!`);return;}if(t.ab==="own-tempo"||t.ab==="oblivious"){if(loud)await msg(`Es hat keine Wirkung auf ${t.name}...`);return;}t.v.conf=lrint(2,5);await statusAnim(t,"conf");await msg(`${t.name} wurde verwirrt!`);}
 async function statChange(t,src,i,c){
   if(i<0||i>6)return false;
   if(c<0&&src&&src.side!==t.side&&FSD(t.side).mist){await msg(`${t.name} wird durch Weißnebel geschützt!`);return false;}
@@ -2766,8 +2779,8 @@ async function berryCheck(b){
   if(it==="sitrus-berry"&&b.m.hp*2<=mx){b.m.item=null;b.v.unburden=1;await heal(b,Math.floor(mx/4));await msg(`${b.short} isst eine Tsitrubeere und füllt KP auf!`);}
 }
 async function endOfTurn(){
-  for(const b of[B.act[0],B.act[1]]){
-    if(!alive(b.m))continue;const mx=maxHp(b.m);const mg=b.ab==="magic-guard";
+  for(const b of duelHostFirst([B.act[0],B.act[1]])){
+    rngOwn(b);if(!alive(b.m))continue;const mx=maxHp(b.m);const mg=b.ab==="magic-guard";
     if(b.m.st==="brn"&&!mg){await statusAnim(b,"brn");await dealDamage(b,Math.max(1,Math.floor(mx/16)));await msg(`${b.name} wird durch Verbrennungen geschwächt!`);}
     if(b.m.st==="psn"&&!mg){await statusAnim(b,"psn");await dealDamage(b,Math.max(1,Math.floor(mx/8)));await msg(`${b.name} wird durch Gift geschwächt!`);}
     if(b.m.st==="tox"&&!mg){await statusAnim(b,"psn");await dealDamage(b,Math.max(1,Math.floor(mx*(b.v.toxN||1)/16)));b.v.toxN=Math.min(15,(b.v.toxN||1)+1);await msg(`${b.name} wird durch Gift geschwächt!`);}
@@ -2778,7 +2791,7 @@ async function endOfTurn(){
     if(!alive(b.m))continue;
     if(b.v.ring&&b.m.hp<mx){await heal(b,Math.max(1,Math.floor(mx/16)));await msg(`${b.name} regeneriert KP!`);}
     if(b.m.item==="leftovers"&&b.m.hp<mx){await heal(b,Math.max(1,Math.floor(mx/16)));await msg(`${b.short} füllt mit Überresten KP auf!`);}
-    if(b.ab==="shed-skin"&&b.m.st&&chance(.3)){await abPop(b);b.m.st="";await msg(`${b.name} hat sein Statusproblem abgelegt!`);}
+    if(b.ab==="shed-skin"&&b.m.st&&lchance(.3)){await abPop(b);b.m.st="";await msg(`${b.name} hat sein Statusproblem abgelegt!`);}
     await berryCheck(b);
   }
   await fieldEndOfTurn();
@@ -2790,6 +2803,7 @@ async function switchInAbility(b){
 
 /* ---------- K.O., EXP, Wechsel ---------- */
 async function checkFaints(){
+  if(B.duel)return duelCheckFaints();
   const foe=B.act[1],me=B.act[0];
   if(!alive(foe.m)&&!foe.fainted){
     foe.fainted=true;await faintAnim(1);await msg(`${foe.name} wurde besiegt!`);
@@ -2818,11 +2832,26 @@ async function checkFaints(){
     if(shiftTo>=0)await doSwitch(0,shiftTo,true,false,true);
   }
   if(!alive(B.act[0].m)){
-    if(B.type==="wild"){if(!(await askB("Nächstes Pokémon einsetzen?"))){const s1=1,odds=.6+.1*B.runs;if(chance(odds)){sfx("run");await msg("Du bist entkommen!");return"run";}await msg("Flucht gescheitert!");}}
+    if(B.type==="wild"){if(!(await askB("Nächstes Pokémon einsetzen?"))){const s1=1,odds=.6+.1*B.runs;if(lchance(odds)){sfx("run");await msg("Du bist entkommen!");return"run";}await msg("Flucht gescheitert!");}}
     const i=await partyMenu({mode:"forced",cur:G.save.party.indexOf(B.act[0].m),title:"Welches Pokémon soll kämpfen?"});
     await doSwitch(0,i,false,true);
   }
   if(foeNew)await switchInAbility(foeNew);
+  return null;
+}
+// Online-Duell: erst eigenes Ersatz-Pokémon wählen und senden, dann das des Gegners abwarten (kein Patt beim gleichzeitigen K.O.)
+async function duelCheckFaints(){
+  const foe=B.act[1],me=B.act[0];
+  if(!alive(foe.m)&&!foe.fainted){foe.fainted=true;await faintAnim(1);await msg(`${foe.name} wurde besiegt!`);}
+  if(!alive(me.m)&&!me.fainted){me.fainted=true;await faintAnim(0);await msg(`${me.short} wurde besiegt!`);}
+  const mine=partyAlive(),theirs=B.foes.some(alive);
+  if(!mine&&!theirs)return"draw";if(!mine)return"lose";if(!theirs)return"win";
+  let meNew=null,foeNew=null;
+  if(!alive(B.act[0].m)){const i=duelMine(await partyMenu({mode:"forced",cur:G.save.party.indexOf(B.act[0].m),title:"Welches Pokémon soll kämpfen?"}));await doSwitch(0,i,false,true,false,true);meNew=B.act[0];}
+  if(!alive(B.act[1].m)){const next=await duelFoeRep();if(next==="gone")return"win";B.act[1]=new Battler(B.foes[next],1);B.hpD[1]=B.foes[next].hp;markSeen(B.foes[next].sp);
+    await sendOut(1,B.foes[next]);rngOwn(B.act[1]);await hazards(B.act[1]);foeNew=B.act[1];}
+  for(const b of duelHostFirst([meNew,foeNew]))if(b&&alive(b.m)){rngOwn(b);await switchInAbility(b);}
+  if(!partyAlive())return B.foes.some(alive)?"lose":"draw";if(!B.foes.some(alive))return"win";
   return null;
 }
 async function trainerWin(){
@@ -2875,7 +2904,7 @@ async function learnMove(m,id,inBattle){
     if(stop){await say2(`${monName(m)} hat ${n} nicht erlernt.`,true);return;}
   }
 }
-async function doSwitch(side,i,announce,forced,silentBack){
+async function doSwitch(side,i,announce,forced,silentBack,noAb){
   const cur=B.act[side];
   if(side===0){
     const m=G.save.party[i];
@@ -2883,11 +2912,11 @@ async function doSwitch(side,i,announce,forced,silentBack){
     if(cur.ab==="natural-cure")cur.m.st="";restoreMoves(cur.m);const pass=B.baton&&B.baton.side===0?cur.st.slice():null;
     B.act[0]=new Battler(m,0);if(pass){B.act[0].st=pass;B.baton=null;}B.hpD[0]=m.hp;B.expD=m.exp;B.part.add(m.uid);
     await sendOut(0,m,!forced);
-    await hazards(B.act[0]);await switchInAbility(B.act[0]);
+    rngOwn(B.act[0]);await hazards(B.act[0]);if(!noAb)await switchInAbility(B.act[0]);
   }else{
     const m=B.foes[i];if(alive(cur.m))await recallAnim(1);restoreMoves(cur.m);const pass=B.baton&&B.baton.side===1?cur.st.slice():null;
     B.act[1]=new Battler(m,1);if(pass){B.act[1].st=pass;B.baton=null;}B.hpD[1]=m.hp;markSeen(m.sp);
-    await sendOut(1,m);await hazards(B.act[1]);await switchInAbility(B.act[1]);
+    await sendOut(1,m);rngOwn(B.act[1]);await hazards(B.act[1]);if(!noAb)await switchInAbility(B.act[1]);
   }
 }
 
@@ -2905,7 +2934,7 @@ function aiChoose(me,t){
   const slotOf=s=>({id:s.id,slot:me.m.moves.indexOf(s)});
   if(B.type==="wild"){ // wilde Pokémon: zufällig, aber keine völlig nutzlosen Statusattacken (Wert schon am Limit)
     const useful=usable.filter(x=>{const m=mv(x.id);if(m.c!==1)return true;if(MOVES[x.id]&&MOVES[x.id].id==="focus-energy"&&me.v&&me.v.focus)return false;if(!m.sc.length)return true;const self=selfT(m);const[st,c]=m.sc[0];const cur=(self?me:t).st[st-2];return c<0?cur>-6:cur<6;});
-    return slotOf(pick(useful.length?useful:usable));}
+    return slotOf(lpick(useful.length?useful:usable));}
   const smart=G.save.diff!=="easy";
   const threat=aiBestVs(t,me);const turnsToDie=threat.d>0?Math.ceil(me.m.hp/threat.d):99;
   const foeSleeping=B.foes.some(m=>m!==me.m&&false);
@@ -2946,7 +2975,7 @@ function aiChoose(me,t){
       else if(m.id==="splash")sc=-100;
       else sc=4;
     }
-    sc+=rnd()*(smart?6:14);
+    sc+=lrnd()*(smart?6:14);
     if(sc>bs){bs=sc;best=s;}
   }
   return slotOf(best);
@@ -2959,7 +2988,7 @@ function aiWantsSwitch(me,t){
   if(!iDie||iKill&&iFirst||me.turns<1&&!iDie)return -1;
   let bi=-1,bs=0;B.foes.forEach((m,i)=>{if(!alive(m)||m===me.m)return;const b=new Battler(m,1);const take=aiExpDmg(t,b,threat.m)/Math.max(1,m.hp);const give=aiBestVs(b,t).d/Math.max(1,t.m.hp);
     const sc=(.5-take)+give*.6;if(take<.45&&sc>bs){bs=sc;bi=i;}});
-  return bi>=0&&chance(.75)?bi:-1;
+  return bi>=0&&lchance(.75)?bi:-1;
 }
 function sleepClauseBlocks(t,src){if(!B||B.type!=="trainer"||!src||src.side===t.side)return false;const team=t.side===1?B.foes:G.save.party;return team.some(m=>m!==t.m&&alive(m)&&m.st==="slp");}
 function aiNextMon(allowCurrent){
@@ -2999,7 +3028,7 @@ async function throwBall(key){
   const st=m.st==="slp"||m.st==="frz"?2.5:m.st?1.5:1;
   const a=((3*mx-2*m.hp)*SPECIES[m.sp].cr*BALL_MOD[key])/(3*mx)*st;
   let shakes=4;
-  if(a<255){const b=65536/Math.pow(255/a,3/16);shakes=0;for(let i=0;i<4;i++){if(rint(0,65535)<b)shakes++;else break;}}
+  if(a<255){const b=65536/Math.pow(255/a,3/16);shakes=0;for(let i=0;i<4;i++){if(lrint(0,65535)<b)shakes++;else break;}}
   for(let i=0;i<Math.min(3,shakes);i++){await wait(22);sfx("wobble");B.vis.ball.wob=1;B.vis.ball.wobT=FRAME;await wait(16);B.vis.ball.wob=0;}
   if(shakes>=4){
     await wait(12);sfx("caught");B.vis.ball.done=1;B.vis.ball.doneT=FRAME;Music.play("caught");const bs=B.vis.ball;for(let i=0;i<10;i++)pfx({k:"star",c:"#fff2a0",x:bs.x,y:bs.y-4,vx:Math.cos(i*.63)*1.6,vy:Math.sin(i*.63)*1.6-1,s:3,life:26,add:true});
@@ -3130,7 +3159,7 @@ async function extraMove(u,t,move){
     case"stealth-rock":if(them.rock)return fail();them.rock=1;await msg(`Um ${t.side?"das gegnerische Team":"dein Team"} schweben spitze Steine!`);return true;
     case"substitute":{const q=Math.floor(maxHp(u.m)/4);if(u.v.sub>0){await msg(`${u.name} hat bereits einen Delegator!`);return true;}if(u.m.hp<=q)return fail();
       await dealDamage(u,q);u.v.sub=q;B.vis[u.side].alpha=.6;await msg(`${u.name} setzt einen Delegator ein!`);return true;}
-    case"endure":{const n=u.v.protN||0;u.v.protTurn=B.turn;if(n>0&&!chance(1/Math.pow(3,n))){u.v.protN=0;return fail();}u.v.endure=1;u.v.protN=n+1;await msg(`${u.name} macht sich bereit!`);return true;}
+    case"endure":{const n=u.v.protN||0;u.v.protTurn=B.turn;if(n>0&&!lchance(1/Math.pow(3,n))){u.v.protN=0;return fail();}u.v.endure=1;u.v.protN=n+1;await msg(`${u.name} macht sich bereit!`);return true;}
     case"destiny-bond":u.v.dbond=1;await msg(`${u.name} will den Angreifer mit sich nehmen!`);return true;
     case"perish-song":{let any=false;for(const b of B.act){if(b&&alive(b.m)&&!b.v.perish&&b.ab!=="soundproof"){b.v.perish=4;any=true;}}if(!any)return fail();await msg("Alle Pokémon, die Abgesang hören, werden in drei Runden besiegt!");return true;}
     case"disable":{const last=t.v.last;if(!last||t.v.dis||!t.m.moves.some(x=>x.id===last))return fail();t.v.dis={id:last,n:4};await msg(`${MOVES[last].n} von ${t.name} wurde blockiert!`);return true;}
@@ -3146,7 +3175,7 @@ async function extraMove(u,t,move){
     case"psych-up":u.st=t.st.slice();await msg(`${u.name} kopiert die Statusveränderungen von ${t.name}!`);return true;
     case"power-swap":for(const i of[0,2])[u.st[i],t.st[i]]=[t.st[i],u.st[i]];await msg(`${u.name} tauscht Angriffswerte-Veränderungen mit dem Ziel!`);return true;
     case"guard-swap":for(const i of[1,3])[u.st[i],t.st[i]]=[t.st[i],u.st[i]];await msg(`${u.name} tauscht Verteidigungswerte-Veränderungen mit dem Ziel!`);return true;
-    case"acupressure":{const opts=[0,1,2,3,4,5,6].filter(i=>u.st[i]<6);if(!opts.length)return fail();await statChange(u,u,pick(opts),2);return true;}
+    case"acupressure":{const opts=[0,1,2,3,4,5,6].filter(i=>u.st[i]<6);if(!opts.length)return fail();await statChange(u,u,lpick(opts),2);return true;}
     case"soak":if(t.types.length===1&&t.types[0]===11)return fail();t.v.type=[11];await msg(`${t.name} ist jetzt vom Typ Wasser!`);return true;
     case"conversion":{const ty=MOVES[u.m.moves[0].id].t;if(u.types.length===1&&u.types[0]===ty)return fail();u.v.type=[ty];await msg(`${u.name} ist jetzt vom Typ ${TYPE_N[ty]}!`);return true;}
     case"worry-seed":if(t.ab==="insomnia"||t.ab==="truant")return fail();t.v.abOv="insomnia";await abPop(t);await msg(`${t.name} hat jetzt die Fähigkeit Insomnia!`);if(t.m.st==="slp"){t.m.st="";await msg(`${t.name} ist aufgewacht!`);}return true;
@@ -3155,7 +3184,7 @@ async function extraMove(u,t,move){
     case"copycat":case"sleep-talk":{
       let nid=null;
       if(id==="copycat"){nid=B.lastAny&&!["copycat","transform"].includes(MOVES[B.lastAny].id)?B.lastAny:null;}
-      else{if(u.m.st!=="slp")return fail();const opts=u.m.moves.filter(x=>!["sleep-talk","snore"].includes(MOVES[x.id].id)&&!MOVES[x.id].f.includes("charge"));nid=opts.length?pick(opts).id:null;}
+      else{if(u.m.st!=="slp")return fail();const opts=u.m.moves.filter(x=>!["sleep-talk","snore"].includes(MOVES[x.id].id)&&!MOVES[x.id].f.includes("charge"));nid=opts.length?lpick(opts).id:null;}
       if(!nid)return fail();const st=u.m.st;if(id==="sleep-talk")u.m.st="";await useMove(u,nid,null);if(id==="sleep-talk"&&alive(u.m)&&!u.m.st)u.m.st=st;return true;}
     case"mimic":{const last=t.v.last;if(!last||u.m.moves.some(x=>x.id===last)||["mimic","transform","struggle","metronome"].includes(MOVES[last].id))return fail();
       const sl=u.m.moves.findIndex(x=>MOVES[x.id].id==="mimic");if(sl<0)return fail();if(!u.m._mvBak)u.m._mvBak=u.m.moves.map(x=>({id:x.id,pp:x.pp}));u.m.moves[sl]={id:last,pp:5};await msg(`${u.name} hat ${MOVES[last].n} kopiert!`);return true;}
@@ -3164,8 +3193,8 @@ async function extraMove(u,t,move){
       await animData(u.tf.sp,u.side===0,false).p;const v=B.vis[u.side];for(let i=0;i<10;i++){v.white=i/10;await nextFrame();}for(let i=10;i>=0;i--){v.white=i/10;await nextFrame();}
       await msg(`${u.name} hat sich in ${SPECIES[t.dsp].n} verwandelt!`);return true;}
     case"baton-pass":{
-      if(u.side===0){const opts=G.save.party.filter(m=>alive(m)&&m!==u.m);if(!opts.length)return fail();const i=await partyMenu({mode:"forced",cur:G.save.party.indexOf(u.m),title:"Wer soll den Stab übernehmen?"});B.baton={side:0};await doSwitch(0,i,true,true);return true;}
-      if(B.type!=="trainer")return fail();const i=aiNextMon();if(i<0)return fail();B.baton={side:1};await doSwitch(1,i,false,true);return true;}
+      if(u.side===0){const opts=G.save.party.filter(m=>alive(m)&&m!==u.m);if(!opts.length)return fail();const i=duelMine(await partyMenu({mode:"forced",cur:G.save.party.indexOf(u.m),title:"Wer soll den Stab übernehmen?"}));B.baton={side:0};await doSwitch(0,i,true,true);return true;}
+      if(B.type!=="trainer")return fail();const i=B.duel?(B.foes.some(m=>alive(m)&&m!==u.m)?await duelFoeRep():-1):aiNextMon();if(i<0)return fail();B.baton={side:1};await doSwitch(1,i,false,true);return true;}
   }
   return false;
 }
@@ -3179,15 +3208,15 @@ async function fieldEndOfTurn(){
   // Bizarroraum läuft ab
   if(B.trick&&--B.trick<=0){B.trick=0;await msg("Die Dimensionen normalisieren sich wieder.");}
   // Temposchub (Speed Boost): +1 Initiative am Rundenende
-  for(const b of B.act){if(b&&alive(b.m)&&b.ab==="speed-boost"&&b.turns>0&&b.st[4]<6){await abPop(b);await statChange(b,b,4,1);}}
+  for(const b of duelHostFirst(B.act)){if(b&&alive(b.m)&&b.ab==="speed-boost"&&b.turns>0&&b.st[4]<6){await abPop(b);await statChange(b,b,4,1);}}
   // Wetter
   if(B.weather){const W=B.weather;
-    if(W.k==="sand"||W.k==="hail"){for(const b of B.act){if(!b||!alive(b.m))continue;const safe=W.k==="sand"?b.types.some(t=>t===5||t===6||t===9):b.types.includes(15);
+    if(W.k==="sand"||W.k==="hail"){for(const b of duelHostFirst(B.act)){if(!b||!alive(b.m))continue;const safe=W.k==="sand"?b.types.some(t=>t===5||t===6||t===9):b.types.includes(15);
       if(!safe&&b.ab!=="magic-guard"&&b.ab!=="overcoat"){await dealDamage(b,Math.max(1,Math.floor(maxHp(b.m)/16)));await msg(`${b.name} wird ${W.k==="sand"?"vom Sandsturm":"vom Hagel"} getroffen!`);}}}
     if(--W.n<=0){await msg(WEATHER[W.k][1]);B.weather=null;}}
-  if(B.terrain){if(B.terrain.k==="grassy")for(const b of B.act){if(b&&alive(b.m)&&b.m.hp<maxHp(b.m)&&!b.types.includes(3)){await heal(b,Math.max(1,Math.floor(maxHp(b.m)/16)));await msg(`${b.name} wird vom Grasfeld geheilt!`);}}
+  if(B.terrain){if(B.terrain.k==="grassy")for(const b of duelHostFirst(B.act)){if(b&&alive(b.m)&&b.m.hp<maxHp(b.m)&&!b.types.includes(3)){await heal(b,Math.max(1,Math.floor(maxHp(b.m)/16)));await msg(`${b.name} wird vom Grasfeld geheilt!`);}}
     if(--B.terrain.n<=0){await msg(B.terrain.k==="grassy"?"Das Grasfeld verschwindet.":"Das Elektrofeld verschwindet.");B.terrain=null;}}
-  for(const b of B.act){if(!b||!alive(b.m))continue;const v=b.v;
+  for(const b of duelHostFirst(B.act)){if(!b||!alive(b.m))continue;rngOwn(b);const v=b.v;
     if(v.yawn){v.yawn--;if(!v.yawn&&!b.m.st)await inflict(b,"slp",null,true);}
     if(v.perish){v.perish--;await msg(`Der Abgesang-Zähler von ${b.name} sinkt auf ${v.perish}!`);if(!v.perish)await dealDamage(b,b.m.hp);}
     if(v.dis&&--v.dis.n<=0){v.dis=null;await msg(`${b.name} ist nicht mehr durch Aussetzer blockiert!`);}
@@ -6829,6 +6858,12 @@ async function capNurse(){
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.19",d:"29.10.2026",items:[
+    "Neu: ONLINE im Titelmenü – eigenes Konto mit Name und Passwort.",
+    "Live-Duell gegen Freunde: schnelle Suche oder Raum mit 4-stelligem Code. Du kämpfst mit dem Team deines letzten Spielstands (bis zu 6 Pokémon, alle auf Lv. 50), ohne Items. Dein Spielstand bleibt unverändert.",
+    "Bestenliste mit Duell-Elo, Siegen und Niederlagen sowie Fortschritt (Orden, Pokédex).",
+    "Cloud-Spielstand: hochladen und auf jedem Gerät wieder laden. Angemeldet wird beim Speichern automatisch gesichert.",
+    "Behoben: Die Bildschirm-Abblendung konnte in seltenen Fällen hängen bleiben."]},
   {v:"0.18",d:"29.10.2026",items:[
     "Attacken-Animationen komplett neu: eigene Pixel-Effekte im GBA/DS-Stil (Funken, Krallen, Flammen, Wellen, Blitze, Eis, Blätter, Felsen, Schattenball …) in Typ-Farben.",
     "Treffer mit Wucht: kurzer Trefferstopp, Rückstoß mit weißem Aufblitzen, Pokémon glühen in Typ-Farbe, Aufladen vor Strahlen und Kugeln, Nachbilder bei Geschossen.",
@@ -6870,6 +6905,288 @@ function patchInfo(){return new Promise(res=>{
       if(sc>0)obArrow(PRW-12,TOP+2,true);if(sc<max)obArrow(PRW-12,PRH-56,false);
       obFoot("Was in den letzten Versionen behoben und neu ist.","↑↓ blättern · A/B schließen");prEnd();}});
 });}
+
+/* ===== online.js ===== */
+/* ================================ ONLINE: Konten, Cloud-Spielstand, Bestenliste, Live-Duell ================================
+   Server: das kostenlose Supabase-Projekt (gleiches Projekt wie Pokélings, eigene Tabellen obs_*).
+   - Konten: Name + Passwort. Intern eine Pseudo-Adresse aus dem Namens-Hash, das Passwort wird vorher gehasht.
+   - Duell: Supabase Realtime (Broadcast). Beide Rechner rechnen den Kampf selbst – mit gleichem Startwert und
+     getrennten Zufallsströmen je Spieler (lrnd in battle.js), dazu werden pro Runde nur die Entscheidungen getauscht.
+   - Zum Testen ohne Server: ?mp=local verbindet zwei Tabs im selben Browser (BroadcastChannel). */
+const CLOUD={url:"https://wysjmsrkmadkhwjonhbx.supabase.co",key:"sb_publishable_RSTomimx_J4XXysBRdVwGg_cwKTWHyK"};
+const ON_PROTO=1;
+const ON={sess:null,board:null,busy:false,upT:0};
+const onLocal=()=>/[?&]mp=local/.test(location.search);
+async function onSha(s){if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  let h1=0x811c9dc5,h2=0x1000193;for(const c of s){h1=Math.imul(h1^c.charCodeAt(0),16777619)>>>0;h2=Math.imul(h2+c.charCodeAt(0),2654435761)>>>0;}return(h1.toString(16)+h2.toString(16)).padEnd(64,"0");}
+const onKey=n=>String(n||"").trim().toLowerCase();
+const onEmail=async n=>"o"+(await onSha("obs:"+onKey(n))).slice(0,28)+"@obsidian.app";
+const onPw=async(n,pw)=>onSha("obsidian|"+onKey(n)+"|"+pw);
+const onNameOk=n=>/^[A-Za-z0-9ÄÖÜäöüß _\-.]{3,12}$/.test(String(n||"").trim());
+
+async function onFetch(path,o={}){const h=Object.assign({apikey:CLOUD.key,"Content-Type":"application/json"},o.headers||{});if(o.auth!==false&&ON.sess)h.Authorization="Bearer "+ON.sess.access_token;
+  const ctl=typeof AbortController!=="undefined"?new AbortController():null,to=setTimeout(()=>ctl&&ctl.abort(),o.timeout||12000);
+  try{const r=await fetch(CLOUD.url+path,{method:o.method||"GET",headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined,signal:ctl&&ctl.signal,keepalive:!!o.keep});
+    const tx=await r.text();let j=null;try{j=tx?JSON.parse(tx):null;}catch(e){}return{ok:r.ok,status:r.status,j};}
+  catch(e){return{ok:false,status:0,net:true,j:null};}finally{clearTimeout(to);}}
+function onSetSess(j,name){if(!j||!j.access_token)return false;ON.sess={access_token:j.access_token,refresh_token:j.refresh_token,uid:(j.user&&j.user.id)||(ON.sess&&ON.sess.uid),exp:Date.now()+(j.expires_in||3600)*1000,name};
+  LS.set("obs_acc",{name,rt:j.refresh_token,uid:ON.sess.uid});return true;}
+async function onRefresh(){const t=LS.get("obs_acc",null);const rt=(ON.sess&&ON.sess.refresh_token)||(t&&t.rt);if(!rt)return false;
+  const r=await onFetch("/auth/v1/token?grant_type=refresh_token",{method:"POST",auth:false,body:{refresh_token:rt}});if(r.ok&&onSetSess(r.j,(ON.sess&&ON.sess.name)||(t&&t.name)))return true;
+  if(r.status===400||r.status===401){LS.del("obs_acc");ON.sess=null;}return false;}
+async function onReady(){if(!ON.sess)return false;if(Date.now()>ON.sess.exp-60000)return onRefresh();return true;}
+function onErrText(r){const m=String((r.j&&(r.j.msg||r.j.error_description||r.j.message||r.j.error))||"");
+  if(r.net)return"Keine Verbindung zum Server. Prüfe dein Internet.";
+  if(/already registered|already exists|duplicate/i.test(m))return"Dieser Name ist schon vergeben.";
+  if(/invalid login|invalid_grant|credentials/i.test(m))return"Name oder Passwort falsch.";
+  if(/not confirmed/i.test(m))return"Konto noch nicht freigeschaltet (Server-Einstellung). Bitte REQUIEM Bescheid sagen.";
+  if(/rate limit|too many/i.test(m))return"Zu viele Versuche – bitte kurz warten.";
+  return m?"Server: "+m.slice(0,80):"Unbekannter Fehler ("+r.status+").";}
+async function onLogin(name,pw){const r=await onFetch("/auth/v1/token?grant_type=password",{method:"POST",auth:false,body:{email:await onEmail(name),password:await onPw(name,pw)}});
+  if(!r.ok||!onSetSess(r.j,name.trim()))return onErrText(r);await onLoadBoard(true);return null;}
+async function onRegister(name,pw){name=name.trim();
+  const ex=await onFetch(`/rest/v1/obs_board?select=id&name=ilike.${encodeURIComponent(name)}`,{auth:false});if(ex.ok&&Array.isArray(ex.j)&&ex.j.length)return"Dieser Name ist schon vergeben.";
+  const r=await onFetch("/auth/v1/signup",{method:"POST",auth:false,body:{email:await onEmail(name),password:await onPw(name,pw),data:{name}}});
+  if(!r.ok)return onErrText(r);if(!onSetSess(r.j,name)){const e=await onLogin(name,pw);if(e)return e;}
+  await onLoadBoard(true);return null;}
+function onLogout(){ON.sess=null;ON.board=null;LS.del("obs_acc");}
+// eigene Zeile der Bestenliste laden bzw. anlegen
+async function onLoadBoard(create){if(!(await onReady()))return null;
+  const r=await onFetch(`/rest/v1/obs_board?select=*&id=eq.${ON.sess.uid}`);if(r.ok&&Array.isArray(r.j)&&r.j[0]){ON.board=r.j[0];return ON.board;}
+  if(create){const row={id:ON.sess.uid,name:ON.sess.name,elo:1000,wins:0,losses:0,badges:0,dex:0};const c=await onFetch("/rest/v1/obs_board",{method:"POST",headers:{Prefer:"return=representation"},body:row});
+    if(c.ok&&Array.isArray(c.j))ON.board=c.j[0];else ON.board=row;}return ON.board;}
+async function onPatchBoard(p){if(!(await onReady())||!ON.board)return false;Object.assign(ON.board,p);
+  const r=await onFetch(`/rest/v1/obs_board?id=eq.${ON.sess.uid}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:Object.assign({},p,{updated_at:new Date().toISOString()})});return r.ok;}
+function onProgress(sv){if(!sv)return{badges:0,dex:0};return{badges:(sv.badges||[]).filter(Boolean).length,dex:Object.keys((sv.dex&&sv.dex.caught)||{}).length};}
+// Cloud-Spielstand
+async function onUpload(sv,quiet){if(!sv||!(await onReady()))return false;const body={id:ON.sess.uid,name:ON.sess.name,save:sv,updated_at:new Date().toISOString()};
+  const r=await onFetch("/rest/v1/obs_profiles?on_conflict=id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body,keep:quiet,timeout:20000});
+  if(r.ok&&ON.board){const pg=onProgress(sv);if(pg.badges!==ON.board.badges||pg.dex!==ON.board.dex)onPatchBoard(pg);}return r.ok;}
+async function onDownload(){if(!(await onReady()))return null;const r=await onFetch(`/rest/v1/obs_profiles?select=save,updated_at&id=eq.${ON.sess.uid}`,{timeout:20000});
+  if(r.ok&&Array.isArray(r.j)&&r.j[0])return r.j[0];return r.ok?{}:null;}
+// Automatisch hochladen, wenn das Spiel speichert (gebündelt, höchstens alle 20 s)
+{const _sg=saveGame;saveGame=function(){_sg();if(ON.sess&&G.save&&!B){clearTimeout(ON.upT);const sv=G.save;ON.upT=setTimeout(()=>onUpload(JSON.parse(JSON.stringify(sv)),true),20000);}};}
+// beim Start still wieder anmelden
+setTimeout(async()=>{const t=LS.get("obs_acc",null);if(t&&t.rt){ON.sess={access_token:"",refresh_token:t.rt,uid:t.uid,exp:0,name:t.name};if(await onRefresh())onLoadBoard(true);else ON.sess=null;}},1500);
+
+/* ---------- Eingabefenster (HTML über dem Spiel, damit Tastatur/Handy-Tastatur normal funktionieren) ---------- */
+function onForm(o){return new Promise(res=>{let el=document.getElementById("onForm");if(el)el.remove();el=document.createElement("div");el.id="onForm";
+  el.style.cssText="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(8,6,16,.62);font-family:'Pixelify Sans',sans-serif";
+  const inp="width:100%;box-sizing:border-box;margin:4px 0 10px;padding:9px 10px;font:600 17px 'Pixelify Sans',sans-serif;color:#fff;background:#120e1c;border:2px solid #4a3c62;border-radius:6px;outline:none";
+  const btn=(c)=>`padding:9px 16px;font:600 16px 'Pixelify Sans',sans-serif;color:#fff;border-radius:6px;cursor:pointer;border:2px solid ${c?"#ffd0b8":"#4a3c62"};background:${c?"linear-gradient(#ff8a60,#c8402a)":"linear-gradient(#4a3c62,#2c2340)"}`;
+  el.innerHTML=`<form style="width:min(340px,92vw);background:linear-gradient(#221a33,#16111f);border:2px solid #e85a3a;border-radius:10px;padding:18px 18px 14px;color:#d8d0e0;box-shadow:0 10px 40px #000a">
+    <div style="font:700 21px 'Pixelify Sans',sans-serif;color:#fff;margin-bottom:10px;border-left:5px solid #e85a3a;padding-left:8px">${o.title}</div>
+    ${o.fields.map(f=>`<label style="font-size:14px;color:#c8c0d4">${f.label}<input name="${f.id}" type="${f.type||"text"}" maxlength="${f.max||40}" autocomplete="${f.ac||"off"}" ${f.mode?`inputmode="${f.mode}"`:""} style="${inp}" value="${f.value||""}"></label>`).join("")}
+    <div class="err" style="min-height:18px;color:#ff8a7a;font-size:14px;margin:-2px 0 8px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="x" style="${btn(0)}">Zurück</button><button type="submit" style="${btn(1)}">${o.ok||"OK"}</button></div>
+    ${o.note?`<div style="margin-top:10px;font-size:12px;line-height:1.35;color:#8a8098">${o.note}</div>`:""}</form>`;
+  document.body.appendChild(el);Input.textMode=true;const f=el.querySelector("form"),err=el.querySelector(".err");
+  el.addEventListener("keydown",e=>{e.stopPropagation();if(e.key==="Escape")close(null);});
+  const close=v=>{el.remove();Input.textMode=false;Input.clear();res(v);};
+  el.querySelector(".x").onclick=()=>close(null);
+  f.onsubmit=async e=>{e.preventDefault();const v={};for(const x of o.fields)v[x.id]=f.elements[x.id].value;const bad=o.check?o.check(v):null;if(bad){err.textContent=bad;return;}
+    if(o.submit){err.style.color="#ffd890";err.textContent="Einen Moment …";f.querySelectorAll("button,input").forEach(b=>b.disabled=true);const e2=await o.submit(v);
+      f.querySelectorAll("button,input").forEach(b=>b.disabled=false);if(e2){err.style.color="#ff8a7a";err.textContent=e2;return;}}
+    close(v);};
+  setTimeout(()=>{const i=f.querySelector("input");if(i)i.focus();},50);});}
+const ON_NOTE="Das Konto gilt nur für Pokémon Obsidian. Dein Name ist in der Bestenliste öffentlich sichtbar. Gespeichert werden Name, ein verschlüsseltes Passwort, dein Spielstand und Duell-Werte (kostenloser Server bei Supabase, EU/Frankfurt).";
+async function onAccountFlow(){const c=await onMenu("ONLINE","",[["ANMELDEN","card"],["KONTO ERSTELLEN","save"],["ZURÜCK","back"]],["Melde dich an, um online zu spielen.","Konten, Cloud-Spielstand, Bestenliste und Live-Duelle"]);
+  if(c===0)return!!(await onForm({title:"ANMELDEN",ok:"Anmelden",fields:[{id:"n",label:"Name",max:12,ac:"username"},{id:"p",label:"Passwort",type:"password",max:64,ac:"current-password"}],
+    check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen.":v.p.length<6?"Passwort: mindestens 6 Zeichen.":null,submit:v=>onLogin(v.n,v.p)}));
+  if(c===1)return!!(await onForm({title:"KONTO ERSTELLEN",ok:"Erstellen",note:ON_NOTE,fields:[{id:"n",label:"Name (öffentlich, 3–12 Zeichen)",max:12,ac:"username"},{id:"p",label:"Passwort (mind. 6 Zeichen)",type:"password",max:64,ac:"new-password"},{id:"p2",label:"Passwort wiederholen",type:"password",max:64,ac:"new-password"}],
+    check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen (Buchstaben, Zahlen, - _ .).":v.p.length<6?"Passwort: mindestens 6 Zeichen.":v.p!==v.p2?"Die Passwörter sind verschieden.":null,submit:v=>onRegister(v.n,v.p)}));
+  return false;}
+
+/* ---------- Bildschirme im Obsidian-Stil ---------- */
+function onMenu(title,right,items,foot,o={}){let i=o.i||0;return run({opaque:true,update(){const n=items.length;
+    if(Input.nav("up")){i=(i+n-1)%n;sfx("move");}if(Input.nav("down")){i=(i+1)%n;sfx("move");}
+    if(Input.hit("a")){sfx("select");this.done(i);}if(Input.hit("b")){sfx("back");this.done(-1);}},
+  draw(){obBg();obHeader(title,typeof right==="function"?right():right);const RH=Math.min(24,Math.floor((PRH-48-34)/items.length));let y=30;
+    items.forEach((it,j)=>{const sel=j===i;obCard(10,y,PRW*.56,RH-3,sel);if(it[1])drawUiIcon(it[1],16,y+(RH-3-16)/2,16);prT(it[0],40,y+(RH-3-14)/2-1,{size:14,c:sel?"#fff":OB.dim});y+=RH;});
+    if(o.side)o.side(PRW*.6,30);const F=typeof foot==="function"?foot():foot;obFoot(F&&F[0],F&&F[1]);prEnd();}});}
+function onWait(lines,o={}){let t=0;const sc={opaque:true,cancel:false,update(){t++;if(o.cancel!==false&&Input.hit("b")){sfx("back");this.cancel=true;this.done&&this.done("cancel");}},
+  draw(){obBg();obHeader(o.title||"LIVE-DUELL",o.right||"");const L=typeof lines==="function"?lines():lines;
+    L.forEach((l,j)=>prT(l,PRW/2,70+j*20,{align:"center",size:j===0?18:14,c:j===0?"#fff":OB.dim}));
+    if(o.code){prT(o.code,PRW/2,40,{align:"center",size:28,c:OB.gold,sh:"#6a4a10"});}
+    for(let k=0;k<8;k++){const a=t/8+k*Math.PI/4,on=(Math.floor(t/5)%8)===k;ctx.fillStyle=on?OB.acc2:"rgba(255,255,255,.25)";ctx.fillRect(PRW/2+Math.cos(a)*14-2,148+Math.sin(a)*14-2,4,4);}
+    obFoot(o.foot||"",o.cancel===false?"":"B: Abbrechen");prEnd();}};return sc;}
+
+/* ---------- Bestenliste ---------- */
+async function onBoardScreen(){let tab=0,rows=null,err=null,sc=0;
+  const load=async()=>{rows=null;err=null;const ord=tab===0?"elo.desc,wins.desc":"badges.desc,dex.desc";const r=await onFetch(`/rest/v1/obs_board?select=id,name,elo,wins,losses,badges,dex&order=${ord}&limit=100`,{auth:false});
+    if(r.ok&&Array.isArray(r.j))rows=r.j;else err=onErrText(r);sc=0;};
+  load();
+  await run({opaque:true,update(){if(Input.hit("b")||Input.hit("a")){sfx("back");this.done();}
+      if(Input.nav("left")||Input.nav("right")){tab^=1;sfx("move");load();}
+      if(rows){const max=Math.max(0,rows.length-8);if(Input.nav("down")&&sc<max){sc++;sfx("move");}if(Input.nav("up")&&sc>0){sc--;sfx("move");}}},
+    draw(){obBg();obHeader("BESTENLISTE",tab===0?"◀ DUELL-ELO ▶":"◀ FORTSCHRITT ▶");
+      ctx.fillStyle="rgba(255,255,255,.08)";ctx.fillRect(8,27,PRW-16,14);
+      const H=[["#",14],["NAME",34],["ELO",168],["S / N",210],["ORDEN",252],["DEX",292]];H.forEach(([h,x])=>prT(h,x,27,{size:12,c:OB.gold,sh:"transparent"}));
+      if(!rows){prT(err||"Lade …",PRW/2,90,{align:"center",size:14,c:err?"#ff8a7a":OB.dim});}
+      else if(!rows.length)prT("Noch keine Einträge – sei der Erste!",PRW/2,90,{align:"center",size:14,c:OB.dim});
+      else rows.slice(sc,sc+8).forEach((r,j)=>{const y=44+j*15,me=ON.sess&&r.id===ON.sess.uid,rk=sc+j+1;if(me)obSel(8,y,PRW-16,14);
+        const c=rk===1?"#ffd860":rk===2?"#d8e0f0":rk===3?"#e8a870":"#fff";prT(String(rk),14,y,{size:13,c});prT(r.name,34,y,{size:13,c:me?"#fff":OB.dim});
+        prT(String(r.elo),168,y,{size:13,c:"#fff"});prT(`${r.wins}/${r.losses}`,210,y,{size:13,c:OB.dim});prT(String(r.badges),262,y,{size:13,c:OB.dim});prT(String(r.dex),292,y,{size:13,c:OB.dim});});
+      if(rows&&sc>0)obArrow(PRW-10,48,true);if(rows&&sc<rows.length-8)obArrow(PRW-10,PRH-56,false);
+      obFoot(ON.board?`Du: ${ON.board.elo} Elo · ${ON.board.wins} ${ON.board.wins===1?"Sieg":"Siege"} · ${ON.board.losses} ${ON.board.losses===1?"Niederlage":"Niederlagen"}`:"Melde dich an, um mitzuspielen.","◀▶ Liste wechseln · B: zurück");prEnd();}});}
+
+/* ---------- Duell-Team (aus dem zuletzt gespielten Spielstand, alle auf Lv. 50) ---------- */
+function onTeamSource(){const sl=slotInfo(),li=lastSlot(sl);return li?sl[li-1]:null;}
+function onCleanMon(m){const S=SPECIES[m&&m.sp];if(!S)return null;const c=(a,lo,hi,d)=>Array.isArray(a)&&a.length===6?a.map(x=>clamp(Math.floor(+x||0),lo,hi)):d;
+  let ev=c(m.ev,0,252,[0,0,0,0,0,0]);if(ev.reduce((a,b)=>a+b,0)>510)ev=[0,0,0,0,0,0];
+  const moves=(Array.isArray(m.moves)?m.moves:[]).map(x=>x&&MOVES[x.id]?x.id:null).filter(Boolean).slice(0,4);if(!moves.length)moves.push(...defaultMoves(m.sp,50).slice(0,4));
+  const o={uid:++UID,sp:m.sp,lv:50,nat:clamp(Math.floor(+m.nat||0),0,24),ab:S.ab.includes(m.ab)?m.ab:S.ab[0],iv:c(m.iv,0,31,[31,31,31,31,31,31]),ev,gender:m.gender==="f"||m.gender==="m"?m.gender:"",shiny:!!m.shiny,
+    moves:moves.map(newMoveSlot),exp:expAt(m.sp,50),st:"",slp:0,item:(m.item&&ITEMS[m.item])?m.item:null,ball:"poke-ball",ot:"",met:"Duell",nick:String(m.nick||"").slice(0,12)};
+  o.hp=maxHp(o);return o;}
+function onMyTeam(){const sv=onTeamSource();if(!sv||!Array.isArray(sv.party))return[];return sv.party.slice(0,6).map(onCleanMon).filter(Boolean);}
+function onTeamLine(t){return t.length?t.map(m=>monName(m)).join(", "):"Kein Team – starte zuerst ein Spiel.";}
+
+/* ---------- Echtzeit-Verbindung (Supabase Realtime / lokal) ---------- */
+function onTransport(topic,onMsg,onState){
+  if(onLocal()&&typeof BroadcastChannel!=="undefined"){const bc=new BroadcastChannel("obs-"+topic);bc.onmessage=e=>onMsg(e.data);setTimeout(()=>onState("joined"),60);return{send:p=>bc.postMessage(p),close:()=>bc.close()};}
+  let ws,ref=0,jr=null,hb=0,closed=false;
+  try{ws=new WebSocket(CLOUD.url.replace(/^http/,"ws")+"/realtime/v1/websocket?apikey="+encodeURIComponent(CLOUD.key)+"&vsn=1.0.0");}catch(e){setTimeout(()=>onState("error"),0);return{send(){},close(){}};}
+  const tx=o=>{if(ws.readyState===1)ws.send(JSON.stringify(o));};
+  ws.onopen=()=>{jr=String(++ref);tx({topic:"realtime:"+topic,event:"phx_join",payload:{config:{broadcast:{self:false,ack:false},presence:{key:""},private:false}},ref:jr,join_ref:jr});
+    hb=setInterval(()=>tx({topic:"phoenix",event:"heartbeat",payload:{},ref:String(++ref)}),25000);};
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}
+    if(m.event==="phx_reply"&&m.ref===jr)onState(m.payload&&m.payload.status==="ok"?"joined":"error");
+    else if(m.event==="broadcast"&&m.payload&&m.payload.payload)onMsg(m.payload.payload);
+    else if(m.event==="phx_error")onState("error");};
+  ws.onerror=()=>{if(!closed)onState("error");};
+  ws.onclose=()=>{clearInterval(hb);if(!closed)onState("closed");};
+  return{send:p=>tx({topic:"realtime:"+topic,event:"broadcast",payload:{type:"broadcast",event:"m",payload:p},ref:String(++ref),join_ref:jr}),close:()=>{closed=true;clearInterval(hb);try{ws.close();}catch(e){}}};}
+
+/* ---------- Duell-Zustand und Hilfen für battle.js ---------- */
+let DUEL=null;
+function rngOwn(b){if(DUEL&&B&&B.duel&&b)DUEL.owner=((b.side===0)===DUEL.host)?"H":"G";}
+function duelTie(){if(!(DUEL&&B&&B.duel))return()=>lrnd()<.5?-1:1;const coin=DUEL.st.S();const hostFirst=coin<.5;
+  return(a,b)=>{const aH=(a.side===0)===DUEL.host;return aH===hostFirst?-1:1;};}
+function duelHostFirst(list){if(!(DUEL&&B&&B.duel))return list;return DUEL.host?list:list.slice().reverse();}
+function duelSend(t,p){if(DUEL&&DUEL.tr)DUEL.tr.send(Object.assign({t,f:DUEL.me.id,to:DUEL.peer?DUEL.peer.id:undefined,v:ON_PROTO},p||{}));}
+function duelOut(key,t,p){if(!DUEL)return;DUEL.out[key]={t,p};duelSend(t,p);}
+function duelMine(i){if(B&&B.duel&&DUEL&&i>=0){const n=DUEL.repOut++;duelOut("rep:"+n,"rep",{n,i});}return i;}
+function duelWait(key,text){if(!DUEL)return Promise.resolve("gone");if(DUEL.gone)return Promise.resolve("gone");if(key in DUEL.inbox){const v=DUEL.inbox[key];delete DUEL.inbox[key];return Promise.resolve(v);}
+  return new Promise(res=>{let shown=false;const tm=setTimeout(()=>{if(B&&!B.text){shown=true;B.text=new TextBox(text||`Warte auf ${DUEL.peer.name} …`,{style:"battle",auto:0});B.txtRes=()=>{};}},250);
+    DUEL.waiters[key]=v=>{clearTimeout(tm);if(shown&&B)B.text=null;delete DUEL.waiters[key];res(v);};});}
+async function duelExchange(act){const n=B.turn;const a={k:act.k};if(act.k==="move"){a.id=act.id;a.slot=act.slot;}if(act.k==="switch")a.i=act.i;duelOut("act:"+n,"act",{n,a});
+  const ra=await duelWait("act:"+n);if(ra==="gone")return"gone";return onCheckAct(ra);}
+function onCheckAct(a){const foe=B.act[1];if(!a||typeof a!=="object")return{k:"move",id:165};
+  if(a.k==="forfeit")return{k:"forfeit"};if(a.k==="recharge")return{k:"recharge"};
+  if(a.k==="switch"&&Number.isInteger(a.i)&&B.foes[a.i]&&alive(B.foes[a.i])&&B.foes[a.i]!==foe.m)return{k:"switch",i:a.i};
+  if(a.k==="move"){if(a.id===165)return{k:"move",id:165};const s=foe.m.moves[a.slot];if(s&&s.id===a.id&&s.pp>0)return{k:"move",id:a.id,slot:a.slot};
+    if(foe.v.charge&&a.id===foe.v.charge)return{k:"move",id:a.id};}
+  const sl=foe.m.moves.findIndex(x=>x.pp>0);return sl>=0?{k:"move",id:foe.m.moves[sl].id,slot:sl}:{k:"move",id:165};}
+async function duelFoeRep(){const n=DUEL.repIn++;const i=await duelWait("rep:"+n,`${DUEL.peer.name} wählt ein Pokémon …`);if(i==="gone")return"gone";
+  if(Number.isInteger(i)&&B.foes[i]&&alive(B.foes[i])&&B.foes[i]!==B.act[1].m)return i;return B.foes.findIndex(m=>alive(m)&&m!==B.act[1].m);}
+function duelOnMsg(m){if(!DUEL||!m||m.f===DUEL.me.id)return;if(m.to&&m.to!==DUEL.me.id)return;
+  if(DUEL.peer&&m.f!==DUEL.peer.id&&m.t!=="hello"&&m.t!=="start")return;
+  DUEL.last=Date.now();
+  if(m.t==="hello"&&DUEL.host&&!DUEL.started){if(m.v!==ON_PROTO){DUEL.err="Dein Gegner hat eine andere Spielversion. Beide bitte neu laden (Strg+F5).";return;}if(!DUEL.peer)DUEL.peer=m.info;if(DUEL.peer&&m.f===DUEL.peer.id)duelSend("start",{seed:DUEL.seed,info:DUEL.me,to:m.f});return;}
+  if(m.t==="hello"&&DUEL.host&&DUEL.started&&DUEL.peer&&m.f===DUEL.peer.id){duelSend("start",{seed:DUEL.seed,info:DUEL.me,to:m.f});return;}
+  if(m.t==="start"&&!DUEL.host){if(m.v!==ON_PROTO){DUEL.err="Dein Gegner hat eine andere Spielversion. Beide bitte neu laden (Strg+F5).";return;}if(!DUEL.peer){DUEL.peer=m.info;DUEL.seed=m.seed;}return;}
+  const put=(k,v)=>{if(DUEL.seen[k])return;DUEL.seen[k]=1;if(DUEL.waiters[k])DUEL.waiters[k](v);else DUEL.inbox[k]=v;};
+  if(m.t==="act")put("act:"+m.n,m.a);else if(m.t==="rep")put("rep:"+m.n,m.i);
+  else if(m.t==="bye"){duelGone();}
+  else if(m.t==="ping"&&Array.isArray(m.re))for(const r of m.re)duelOnMsg(Object.assign({},r.p,{t:r.t,f:m.f,to:m.to,v:m.v}));}
+function duelGone(){if(!DUEL||DUEL.gone)return;DUEL.gone=true;for(const k in DUEL.waiters)DUEL.waiters[k]("gone");}
+function duelClose(){if(!DUEL)return;clearInterval(DUEL.pi);if(DUEL.tr){try{duelSend("bye",{});}catch(e){}const t=DUEL.tr;setTimeout(()=>t.close(),300);}DUEL=null;RNGF=null;}
+
+/* ---------- Gegner finden ---------- */
+function onMyInfo(team){const sv=onTeamSource();return{id:Math.random().toString(36).slice(2,10),name:ON.sess?ON.sess.name:"Gast",elo:ON.board?ON.board.elo:1000,ch:sv&&sv.gender==="f"?"playerF":"player",gender:sv&&sv.gender==="f"?"f":"m",team};}
+// Raum betreten und warten, bis der Gegner da ist. Ergebnis: true (los geht's) oder Fehlertext / "cancel"
+function onRoom(room,host,me,waitSc){return new Promise(res=>{
+  DUEL={host,me,peer:null,seed:host?(Math.random()*2147483647)|0:0,started:false,tr:null,inbox:{},waiters:{},seen:{},out:{},repIn:0,repOut:0,gone:false,last:Date.now(),owner:"S",err:null};
+  const D=DUEL;let joined=false,hi=0,done=false;const fin=v=>{if(done)return;done=true;clearInterval(hi);clearInterval(chk);res(v);};
+  D.tr=onTransport("obs-duel-"+room,duelOnMsg,st=>{if(st==="joined"){joined=true;if(!host){const h=()=>duelSend("hello",{info:me});h();hi=setInterval(h,1000);}}
+    else if(!joined)fin("Keine Verbindung zum Duell-Server.");else duelGone();});
+  const t0=Date.now();const chk=setInterval(()=>{if(waitSc&&waitSc.cancel)return fin("cancel");if(D.err)return fin(D.err);
+    if(D.peer&&(host||D.seed)){if(host){D.started=true;duelSend("start",{seed:D.seed,info:me,to:D.peer.id});}fin(true);}
+    else if(!host&&Date.now()-t0>25000)fin("In diesem Raum wartet niemand. Prüfe den Code.");},200);});}
+// Schnelles Duell: im Warteraum suchen, der Spieler mit der kleineren Kennung lädt ein
+function onSeek(me,waitSc){return new Promise(res=>{let done=false,iv=0;const fin=v=>{if(done)return;done=true;clearInterval(iv);clearInterval(chk);setTimeout(()=>tr.close(),400);res(v);};
+  const tr=onTransport("obs-lobby",m=>{if(done||!m||m.f===me.id||m.v!==ON_PROTO)return;
+      if(m.t==="seek"&&me.id<m.f){tr.send({t:"match",f:me.id,to:m.f,room:me.id+m.f,v:ON_PROTO});fin({room:me.id+m.f,host:true});}
+      else if(m.t==="match"&&m.to===me.id)fin({room:m.room,host:false});},
+    st=>{if(st==="joined"){const s=()=>tr.send({t:"seek",f:me.id,name:me.name,elo:me.elo,v:ON_PROTO});s();iv=setInterval(s,1500);}else fin("Keine Verbindung zum Server.");});
+  const chk=setInterval(()=>{if(waitSc&&waitSc.cancel)fin("cancel");},200);});}
+
+/* ---------- Duell starten (eigener Ablauf, Spielstand bleibt unangetastet) ---------- */
+const DUEL_LOCS=["pallet","viridian","pewter","route1","forest","cerulean","vermilion","celadon","route22","route2"];
+async function onRunDuel(){const D=DUEL;const real=G.save;const sv=onTeamSource()||{};
+  const tmp=JSON.parse(JSON.stringify(sv&&sv.party?sv:{}));Object.assign(tmp,{party:D.me.team.map(m=>JSON.parse(JSON.stringify(m))),diff:"normal",mode:"classic",mgm:false,rand:false,bag:{},name:D.me.name,gender:D.me.gender,
+    pos:{map:DUEL_LOCS[Math.abs(D.seed)%DUEL_LOCS.length],x:1,y:1,dir:"down"},dex:tmp.dex||{seen:{},caught:{}},badges:tmp.badges||[],flags:tmp.flags||{},money:0,runStats:{badges:0,tr:0,caught:0,ko:0},runArea:{},grave:[]});
+  G.save=tmp;
+  const s=D.seed>>>0;D.st={H:seeded(s^0x9e3779b1),G:seeded(s^0x7f4a7c15),S:seeded(s^0x2545f491)};D.owner="S";RNGF=()=>D.st[D.owner]();
+  const foes=D.peer.team.map(onCleanMon).filter(Boolean);
+  D.pi=setInterval(()=>{if(!DUEL)return;const re=Object.entries(D.out).slice(-4).map(([k,v])=>({t:v.t,p:v.p}));duelSend("ping",{re});if(Date.now()-D.last>150000)duelGone();},4000);
+  let res="error";
+  try{
+    B={type:"trainer",duel:true,tr:{name:D.peer.name,cls:"",ch:D.peer.ch},trCh:D.peer.ch,foes,bg:"grass",area:"duel",act:[null,null],hpD:[0,0],expD:0,text:null,menu:null,fx:[],
+      vis:{0:{on:false,clip:64,white:0,blink:0,dx:0,scale:1,alpha:1},1:{on:false,clip:64,white:0,blink:0,dx:0,scale:1,alpha:1},trMe:{on:false,x:0},trFoe:{on:false,x:0},ball:null,boxes:[false,false]},
+      part:new Set(),screens:[{},{}],turn:0,runs:0,used:{},result:null,money:0,lvUps:new Set(),moneyBonus:0};
+    Music.play("trainer");bvInit();if(BV.ok)bvSetBg("grass");PFX.length=0;BV.idle=false;
+    await Promise.all([animData(foes[0].sp,false,foes[0].shiny).p,animData(tmp.party[0].sp,true,tmp.party[0].shiny).p]);
+    await battleTransition("trainer",{ch:D.peer.ch,name:D.peer.name});
+    if(typeof BV!=="undefined")BV.scr={};
+    fade.a=1;fade.target=1;const scene=push(BattleScene);await fadeTo(0,10);
+    try{res=await battleMain();}catch(e){console.error(e);res="error";}
+    if(res==="win")await msg(`Du hast gegen ${D.peer.name} gewonnen!`);else if(res==="lose")await msg(`${D.peer.name} hat gewonnen!`);else if(res==="draw")await msg("Unentschieden!");
+    await fadeTo(1,10);pop(scene); // erst abblenden, dann Szene schließen (sonst landen Tasten im Titelmenü)
+  }finally{B=null;G.save=real;RNGF=null;}
+  return res;}
+function onElo(me,op,score){const e=1/(1+Math.pow(10,(op-me)/400));return Math.max(0,Math.round(me+32*(score-e)));}
+async function onAfterDuel(res){const D=DUEL;const peer=D.peer;duelClose();
+  const score=res==="win"?1:res==="lose"?0:res==="draw"?.5:null;let line="";
+  if(score!=null&&ON.board){const old=ON.board.elo,ne=onElo(old,peer.elo||1000,score);const p={elo:ne,wins:ON.board.wins+(score===1?1:0),losses:ON.board.losses+(score===0?1:0)};
+    await onPatchBoard(p);line=`Elo: ${old} → ${ne} (${ne>=old?"+":""}${ne-old})`;
+    if(score===1)onFetch("/rest/v1/obs_duels",{method:"POST",headers:{Prefer:"return=minimal"},body:{winner:ON.sess.name,loser:peer.name}});}
+  const head=res==="win"?"SIEG!":res==="lose"?"NIEDERLAGE":res==="draw"?"UNENTSCHIEDEN":"DUELL ABGEBROCHEN";
+  Music.play("title");const shown=run({opaque:true,t:0,update(){this.t++;if(this.t>30&&(Input.hit("a")||Input.hit("b"))){sfx("select");this.done();}},
+    draw(){obBg();obHeader("LIVE-DUELL","");prT(head,PRW/2,56,{align:"center",size:28,c:res==="win"?OB.gold:res==="lose"?"#ff8a7a":"#fff",sh:"#2a1840"});
+      prT(`gegen ${peer.name}`,PRW/2,92,{align:"center",size:16,c:OB.dim});if(line)prT(line,PRW/2,116,{align:"center",size:16,c:"#fff"});
+      obFoot("A: weiter","");prEnd();}});await fadeTo(0,10);await shown;}
+async function onDuelFlow(kind){if(ON.busy)return;const team=onMyTeam();
+  if(!team.length){await onMsgBox("Du brauchst ein Team. Starte zuerst ein Spiel und fange Pokémon.");return;}
+  const me=onMyInfo(team);let room=null,host=false;
+  if(kind==="join"){const v=await onForm({title:"RAUM BEITRETEN",ok:"Beitreten",fields:[{id:"c",label:"Raum-Code (4 Ziffern)",max:4,mode:"numeric"}],check:v=>/^\d{4}$/.test(v.c.trim())?null:"Der Code hat 4 Ziffern."});if(!v)return;room=v.c.trim();host=false;}
+  if(kind==="create"){room=String(1000+Math.floor(Math.random()*9000));host=true;}
+  ON.busy=true;let res=null;
+  try{
+    if(kind==="quick"){const w=onWait(["Suche Gegner …",`Team: ${onTeamLine(team)}`,"Alle Pokémon kämpfen auf Lv. 50."],{title:"SCHNELLES DUELL",right:`${me.name} · ${me.elo}`});
+      const pr=onSeek(me,w);const r=await Promise.race([pr,run(w)]);if(r==="cancel"||(typeof r==="string")){if(w.done&&Scenes.includes(w))w.done();if(typeof r==="string"&&r!=="cancel")await onMsgBox(r);return;}
+      room=r.room;host=r.host;if(Scenes.includes(w))w.done();}
+    const w2=onWait(()=>[host?(kind==="create"?"Raum erstellt – gib deinem Gegner den Code:":"Gegner gefunden – verbinde …"):"Verbinde mit Raum …",`Team: ${onTeamLine(team)}`,"Alle Pokémon kämpfen auf Lv. 50."],{title:"LIVE-DUELL",right:`${me.name} · ${me.elo}`,code:kind==="create"?room:null});
+    const pr2=onRoom(room,host,me,w2);const r2=await Promise.race([pr2,run(w2)]);
+    if(r2!==true){if(Scenes.includes(w2))w2.done();duelClose();if(typeof r2==="string"&&r2!=="cancel")await onMsgBox(r2);return;}
+    await fadeTo(1,10);if(Scenes.includes(w2))w2.done();res=await onRunDuel();await onAfterDuel(res);
+  }finally{ON.busy=false;if(DUEL)duelClose();}}
+function onMsgBox(text){return run({opaque:true,t:0,update(){this.t++;if(this.t>8&&(Input.hit("a")||Input.hit("b"))){sfx("select");this.done();}},
+  draw(){obBg();obHeader("ONLINE","");prWrap(text,280,16).forEach((l,i)=>prT(l,PRW/2,60+i*20,{align:"center",c:"#fff"}));obFoot("A: OK","");prEnd();}});}
+
+/* ---------- Cloud-Spielstand ---------- */
+async function onCloudUp(){const sl=slotInfo(),li=lastSlot(sl);if(!li){await onMsgBox("Es gibt noch keinen Spielstand zum Hochladen.");return;}
+  const ok=await onUpload(sl[li-1]);await onMsgBox(ok?`Spielstand ${li} (${sl[li-1].name}) ist jetzt in der Cloud gesichert.`:"Hochladen fehlgeschlagen. Prüfe dein Internet.");}
+async function onCloudDown(){const r=await onDownload();if(r==null){await onMsgBox("Laden fehlgeschlagen. Prüfe dein Internet.");return;}if(!r.save){await onMsgBox("In der Cloud liegt noch kein Spielstand.");return;}
+  const sl=slotInfo();const it=sl.map((s,i)=>[`PLATZ ${i+1}: `+(s?`${s.name} · ${(s.badges||[]).filter(Boolean).length} Orden`:"leer"),"save"]);it.push(["ZURÜCK","back"]);
+  const c=await onMenu("CLOUD LADEN","",it,[`Cloud: ${r.save.name} · ${(r.save.badges||[]).filter(Boolean).length} Orden · ${fmtDate(Date.parse(r.updated_at))}`,"Auf welchen Platz? Der alte Stand dort wird ersetzt."]);
+  if(c<0||c>=SLOTS)return;const sv=r.save;sv.slot=c+1;sv.savedAt=Date.now();LS.set(slotKey(c+1),sv);await onMsgBox(`Cloud-Spielstand liegt jetzt auf Platz ${c+1}.`);}
+
+/* ---------- Hauptmenü ONLINE (Titelbild) ---------- */
+async function onlineMenu(){
+  if(!ON.sess){const ok=await onAccountFlow();if(!ok)return;}
+  let i=0;
+  while(true){const team=onMyTeam();
+    const c=await onMenu("ONLINE",()=>ON.sess?`${ON.sess.name} · ${ON.board?ON.board.elo:"…"} Elo`:"",
+      [["SCHNELLES DUELL","mon"],["RAUM ERSTELLEN","card"],["RAUM BEITRETEN","map"],["BESTENLISTE","dex"],["CLOUD: HOCHLADEN","save"],["CLOUD: LADEN","pc"],["ABMELDEN","opt"],["ZURÜCK","back"]],
+      ()=>[`Duell-Team: ${onTeamLine(team)}`,"Live-Duell: bis zu 6 Pokémon, alle auf Lv. 50"],{i,side:(x,y)=>{team.slice(0,6).forEach((m,k)=>{const cx=x+30+(k%2)*60,cy=y+20+Math.floor(k/2)*44;obCard(cx-27,cy-20,54,40,false);
+        prEnd();{const i=m.sp-1,f=Math.floor(FRAME/18)%2;ctx.drawImage(IMG.icon,(i%16)*40,Math.floor(i/16)*30,40,30,Math.round(cx*PRK-16),Math.round((cy-21)*PRK)-f,32,24);}prBegin();prT(monName(m).slice(0,8),cx,cy+7,{size:10,align:"center",c:OB.dim,sh:"transparent"});});}});
+    if(c<0||c===7)return;i=c;
+    if(c===0)await onDuelFlow("quick");else if(c===1)await onDuelFlow("create");else if(c===2)await onDuelFlow("join");
+    else if(c===3)await onBoardScreen();else if(c===4)await onCloudUp();else if(c===5)await onCloudDown();
+    else if(c===6){onLogout();sfx("back");return;}}}
+// Tab geschlossen / neu geladen: Gegner sofort informieren (sonst gewinnt er erst nach Zeitablauf)
+window.addEventListener("pagehide",()=>{try{if(DUEL&&DUEL.tr)duelSend("bye",{});}catch(e){}});
 
 /* ===== prsum.js ===== */
 /* ================================ STATUSSEITE im PokéRogue-Stil (Profil · Werte · Attacken) ================================
@@ -10261,7 +10578,7 @@ Object.assign(K.mart,{route4:K.mart.route3||K.mart.cerulean,route10:K.mart.route
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.18";
+const VERSION="0.19";
 function newSave(o){
   const R=REGIONS[o.region||"kanto"];
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
@@ -10336,7 +10653,7 @@ const TitleScene={opaque:true,
   enter(){this.t=0;this.ph=0;this.pt=0;this.i=0;this.sp=pick(TITLE_MONS);this.sw=0;Music.play("title");ivInit();this.refresh();},
   refresh(){this.sl=slotInfo();this.last=lastSlot(this.sl);},
   keepGL(){this.bg();},
-  opts(){const o=[];if(this.last){o.push(["WEITER",()=>continueGame(this.last),"save"]);o.push(["SPIELSTÄNDE",loadGame,"pc"]);}o.push(["NEUES SPIEL",newGame,"mon"]);o.push(["RUN-BONI",metaShop,"card"]);o.push(["OPTIONEN",()=>optionsMenu(),"opt"]);o.push(["PATCH-INFO",()=>patchInfo(),"card"]);return o;},
+  opts(){const o=[];if(this.last){o.push(["WEITER",()=>continueGame(this.last),"save"]);o.push(["SPIELSTÄNDE",loadGame,"pc"]);}o.push(["NEUES SPIEL",newGame,"mon"]);o.push(["ONLINE",()=>onlineMenu(),"pc"]);o.push(["RUN-BONI",metaShop,"card"]);o.push(["OPTIONEN",()=>optionsMenu(),"opt"]);o.push(["PATCH-INFO",()=>patchInfo(),"card"]);return o;},
   update(){this.t++;
     if(this.t%420===0)this.sw=1;if(this.sw){this.sw++;if(this.sw===16){let n;do n=pick(TITLE_MONS);while(n===this.sp);this.sp=n;animData(n,false,false);}if(this.sw>32)this.sw=0;}
     if(this.ph===0){if(this.t>16&&(Input.hit("a")||Input.hit("start"))){sfx("select");this.ph=1;this.pt=0;this.i=0;if(!patchSeen())patchInfo();}return;}
@@ -10372,10 +10689,10 @@ const TitleScene={opaque:true,
       ctx.fillStyle=gl;ctx.fillRect(70,190,180,1);prT("DRÜCKE START",PRW/2,174,{align:"center",c:"#fff6e0",sh:"#5a3a2a"});ctx.globalAlpha=1;prEnd();
     }else{
       // Titelmenü im PokéRogue-Stil
-      const opts=this.opts();const D={WEITER:"Deinen letzten Spielstand fortsetzen.",SPIELSTÄNDE:"Einen anderen Spielstand laden.",["NEUES SPIEL"]:"Ein neues Abenteuer in Kanto beginnen.",["RUN-BONI"]:"Obsidian-Splitter gegen dauerhafte Run-Boni tauschen.",OPTIONEN:"Text, Sound, Licht, Steuerung …",["PATCH-INFO"]:"Was in den letzten Updates behoben und neu ist."};
+      const opts=this.opts();const D={WEITER:"Deinen letzten Spielstand fortsetzen.",SPIELSTÄNDE:"Einen anderen Spielstand laden.",["NEUES SPIEL"]:"Ein neues Abenteuer in Kanto beginnen.",["RUN-BONI"]:"Obsidian-Splitter gegen dauerhafte Run-Boni tauschen.",OPTIONEN:"Text, Sound, Licht, Steuerung …",["PATCH-INFO"]:"Was in den letzten Updates behoben und neu ist.",ONLINE:"Live-Duelle gegen Freunde, Bestenliste und Cloud-Spielstand."};
       prBegin();
-      const wx=8-(1-mk)*200,wy=this.last?40:62,ww=178,RH=this.last?16:20,SV=30;let h=12;opts.forEach(o=>h+=o[2]==="save"?SV:RH);prWin(wx,wy,ww,h);
-      let y=wy+6;opts.forEach((o,j)=>{const sel=j===this.i,rh=o[2]==="save"?SV:RH,fs=rh<20?14:16;
+      const wx=8-(1-mk)*200,wy=this.last?38:60,ww=178,RH=this.last?14:18,SV=28;let h=12;opts.forEach(o=>h+=o[2]==="save"?SV:RH);prWin(wx,wy,ww,h);
+      let y=wy+6;opts.forEach((o,j)=>{const sel=j===this.i,rh=o[2]==="save"?SV:RH,fs=rh<16?13:rh<20?14:16;
         if(sel){const hg=ctx.createLinearGradient(0,y,0,y+rh);hg.addColorStop(0,"rgba(255,255,255,.17)");hg.addColorStop(1,"rgba(255,255,255,.05)");ctx.fillStyle=hg;ctx.fillRect(wx+5,y,ww-10,rh);ctx.fillStyle="#e85a3a";ctx.fillRect(wx+5,y,2,rh);prCursor(wx+12,y+rh/2);}
         drawUiIcon(o[2],wx+18,y+(rh<20?0:1)+(sel?Math.round(Math.sin(FRAME/6)):0),rh<20?15:17);prT(o[0],wx+40,y+(rh<20?1:2),{size:fs,c:sel?"#ffffff":"#d8d0e0"});
         if(o[2]==="save"){const sv=this.sl[this.last-1];if(sv){const bd=(sv.badges||[]).filter(Boolean).length;
