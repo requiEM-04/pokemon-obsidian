@@ -2,6 +2,9 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.20.1 (29.10.2026)
+- Passwort braucht jetzt nur noch mindestens 4 Zeichen (Registrieren und Passwort ändern).
+
 ## v0.20 (29.10.2026)
 - Konten wie bei Pokélings: Beim Start anmelden, registrieren oder als Gast spielen – mit Bestenliste daneben.
 - Alle 3 Spielstände hängen am Konto und werden automatisch mit der Cloud abgeglichen (neuere Fassung gewinnt, gelöschte Plätze verschwinden überall).
