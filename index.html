@@ -7033,6 +7033,7 @@ async function capNurse(){
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.20.1",d:"29.10.2026",items:["Passwort braucht jetzt nur noch mindestens 4 Zeichen (Registrieren und Passwort ändern)."]},
   {v:"0.20",d:"29.10.2026",items:[
     "Konten wie bei Pokélings: Beim Start anmelden, registrieren oder als Gast spielen – mit Bestenliste daneben.",
     "Alle 3 Spielstände hängen am Konto und werden automatisch mit der Cloud abgeglichen (neuere Fassung gewinnt, gelöschte Plätze verschwinden überall).",
@@ -7178,9 +7179,9 @@ function onForm(o){return new Promise(res=>{let el=document.getElementById("onFo
 const ON_NOTE="Das Konto gilt nur für Pokémon Obsidian. Dein Name ist in der Bestenliste öffentlich sichtbar. Gespeichert werden Name, ein verschlüsseltes Passwort, dein Spielstand und Duell-Werte (kostenloser Server bei Supabase, EU/Frankfurt).";
 async function onAccountFlow(){const c=await onMenu("ONLINE","",[["ANMELDEN","card"],["KONTO ERSTELLEN","save"],["ZURÜCK","back"]],["Melde dich an, um online zu spielen.","Konten, Cloud-Spielstand, Bestenliste und Live-Duelle"]);
   if(c===0)return!!(await onForm({title:"ANMELDEN",ok:"Anmelden",fields:[{id:"n",label:"Name",max:12,ac:"username"},{id:"p",label:"Passwort",type:"password",max:64,ac:"current-password"}],
-    check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen.":v.p.length<6?"Passwort: mindestens 6 Zeichen.":null,submit:v=>onLogin(v.n,v.p)}));
-  if(c===1)return!!(await onForm({title:"KONTO ERSTELLEN",ok:"Erstellen",note:ON_NOTE,fields:[{id:"n",label:"Name (öffentlich, 3–12 Zeichen)",max:12,ac:"username"},{id:"p",label:"Passwort (mind. 6 Zeichen)",type:"password",max:64,ac:"new-password"},{id:"p2",label:"Passwort wiederholen",type:"password",max:64,ac:"new-password"}],
-    check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen (Buchstaben, Zahlen, - _ .).":v.p.length<6?"Passwort: mindestens 6 Zeichen.":v.p!==v.p2?"Die Passwörter sind verschieden.":null,submit:v=>onRegister(v.n,v.p)}));
+    check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen.":v.p.length<4?"Passwort: mindestens 4 Zeichen.":null,submit:v=>onLogin(v.n,v.p)}));
+  if(c===1)return!!(await onForm({title:"KONTO ERSTELLEN",ok:"Erstellen",note:ON_NOTE,fields:[{id:"n",label:"Name (öffentlich, 3–12 Zeichen)",max:12,ac:"username"},{id:"p",label:"Passwort (mind. 4 Zeichen)",type:"password",max:64,ac:"new-password"},{id:"p2",label:"Passwort wiederholen",type:"password",max:64,ac:"new-password"}],
+    check:v=>!onNameOk(v.n)?"Name: 3–12 Zeichen (Buchstaben, Zahlen, - _ .).":v.p.length<4?"Passwort: mindestens 4 Zeichen.":v.p!==v.p2?"Die Passwörter sind verschieden.":null,submit:v=>onRegister(v.n,v.p)}));
   return false;}
 
 /* ---------- Bildschirme im Obsidian-Stil ---------- */
@@ -7451,7 +7452,7 @@ function accGate(){return new Promise(res=>{let el=document.getElementById("accG
   const close=v=>{el.remove();Input.textMode=false;Input.clear();res(v);};
   el.querySelector(".guest").onclick=()=>{try{sessionStorage.setItem("obs_guest","1");}catch(e){}close("guest");};
   f.onsubmit=async e=>{e.preventDefault();const n=f.elements.n.value.trim(),p=f.elements.p.value,p2=f.elements.p2.value;
-    if(!onNameOk(n)){err.textContent="Name: 3–12 Zeichen (Buchstaben, Zahlen, - _ .).";return;}if(p.length<6){err.textContent="Passwort: mindestens 6 Zeichen.";return;}if(tab&&p!==p2){err.textContent="Die Passwörter sind verschieden.";return;}
+    if(!onNameOk(n)){err.textContent="Name: 3–12 Zeichen (Buchstaben, Zahlen, - _ .).";return;}if(p.length<4){err.textContent="Passwort: mindestens 4 Zeichen.";return;}if(tab&&p!==p2){err.textContent="Die Passwörter sind verschieden.";return;}
     ON.remember=f.elements.r.checked;err.style.color="#ffd890";err.textContent="Einen Moment …";f.querySelectorAll("button,input").forEach(b=>b.disabled=true);
     const e2=tab?await onRegister(n,p):await onLogin(n,p);f.querySelectorAll("button,input").forEach(b=>b.disabled=false);
     if(e2){err.style.color="#ff8a7a";err.textContent=e2;return;}
@@ -7476,8 +7477,8 @@ async function accProfile(){let i=0;
         L.forEach(([k,v],j)=>{const yy=y+8+j*19;prT(k,x+52,yy,{size:11,c:OB.mute,sh:"transparent"});prT(String(v),x+w-6,yy,{size:13,align:"right",c:"#fff"});});}});
     if(c<0||c===6)return;i=c;
     if(c===0){const ok=await accSync();await onMsgBox(ok?"Alle Spielstände sind abgeglichen.":"Abgleich fehlgeschlagen. Prüfe dein Internet.");}
-    if(c===1){const v=await onForm({title:"PASSWORT ÄNDERN",ok:"Ändern",fields:[{id:"o",label:"Aktuelles Passwort",type:"password",max:64,ac:"current-password"},{id:"p",label:"Neues Passwort (mind. 6 Zeichen)",type:"password",max:64,ac:"new-password"},{id:"p2",label:"Neues Passwort wiederholen",type:"password",max:64,ac:"new-password"}],
-      check:v=>v.p.length<6?"Neues Passwort: mindestens 6 Zeichen.":v.p!==v.p2?"Die neuen Passwörter sind verschieden.":null,
+    if(c===1){const v=await onForm({title:"PASSWORT ÄNDERN",ok:"Ändern",fields:[{id:"o",label:"Aktuelles Passwort",type:"password",max:64,ac:"current-password"},{id:"p",label:"Neues Passwort (mind. 4 Zeichen)",type:"password",max:64,ac:"new-password"},{id:"p2",label:"Neues Passwort wiederholen",type:"password",max:64,ac:"new-password"}],
+      check:v=>v.p.length<4?"Neues Passwort: mindestens 4 Zeichen.":v.p!==v.p2?"Die neuen Passwörter sind verschieden.":null,
       submit:async v=>{const chk=await onFetch("/auth/v1/token?grant_type=password",{method:"POST",auth:false,body:{email:await onEmail(ON.sess.name),password:await onPw(ON.sess.name,v.o)}});if(!chk.ok)return"Das aktuelle Passwort stimmt nicht.";
         onSetSess(chk.j,ON.sess.name);const r=await onFetch("/auth/v1/user",{method:"PUT",body:{password:await onPw(ON.sess.name,v.p)}});return r.ok?null:onErrText(r);}});
       if(v)await onMsgBox("Dein Passwort wurde geändert.");}
@@ -10901,7 +10902,7 @@ Object.assign(K.mart,{route4:K.mart.route3||K.mart.cerulean,route10:K.mart.route
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.20";
+const VERSION="0.20.1";
 function newSave(o){
   const R=REGIONS[o.region||"kanto"];
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
