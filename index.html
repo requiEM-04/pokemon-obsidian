@@ -850,7 +850,19 @@ function sprSign(){return mk(16,18,(g,P)=>{P(7,10,2,8,"#6a4424");P(1,1,14,11,"#4
 function sprRock(){return mk(18,15,(g)=>{pxfill(g,0,0,18,15,(x,y)=>{const d=((x-9)/8.5)**2+((y-8)/7)**2;if(d>1)return null;if(d>.8)return "#4a4238";const v=-(x-7)-(y-5)*1.3;return v>5?"#e0d8c8":v>-3?"#b8ac98":"#8c8070";});});}
 function sprBush(){return mk(18,16,(g)=>{pxfill(g,0,0,18,16,(x,y)=>{const d=((x-9)/8.5)**2+((y-9)/7)**2;if(d>1)return null;if(d>.82)return AP.tr[0];const v=-(x-8)*.6-(y-5);return v>3?AP.tr[4]:v>-1?AP.tr[3]:v>-5?AP.tr[2]:AP.tr[1];});});}
 function sprFence(){return mk(16,12,(g,P)=>{P(0,3,16,2,"#f8f8f8");P(0,8,16,2,"#f8f8f8");P(0,5,16,1,"#a8a8b0");P(0,10,16,1,"#a8a8b0");for(const x of[1,11]){P(x,0,4,12,"#f8f8f8");P(x+3,0,1,12,"#a8a8b0");P(x,0,4,1,"#ffffff");}});}
-function sprBall(){return mk(12,12,(g,P)=>{P(3,0,6,12,"#282830");P(0,3,12,6,"#282830");P(1,1,10,10,"#282830");P(3,1,6,5,"#e83830");P(2,2,8,3,"#e83830");P(2,6,8,4,"#f8f8f8");P(3,6,6,5,"#f8f8f8");P(1,5,10,2,"#282830");P(5,4,2,4,"#282830");P(5,5,2,2,"#f8f8f8");P(4,2,2,1,"#ffb0a8");});}
+// Pokéball am Boden (Stil Schwarz/Weiß 2): dunkle Kontur, glänzende rote Kappe, dickes Band, Knopf mit Ring, leicht von oben gesehen
+function sprBall(){return mk(16,16,(g)=>{const id=g.getImageData(0,0,16,16),d=id.data;const put=(x,y,c)=>{const n=parseInt(c.slice(1),16),i=(y*16+x)*4;d[i]=n>>16;d[i+1]=n>>8&255;d[i+2]=n&255;d[i+3]=255;};
+  const R=7.2,cx=7.5,cy=8,band=8.6;
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){const dx=x-cx,dy=y-cy,r=Math.hypot(dx,dy);if(r>R)continue;
+    if(r>R-1.15){put(x,y,"#1c1c24");continue;}
+    const bb=Math.abs(y-band+(dx*dx)*.025)<1.1;if(bb){put(x,y,"#1c1c24");continue;}
+    const l=-dx*.45-dy*.55;
+    if(y<band)put(x,y,l>3.2?"#ff9a88":l>1.2?"#f04838":l>-2?"#d8302a":"#a01c1c");
+    else put(x,y,l>1?"#ffffff":l>-2.5?"#e4e4ec":"#b8b8c8");}
+  // Knopf
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){const r=Math.hypot(x-cx,y-band-.2);if(r<=2.6)put(x,y,r>1.8?"#1c1c24":r>1?"#f4f4f8":"#d8d8e2");}
+  put(4,3,"#ffffff");put(5,3,"#ffd8d0");put(4,4,"#ffd8d0");
+  g.putImageData(id,0,0);});}
 function sprPlant(){return mk(16,22,(g,P)=>{P(4,15,8,7,"#b45a28");P(4,15,8,2,"#d87840");P(5,21,6,1,"#7a3a18");
   pxfill(g,0,0,16,16,(x,y)=>{const d=((x-8)/7)**2+((y-8)/7.5)**2;if(d>1)return null;if(d>.8)return AP.tr[0];return nz(x,y,4)<.3?AP.tr[2]:(x+y)%3?AP.tr[3]:AP.tr[1];});});}
 function sprStatue(){return mk(16,30,(g,P)=>{P(3,22,10,8,"#7a7a84");P(2,27,12,3,"#5a5a64");P(4,6,8,16,"#a8a8b4");P(5,2,6,6,"#c8c8d4");P(5,9,6,1,"#7a7a84");P(4,6,1,16,"#d8d8e4");});}
@@ -974,12 +986,18 @@ function facade(kind,w,arg,dx){
       P(cen-34,14,68,18,"#c83020");P(cen-33,15,66,16,"#f05a48");P(cen-33,15,66,5,"#ff8a78");
       g.fillStyle="#fff";g.beginPath();g.arc(cen-24,23,6,0,7);g.fill();g.fillStyle="#e85040";g.beginPath();g.arc(cen-24,23,6,Math.PI,0);g.fill();P(cen-30,22,12,2,"#3a1a10");P(cen-25,22,2,2,"#fff");
       txt2(g,"CENTER",cen+6,17,"#fff",9);}
-    else if(kind==="mart"){hdSiding(g,P,W,H,"#f6f6fc","#dce0f0",8);
-      P(0,0,W,8,"#4070d8");P(0,0,W,2,"#88aaff");P(0,8,W,3,"#203c90");P(0,H-10,W,10,"#4070d8");P(0,H-10,W,2,"#88aaff");
-      for(const x of[14,W-46])if(winOK(x,32,24))hdWindow(g,P,x,Math.round(H*.4),32,22,{frame:"#eef0f8"});hdDoor(g,P,mid-20,H-50,40,40,"#888",{glass:true,frame:"#e8eaf4"});
-      P(8,13,W-16,18,"#2850b0");P(9,14,W-18,16,"#4a7ae8");P(9,14,W-18,5,"#7aa0ff");txt2(g,"MARKT",cen,16,"#fff",9);
-      // Markise
-      for(let x=0;x<W;x+=8){P(x,H-58,8,6,(x/8)%2?"#ffffff":"#4070d8");}P(0,H-52,W,1,"#203c90");}
+    else if(kind==="mart"){hdSiding(g,P,W,H,"#f6f6fc","#dce0f0",10);
+      // oberes Band
+      P(0,0,W,9,"#3a68d0");P(0,0,W,2,"#88aaff");P(0,9,W,2,"#1c3480");
+      // Schild: groß, klare Pixelschrift
+      const sw=Math.min(W-16,92),sx=cen-(sw>>1);P(sx-1,14,sw+2,22,"#16286a");P(sx,15,sw,20,"#3a68d0");P(sx,15,sw,6,"#6e98ff");P(sx,33,sw,2,"#24449a");
+      g.save();g.font="700 15px 'Pixelify Sans'";g.textAlign="center";g.textBaseline="middle";g.fillStyle="#16286a";g.fillText("MARKT",cen+1,26);g.fillStyle="#ffffff";g.fillText("MARKT",cen,25);g.restore();
+      // Markise über der ganzen Front
+      const ay=H-58;for(let x=0;x<W;x+=8){const c=(x/8)%2?"#ffffff":"#3a68d0";P(x,ay,8,7,c);P(x+1,ay+7,6,2,c);}P(0,ay,W,1,"#1c3480");P(0,ay+9,W,1,"rgba(0,0,0,.15)");
+      // Schaufenster links/rechts neben der Glastür
+      for(const x of[10,W-44])if(winOK(x,34,24))hdWindow(g,P,x,H-44,34,22,{frame:"#eef0f8"});
+      hdDoor(g,P,mid-18,H-46,36,38,"#888",{glass:true,frame:"#e8eaf4"});
+      P(0,H-8,W,8,"#3a68d0");P(0,H-8,W,2,"#88aaff");P(0,H-1,W,1,"#16286a");}
     else if(kind==="gym"){
       pxfill(g,0,0,W,H,(x,y)=>{const row=Math.floor(y/10),bx=(x+(row%2)*10)%20,by=y%10;if(by===9||bx===19)return"#7a7060";if(by===0||bx===0)return"#d8ccb4";const n=nz(x>>1,y>>1,3);return n<.12?"#a89a84":n>.92?"#d4c8b0":"#c0b49c";});
       hdFoundation(g,P,W,H,10,"#7a7060");hdDoor(g,P,mid-24,H-56,48,46,"#888",{glass:true,frame:"#c8c0b0"});
@@ -992,6 +1010,8 @@ function facade(kind,w,arg,dx){
       hdFoundation(g,P,W,H,12,"#a8a090");hdDoor(g,P,mid-22,H-54,44,42,"#7a5a40");}
   });
 }
+function sideTexHD(kind){if(kind!=="mart"&&kind!=="center")return null;const blue=kind==="mart",c=blue?"#3a68d0":"#e85040",hi=blue?"#88aaff":"#ff8a78";
+  return mk(32,32,(g,P)=>{hdSiding(g,P,32,32,blue?"#eef0f8":"#fff4ec",blue?"#d4d8ea":"#ecd8cc",4);P(0,0,32,5,c);P(0,0,32,1,hi);P(0,27,32,5,c);P(0,27,32,1,hi);});}
 // v0.11: Fassaden für Höhlen, Turm, Kaufhaus, Spielhalle, Silph, Villa, Schiff, Liga, Dojo, Untergrund
 function hdBricks(g,W,H,c1,c2,mort,bw=16,bh=8){pxfill(g,0,0,W,H,(x,y)=>{const row=Math.floor(y/bh),bx=(x+(row%2)*(bw>>1))%bw,by=y%bh;if(by===bh-1||bx===bw-1)return mort;const n=nz(x>>1,y>>1,row);return n<.15?shade(c1,-.1):n>.9?c2:c1;});}
 function hdSign(g,P,cx,y,w,h,bg,txt,fs=9,fg="#fff"){P(cx-(w>>1)-1,y-1,w+2,h+2,shade(bg,-.45));P(cx-(w>>1),y,w,h,bg);P(cx-(w>>1),y,w,2,shade(bg,.3));txt2(g,txt,cx,y+(h-fs)/2-1,fg,fs);}
@@ -1207,7 +1227,7 @@ function fmt(s){const sv=G.save||{};return String(s).replace(/\{P\}/g,sv.name||"
 const TEXT_SPEED=[1,2,4,999];
 // Typewriter-Textbox. style: "text" (Overworld) oder "battle"
 class TextBox{
-  constructor(text,o={}){this.lines=o.style==="battle"?(typeof battleWrap==="function"?battleWrap(fmt(text)):wrap(fmt(text),224,10)):wrap(fmt(text),212,12);this.page=0;this.chars=0;this.o=o;this.t=0;}
+  constructor(text,o={}){this.lines=o.style==="battle"?(typeof battleWrap==="function"?battleWrap(fmt(text)):wrap(fmt(text),224,10)):(typeof prWrap==="function"?prWrap(fmt(text),286,16):wrap(fmt(text),212,12));this.page=0;this.chars=0;this.o=o;this.t=0;}
   get pageLines(){return this.lines.slice(this.page*2,this.page*2+2);}
   get pageLen(){return this.pageLines.join("").length;}
   get last(){return(this.page+1)*2>=this.lines.length;}
@@ -1223,6 +1243,11 @@ class TextBox{
   draw(){
     const bt=this.o.style==="battle";
     if(bt&&typeof drawBattleText==="function"){prBegin();drawBattleText(this);prEnd();return;}
+    if(!bt&&typeof fancyWin==="function"){if(typeof W!=="undefined")W.popup=null;const k=Math.min(1,(this.t0=(this.t0||0)+1)/6);
+      prBegin();const y=PRH-60+(1-k)*8;ctx.globalAlpha=k;fancyWin(6,y,PRW-12,54);
+      let n=Math.floor(this.chars);this.pageLines.forEach((ln,i)=>{const s=ln.slice(0,Math.max(0,n));n-=ln.length;prT(s,18,y+10+i*19,{size:16});});
+      if(this.chars>=this.pageLen&&(this.o.auto==null||!this.last)){const b=Math.floor(FRAME/14)%2;ctx.fillStyle="#ff7a50";ctx.beginPath();ctx.moveTo(PRW-26,y+40+b);ctx.lineTo(PRW-16,y+40+b);ctx.lineTo(PRW-21,y+46+b);ctx.fill();}
+      ctx.globalAlpha=1;prEnd();return;}
     if(bt)swMsgBox();
     else{ctx.fillStyle="rgba(0,0,0,.25)";rr(7,118,228,40,7);ctx.fill();glossBox(5,115,228,40,"#ffffff","#eef0f6",7,"#8898b8");ctx.fillStyle="#d8deea";ctx.fillRect(9,153,220,1);}
     let n=Math.floor(this.chars);const col=bt?"white":"dark";
@@ -1324,6 +1349,7 @@ function curZone(){return G.save&&G.save.pos?zoneOf(curMap()):null;}
 function outdoorMaps(z){const R=REG();z=z||curZone()||"west";R._out=R._out||{};
   return R._out[z]||(R._out[z]=Object.keys(R.maps).filter(k=>R.maps[k].world&&(R.maps[k].zone||"west")===z).map(mapById));}
 
+const ENC_MULT=.5; // Begegnungsrate gegenüber dem Original
 /* ---------- Karten vorbereiten ---------- */
 function prepMap(m,id){
   m.id=id;m.g=m.tiles.map(r=>r.padEnd(m.tiles[0].length," "));m.h=m.g.length;m.w=m.g[0].length;
@@ -1544,12 +1570,14 @@ function onStep(){
   if(tr){script(tr.run);return;}
   // Trainer-Sichtlinie
   if(partyAlive())for(const n of activeNpcs()){if(n.d.tr&&!G.save.def[n.d.tr.id]&&sees(n)){script(trainerSpotted,n);return;}}
-  // wilde Begegnung
-  if(t.c===","&&t.m.enc&&!OPT.repel&&partyAlive()){
-    if(chance(t.m.enc.rate||.1)){script(wildEncounter,t.m);return;}
+  // wilde Begegnung: seltener als im Original (≈ halbe Rate) und nach jedem Kampf ein paar sichere Schritte
+  const encOk=()=>{if((W.encCool||0)>0){W.encCool--;return false;}return true;};
+  const wild=(enc)=>{W.encCool=6;script(wildEncounter,t.m,enc);};
+  if(t.c===","&&t.m.enc&&!OPT.repel&&partyAlive()&&encOk()){
+    if(chance((t.m.enc.rate||.1)*ENC_MULT)){wild();return;}
   }
-  if((t.m.cave||(t.m.encFloor&&t.c==="_"))&&t.m.enc&&t.c!=="~"&&t.c!=="l"&&!OPT.repel&&partyAlive()&&chance((t.m.enc.rate||.1)*.7)){script(wildEncounter,t.m);return;}
-  if(t.c==="~"&&t.m.encWater&&!OPT.repel&&partyAlive()&&chance(t.m.encWater.rate||.06)){script(wildEncounter,t.m,t.m.encWater);return;}
+  else if((t.m.cave||(t.m.encFloor&&t.c==="_"))&&t.m.enc&&t.c!=="~"&&t.c!=="l"&&!OPT.repel&&partyAlive()&&encOk()&&chance((t.m.enc.rate||.1)*.7*ENC_MULT)){wild();return;}
+  else if(t.c==="~"&&t.m.encWater&&!OPT.repel&&partyAlive()&&encOk()&&chance((t.m.encWater.rate||.06)*ENC_MULT)){wild(t.m.encWater);return;}
 }
 function sees(n){
   const r=n.d.tr.range||4;const[dx,dy]=DIRS[n.dir];
@@ -1749,10 +1777,13 @@ const TREE_Z=1.97,TREE_H=2.08;
 function treeKey(x,z){const h=nz(x*.37,z*.53,77);return "tree"+(h<.55?0:h<.8?1:2);}
 // Tiefen-Vorschub als gemeinsame Uniform: draußen klein (echte 3D-Bäume), drinnen groß (Theken, Möbel)
 const BIAS_U={value:1.75};
+// Figuren: Vorschub wächst mit der Höhe am Sprite (Füße 0,15 – Kopf ~1,3). So schneidet die nach hinten gekippte Oberkante
+// keine Wände dahinter an, aber Felsen/Mauern direkt davor verdecken Beine und Körper wie im Original.
 // Figuren bekommen draußen zusätzlichen Vorschub (CHB_U): Ihr Billboard kippt nach hinten und würde sonst von Hauswänden,
 // Türrahmen oder Zäunen direkt dahinter angeschnitten.
 const CHB_U={value:0};
-function depthBias(mat,b,extra=0,ch=false){mat.onBeforeCompile=sh=>{sh.uniforms.uBias=BIAS_U;sh.uniforms.uChar=CHB_U;sh.vertexShader="uniform float uBias;uniform float uChar;\n"+sh.vertexShader.replace("#include <project_vertex>","#include <project_vertex>\n  mvPosition.xyz-=normalize(mvPosition.xyz)*(uBias+"+extra.toFixed(2)+(ch?"+uChar":"")+");\n  gl_Position=projectionMatrix*mvPosition;");};mat.customProgramCacheKey=()=>"bias"+extra+(ch?"c":"");}
+function depthBias(mat,b,extra=0,ch=false,small=false){if(small){mat.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace("#include <project_vertex>","#include <project_vertex>\n  mvPosition.xyz-=normalize(mvPosition.xyz)*(0.08+clamp(position.y,0.0,1.5)*0.4);\n  gl_Position=projectionMatrix*mvPosition;");};mat.customProgramCacheKey=()=>"biasSmall";return;}
+mat.onBeforeCompile=sh=>{sh.uniforms.uBias=BIAS_U;sh.uniforms.uChar=CHB_U;sh.vertexShader="uniform float uBias;uniform float uChar;\n"+sh.vertexShader.replace("#include <project_vertex>","#include <project_vertex>\n  mvPosition.xyz-=normalize(mvPosition.xyz)*("+(ch?"(0.15+clamp(position.y,0.0,2.0)*0.85)*min(uBias,1.0)+"+extra.toFixed(2)+"+uChar":"uBias+"+extra.toFixed(2))+");\n  gl_Position=projectionMatrix*mvPosition;");};mat.customProgramCacheKey=()=>"bias2"+extra+(ch?"c":"");}
 const USE_KIT=()=>false; // v0.12: Overworld komplett in Pixelgrafik (Bäume, Gras, Büsche als Sprites wie der Boden)
 // 3D-Baum im Retro-Stil: Stamm + drei gestapelte, facettierte Kronen (wehen leicht im Wind)
 const TREE_COLS=[0x2f8a3a,0x3a9a40,0x2c8036,0x4aac48,0x5aa83a,0x2a7a40,0x6ab048];
@@ -1785,7 +1816,7 @@ function init3D(){
     V3.matObj=new THREE.MeshBasicMaterial({map:V3.atex,alphaTest:.5,side:THREE.DoubleSide});
     V3.matAS=new THREE.MeshBasicMaterial({map:V3.atex,vertexColors:true,alphaTest:.5,side:THREE.DoubleSide});
     // Tiefen-Vorschub: Figuren und kleine Objekte werden nicht von Baumkronen der Reihe davor verdeckt (Bildposition bleibt gleich)
-    [V3.matOW,V3.matFol,V3.matObj].forEach(m=>depthBias(m,0,0,true));[V3.matSh,V3.matAS].forEach(m=>depthBias(m,0));
+    [V3.matOW,V3.matFol,V3.matObj].forEach(m=>depthBias(m,0,0,true));depthBias(V3.matSh,0);depthBias(V3.matAS,0,0,false,true); // Gras, Zäune, Schilder: nur leichter Vorschub, sonst hängen sie vor Bäumen
     V3.matSkirt=new THREE.MeshBasicMaterial({map:null,alphaTest:.4,side:THREE.DoubleSide,color:0xd8e8d0});depthBias(V3.matSkirt,.35,0,true);
     V3.shTex=texOf(sprShadow());V3.matGSh=new THREE.MeshBasicMaterial({map:V3.shTex,transparent:true,depthWrite:false,vertexColors:true});
     // Grundsprites in den Atlas
@@ -1957,6 +1988,11 @@ function rockTopMesh(m,keep,o={}){const HT=o.h||1,PAL=o.pal||[0x8c6a48,0x977452,
 function treeAnchors(m){if(m._ta)return m._ta;const A=new Map(),used=new Set(),T=(x,y)=>x>=0&&y>=0&&x<m.w&&y<m.h&&m.g[y][x]==="T"&&!used.has(x+","+y)&&!m.blk.has(x+","+y);
   for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){if(!T(x,y))continue;
     if(T(x+1,y)&&T(x,y+1)&&T(x+1,y+1)){A.set(x+","+y,2);for(const k of[x+","+y,(x+1)+","+y,x+","+(y+1),(x+1)+","+(y+1)])used.add(k);}
+    }
+  // Reste: waagerechte Paare als breiter Baum ("h"), senkrechte Paare als großer Baum in der Spalte ("v"), sonst einzeln
+  for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){if(!T(x,y))continue;
+    if(T(x+1,y)){A.set(x+","+y,"h");used.add(x+","+y);used.add((x+1)+","+y);}
+    else if(T(x,y+1)){A.set(x+","+y,"v");used.add(x+","+y);used.add(x+","+(y+1));}
     else{A.set(x+","+y,1);used.add(x+","+y);}}
   return m._ta=A;}
 function buildMapObjects(m,gb,treeSet,gs,kit,keep){gs=gs||gb;
@@ -1971,6 +2007,8 @@ function buildMapObjects(m,gb,treeSet,gs,kit,keep){gs=gs||gb;
           if(a===2){if(kit){const open=(yy)=>[x,x+1].some(xx=>{const cc=at(xx,yy);return cc&&cc!=="T";});const h=open(y-1)?.5:open(y-2)?.72:1;
               wTree(kit,bx+1+(kit.R()-.5)*.2,bz+1.1,1+(kit.R()-.5)*.12,false,h);(gb.shadows=gb.shadows||[]).push([bx+1.15,bz+1.35,2.5,1.5,1]);}
             else{gb.bill(bx+1,bz+TREE_Z,0,2.1,TREE_H,treeKey(bx,bz));(gb.shadows=gb.shadows||[]).push([bx+1.25,bz+2.2,2.3,.9,1]);}}
+          else if(a==="h"){gb.bill(bx+1,bz+TREE_Z-.95,0,2.1,TREE_H*.95,treeKey(bx,bz));(gb.shadows=gb.shadows||[]).push([bx+1.2,bz+1.15,2.2,.7,1]);}
+          else if(a==="v"){gb.bill(bx+.5,bz+TREE_Z,0,1.9,TREE_H,treeKey(bx,bz));(gb.shadows=gb.shadows||[]).push([bx+.7,bz+2.1,1.9,.8,1]);}
           else{if(kit){wTree(kit,bx+.5,bz+.62,.55,false,.8);}else gb.bill(bx+.5,bz+.9,0,1.1,1.3,treeKey(bx,bz));(gb.shadows=gb.shadows||[]).push([bx+.6,bz+.75,1.2,.5,1]);}}}
       else if(c==="T"){const bx=X-(X&1),bz=Z-(Z&1),k=bx+","+bz;if(!treeSet.has(k)){treeSet.add(k);
           if(kit){const lx=bx-ox,ly=bz-oz,open=(yy)=>[lx,lx+1].some(xx=>{const cc=at(xx,yy);return cc&&cc!=="T";});
@@ -1986,6 +2024,10 @@ function buildMapObjects(m,gb,treeSet,gs,kit,keep){gs=gs||gb;
       else if(c==="r"){gs.bill(X+.5,Z+.88,0,1.12,.94,"rock");(gb.shadows=gb.shadows||[]).push([X+.6,Z+.82,1.2,.45,1]);}
       else if(c==="b"&&kit){PKD.kBush(kit,X+.5,Z+.55,.85);(gb.shadows=gb.shadows||[]).push([X+.6,Z+.75,1.2,.45,1]);}
       else if(c==="b"&&m.frlg&&at(x,y+1)==="T"){} // Busch direkt vor einer Baumreihe = Kronenrand des Waldes -> kein extra Busch (sonst Überschneidung)
+      else if(c==="b"&&(m.world||m.outside)&&!m.cave&&m.frlg&&(at(x-1,y)==="T"||at(x+1,y)==="T"||at(x,y-1)==="T"||at(x,y+1)==="T")){
+        // einzelner Busch direkt an einer Baumreihe: als voller Baum in die Reihe rücken (keine Lücke, kein Mini-Baum daneben)
+        const dx=at(x-1,y)==="T"?-.35:at(x+1,y)==="T"?.35:0,dz=at(x,y-1)==="T"?-.2:0;
+        gb.bill(X+.5+dx,Z+.95+dz,0,1.7,TREE_H*.82,treeKey(X,Z));(gb.shadows=gb.shadows||[]).push([X+.6+dx,Z+.9,1.6,.6,1]);}
       else if(c==="b"&&(m.world||m.outside)&&!m.cave){gb.bill(X+.5,Z+.9,0,1.1,1.3,treeKey(X,Z));(gb.shadows=gb.shadows||[]).push([X+.6,Z+.75,1.2,.5,1]);} // statt runder Büsche: kleine Bäume wie im Wald
       else if(c==="b"){gs.bill(X+.5,Z+.88,0,1.12,1,"bush");(gb.shadows=gb.shadows||[]).push([X+.6,Z+.82,1.2,.45,1]);}
       else if(c==="m"&&m.cave){const fk=m.ice?"iceFront":"caveFront2",sk=m.ice?"iceSide":"caveSide2";if(at(x,y+1)!=="m")gb.vert(X,X+1,Z+1,0,1.7,fk,.9);if(at(x-1,y)!=="m")gb.side(X,Z,Z+1,0,1.7,sk,.62);if(at(x+1,y)!=="m")gb.side(X+1,Z,Z+1,0,1.7,sk,.62);}
@@ -2042,7 +2084,7 @@ function buildMapObjects(m,gb,treeSet,gs,kit,keep){gs=gs||gb;
     const fd=b.doors?(b.doors.find(d=>(d.ent||"up")==="up"&&d.y===B.h-1)||{x:-1}).x:B.door[0];   // Tür auf der Vorderseite (−1 = keine)
     const H=b.fh||FACADE_H[kind]||2,fk="fac_"+kind+w+(b.arg||"")+"_"+fd;
     const fc=atlasAdd(fk,facade(kind,w,b.arg,fd));
-    const sk="side_"+kind+(b.arg||"");atlasAdd(sk,mk(32,32,(g)=>{g.drawImage(facade(kind,w,b.arg,fd),4,10,32,32,0,0,32,32);}));
+    const sk="side_"+kind+(b.arg||"");atlasAdd(sk,(typeof sideTexHD==="function"&&sideTexHD(kind))||mk(32,32,(g)=>{g.drawImage(facade(kind,w,b.arg,fd),4,10,32,32,0,0,32,32);}));
     G.vert(x0,x1,z1,0,H,fk,1);G.side(x0,z0,z1,0,H,sk,.7);G.side(x1,z0,z1,0,H,sk,.7);
     // Schlagschatten nach rechts hinten
     (gb.bshadows=gb.bshadows||[]).push([[x1,.017,z1],[x1+.9,.017,z1-.3],[x1+.9,.017,z0-.6],[x1,.017,z0]]);
@@ -2147,8 +2189,8 @@ function ent(S,id,kind){let e=S.ent[id];if(!e){e={kind};e.sk=quadMesh(V3.matSkir
   e.sh=quadMesh(V3.matSh);e.sh.renderOrder=3;S.chars.add(e.sh);
   e.m=quadMesh(kind==="fol"?V3.matFol:kind==="obj"?V3.matObj:kind.startsWith("o_")?objMat(kind.slice(2)):kind==="ghost"?ghostMat():V3.matOW);if(kind==="ghost")e.m.renderOrder=20;S.chars.add(e.m);S.ent[id]=e;}e.used=true;return e;}
 // Sonderobjekte (Zerschneider-Baum, Relaxo, Felsbrocken) als eigene Billboards
-function objMat(k){V3.objMats=V3.objMats||{};if(!V3.objMats[k]){const m=new THREE.MeshBasicMaterial({map:texOf(k==="tree"?sprCutTree():k==="rockwall"?sprRockWall():IMG["obj_"+k]),alphaTest:.5,side:THREE.DoubleSide});depthBias(m,0,0,true);V3.objMats[k]=m;}return V3.objMats[k];}
-const OBJ_SIZE={tree:[1.25,1.56,.86],rockwall:[1.35,1.5,.9],snorlax:[3.4,3.4,.7],boulder:[1.15,1.15,.8]};
+function objMat(k){V3.objMats=V3.objMats||{};if(!V3.objMats[k]){const m=new THREE.MeshBasicMaterial({map:texOf(k==="tree"?sprTreeHD(2):k==="rockwall"?sprRockWall():IMG["obj_"+k]),alphaTest:.5,side:THREE.DoubleSide});depthBias(m,0,0,true);V3.objMats[k]=m;}return V3.objMats[k];}
+const OBJ_SIZE={tree:[1.9,2.1,.9],rockwall:[1.35,1.5,.9],snorlax:[3.4,3.4,.7],boulder:[1.15,1.15,.8]};
 // Zwischenbild-Fortschritt: Logik läuft mit 60/s, gezeichnet wird mit der Bildrate des Monitors
 function iprog(o,isPl){if(!o.moving)return 0;const live=typeof topScene==="function"&&topScene()===WorldScene;
   const dist=isPl&&PL.jump?32:16,sp=isPl?PL.sp*(PL.jump?2:1):1;return live?Math.min(dist-.01,o.prog+sp*ALPHA):o.prog;}
@@ -2162,8 +2204,9 @@ function update3DChars(S){
   for(const n of activeNpcs()){
     const[x,y]=charWorldPos(n);
     if(n.d.obj){const e=ent(S,n.id,"o_"+n.d.obj);const[w,h,zo]=OBJ_SIZE[n.d.obj]||[2,2,.66];setBill(e.m,x+.5,y+zo,0,w,h,1e-4,1e-4,1-1e-4,1-1e-4);setFlat(e.sh,x+.5,y+.55,w*.55,.5);e.sk.visible=false;continue;}
+    // Starter-Bälle stehen auf dem Tisch (Feldmitte), sonst verdecken sie den Spieler davor
     if(n.d.item||n.d.sprite==="ball"){const e=ent(S,n.id,"obj");const r=V3.amap.ball;const lift=n.d.sprite?.58:0;
-      setBill(e.m,x+.5,y+1.02,lift,.72,.72,r[0],r[1],r[2],r[3]);setFlat(e.sh,x+.5,y+.9,.7,.3);if(lift)e.sh.visible=false;continue;}
+      setBill(e.m,x+.5,lift?y+.6:y+.66,lift,.66,.66,r[0],r[1],r[2],r[3]);setFlat(e.sh,x+.5,y+.6,.62,.26);if(lift)e.sh.visible=false;continue;}
     if(n.d.mon){const sp=n.d.mon,e=ent(S,n.id,"fol");const f={up:0,down:2,left:4,right:6}[n.dir||"down"]+(Math.floor(FRAME/16)%2);const S2=IMG.fol;
       const fx0=(((sp-1)%4)*8+f)*64,fy0=Math.floor((sp-1)/4)*64;const u0=fx0/S2.width,u1=(fx0+64)/S2.width,v1=1-fy0/S2.height,v0=1-(fy0+64)/S2.height;const k=n.d.big?6:4;
       setBill(e.m,x+.5,y+.62,0,k,k,u0+1e-4,v0+1e-4,u1-1e-4,v1-1e-4);setFlat(e.sh,x+.5,y+.52,n.d.big?2:1.2,n.d.big?.8:.5);skirt(e,x,y);continue;}
@@ -9568,7 +9611,7 @@ Object.assign(K.mart,{route4:K.mart.route3||K.mart.cerulean,route10:K.mart.route
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.16";
+const VERSION="0.16.3";
 function newSave(o){
   const R=REGIONS[o.region||"kanto"];
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
