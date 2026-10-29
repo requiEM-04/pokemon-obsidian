@@ -2,6 +2,13 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.18 (29.10.2026)
+- Attacken-Animationen komplett neu: eigene Pixel-Effekte im GBA/DS-Stil (Funken, Krallen, Flammen, Wellen, Blitze, Eis, Blätter, Felsen, Schattenball …) in Typ-Farben.
+- Treffer mit Wucht: kurzer Trefferstopp, Rückstoß mit weißem Aufblitzen, Pokémon glühen in Typ-Farbe, Aufladen vor Strahlen und Kugeln, Nachbilder bei Geschossen.
+- Rund 50 Signatur-Attacken mit eigenem Ablauf, z. B. Flammenwurf, Donnerblitz, Surfer, Erdbeben, Hyperstrahl, Psychokinese, Schattenball, Rasierblatt, Sternschauer.
+- Effekte folgen der Kamera und starten am Maul des Angreifers statt in der Körpermitte.
+- Status-Effekte (Paralyse, Verbrennung, Gift, Schlaf, Eis, Verwirrung) und Werte-Pfeile neu gezeichnet.
+
 ## v0.17.2 (29.10.2026)
 - Spielfigur wieder scharf: Der weiße Schimmer über dem Spieler ist weg. Die Silhouette erscheint nur noch, wenn wirklich ein Haus oder Baum davor steht.
 - Neu: Patch-Info – erscheint nach jedem Update einmal und steht im Titelmenü.
