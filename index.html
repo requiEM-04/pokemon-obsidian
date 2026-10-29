@@ -1512,7 +1512,7 @@ function updatePlayer(){
   if(Input.hit("start")||Input.hit("b")){script(openStartMenu);return;}
   if(Input.hit("a")){script(interact);return;}
   const d=heldDir();
-  if(!d){PL.wasMoving=false;PL.turnT=0;return;}
+  if(!d){PL.wasMoving=false;PL.turnT=0;PL.bump=0;return;}   // v0.22: Schritt-Pose nach dem Anlaufen gegen Wände nicht stehen lassen
   if(d!==PL.dir&&!PL.wasMoving){PL.dir=d;PL.turnT=3;return;}
   if(PL.turnT>0){PL.turnT--;return;}
   PL.dir=d;tryMove(d);
@@ -1535,7 +1535,7 @@ function tryMove(d){
   {const bn=npcAt(nx,ny);if(bn&&bn.d.boulder&&W.strength&&!bn.moving&&!W.lock){if(W.bumpT<=0){W.bumpT=10;script(pushBoulder,bn,d);}else W.bumpT--;return;}}
   if(!nt||solidAt(nx,ny,true)||nt.c==="v"||npcAt(nx,ny)){
     if(W.bumpT<=0){sfx("bump");W.bumpT=18;}W.bumpT--;PL.bump=(PL.bump+1)%32;PL.wasMoving=false;return;}
-  startMove(nx,ny,false);
+  PL.bump=0;startMove(nx,ny,false);
 }
 function running(){return(OPT.autorun?!Input.held.run:Input.held.run)&&!curMap().noRun;}
 // Renntaste: kurz antippen = Rennen feststellen/lösen, gedrückt halten = vorübergehend umschalten
@@ -1552,7 +1552,7 @@ function startMove(nx,ny,jump){
   // Folge-Pokémon läuft auf das alte Feld
   W.fol.fx=W.fol.x;W.fol.fy=W.fol.y;
   if(!jump){W.fol.tx=PL.x;W.fol.ty=PL.y;}else{W.fol.tx=PL.x;W.fol.ty=PL.y;W.fol.jumped=true;}
-  PL.tx=nx;PL.ty=ny;PL.moving=true;PL.prog=0;PL.jump=jump?1:0;PL.sp=jump?1:(running()?2:1);PL.alt^=1;if(PL.sp>1&&V3.ok)runDust(PL.x,PL.y);
+  PL.tx=nx;PL.ty=ny;PL.moving=true;PL.prog=0;PL.jump=jump?1:0;PL.sp=jump?1:(running()?2:1);PL.alt^=1;
   if(jump)sfx("jump");
 }
 function advancePlayer(){
@@ -2437,7 +2437,7 @@ async function battleMain(){
   await trainerOut(0);await sendOut(0,B.act[0].m,true);
   B.part.add(B.act[0].m.uid);
   for(const b of duelHostFirst([B.act[0],B.act[1]])){rngOwn(b);await switchInAbility(b);}
-  if(B.type==="wild"&&G.save.mode==="run")await runAreaCheck();
+  if(B.type==="wild"&&nuzRules())await runAreaCheck();
   while(true){
     B.turn++;
     const r=await playerTurn();
@@ -2447,6 +2447,7 @@ async function battleMain(){
 }
 async function runAreaCheck(){
   const a=B.area;if(!G.save.runArea)G.save.runArea={};
+  if(G.save.mode==="nuz"&&B.foes&&B.foes.some(m=>m.shiny))return;   // Shiny-Klausel: schillernde Pokémon sind immer fangbar
   if(G.save.runArea[a]){B.noCatch=true;return;}
   G.save.runArea[a]=1;// erste Begegnung des Gebiets
 }
@@ -3017,7 +3018,7 @@ async function useItemBattle(key){
   const it=ITEMS[key];
   if(it.cat==="ball"){
     if(B.type==="trainer"){await msg("Du kannst keine Trainer-Pokémon fangen!");return false;}
-    if(B.noCatch){await msg("Run-Regel: In diesem Gebiet hattest du schon deine Begegnung!");return false;}
+    if(B.noCatch){await msg(`${G.save.mode==="nuz"?"Nuzlocke":"Run"}-Regel: In diesem Gebiet hattest du schon deine Begegnung!`);return false;}
     takeItem(key);G.save.lastBall=key;B.ballKey=key;
     return await throwBall(key);
   }
@@ -3103,8 +3104,8 @@ async function afterBattleEvos(lvUps){
   for(const m of G.save.party){
     if(!alive(m)||!lvUps.has(m.uid))continue;const to=evoTarget(m);if(to)await evolveFlow(m,to);
   }
-  // Run-Modus: K.O.-Pokémon verlassen das Team
-  if(G.save.mode==="run"){
+  // Run- und Nuzlocke-Modus: K.O.-Pokémon verlassen das Team endgültig
+  if(nuzRules()){
     const gone=G.save.party.filter(m=>!alive(m));
     if(gone.length&&partyAlive()){for(const m of gone){G.save.grave.push(m);await say(`${monName(m)} kann nicht mehr kämpfen und verlässt dein Team...`);}G.save.party=G.save.party.filter(alive);}
   }
@@ -3135,6 +3136,7 @@ async function evolveFlow(m,to,o={}){
 async function whiteout(){
   await fadeTo(1,1);
   if(G.save.mode==="run"){await runOver();return;}
+  if(G.save.mode==="nuz"){await nuzOver();return;}
   const lost=Math.floor(G.save.money/4);G.save.money-=lost;
   await fadeTo(0,1);
   push(BlackScene);
@@ -4234,14 +4236,14 @@ function drawMonBox(sp,x,y,o={}){return drawAnim(sp,x+32,y+60,o);}
 
 /* ---------- 3D-Bühne ---------- */
 const BV={ok:false,cam:{p:[0,0,0],l:[0,0,0]},tw:null,shakeT:0};
-const PLAT=[[-2.2,0,2.4],[3.0,0,-4.6]];
+const PLAT=[[-2.6,0,.2],[3.0,0,-4.6]];   // v0.21.1: eigene Plattform weiter hinten -> eigenes Pokémon steht ganz über dem Textfeld
 const CAMP={
-  def:{p:[-1,4.5,10],l:[0,.2,-6]},
+  def:{p:[-.6,4.8,10.5],l:[.3,-.7,-6]},
   foe:{p:[1.3,2.0,1.4],l:[3.0,1.3,-4.6]},
-  me:{p:[-2.2,3.8,8.6],l:[-1.0,.5,-4]},
+  me:{p:[-2.2,4.4,9],l:[-1.2,-.5,-6]},
   introS:{p:[5.4,1.4,-.4],l:[3.0,1.25,-4.6]},
-  hitFoe:{p:[0,3.6,7.2],l:[1.6,.9,-6.5]},
-  hitMe:{p:[-1.6,4.2,10.4],l:[-.6,.4,-5]},
+  hitFoe:{p:[0,4.2,8.6],l:[1.4,-.3,-6.5]},
+  hitMe:{p:[-1.4,4.4,9],l:[-.8,-.5,-6.4]},
 };
 const BGTHEME={
   grass:{sky:["#78c8f8","#c8ecff"],ground:"#7cc860",ground2:"#64b04c",plat:["#9ad87a","#6cb050","#4a8a38"],far:"hill"},
@@ -4850,12 +4852,32 @@ function arBuild(theme){const tod=battleTod(),key=theme+":"+tod;
   const fc=inside?{cave:"#2a2218",mtmoon:"#241e2e",ice:"#2a4a6a",plant:"#1e262e",tower:"#1a1424",gym:"#c8c4dc",indoor:"#e8e0d4"}[theme]:fog;
   BV.sc.fog=new THREE.Fog(fc,inside?34:60,inside?90:170);BV.sc.background=new THREE.Color(fc);
   BV.tint=inside?null:tod==="night"?new THREE.Color(0xa8b0e0):tod==="sunset"?new THREE.Color(0xffe4d0):null;}
-// ersetzt die Kulisse aus bfx.js (Y2K-Modus bleibt wie er ist)
-bvSetBg=function(kind){
+/* v0.21.1: Kampf-Kulisse wieder als echter Ausschnitt der aktuellen Karte (wie vor v0.20), aber aufgewertet:
+   saubere Plattformen mit weichem Schatten, gemalter Fernhorizont (Berge, Wolken, Stadt, Meer …) hinter dem Kartenwald.
+   Die gemalten Kulissen allein gibt es nur noch für Live-Duelle (dort gibt es keinen echten Ort). */
+function arPlatforms(theme,tod0){const tod=tod0||battleTod(),key="plat:"+theme+":"+tod;if(!AR_CACHE[key])AR_CACHE[key]=texOf(arPlatTex(theme,tod));
+  const shTex=BV.arShadow||(BV.arShadow=texOf(mk(64,64,g=>{const gr=g.createRadialGradient(32,32,8,32,32,32);gr.addColorStop(0,"rgba(0,0,0,.42)");gr.addColorStop(1,"rgba(0,0,0,0)");g.fillStyle=gr;g.fillRect(0,0,64,64);}),{smooth:1}));
+  PLAT.forEach(([x,,z],i)=>{const r=i?2.45:2.95;
+    const sh=new THREE.Mesh(new THREE.PlaneGeometry(r*2.7,r*2.7),new THREE.MeshBasicMaterial({map:shTex,transparent:true,depthWrite:false}));sh.rotation.x=-Math.PI/2;sh.position.set(x+.25,.03,z+.3);sh.renderOrder=1;BV.bg.add(sh);
+    const side=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.03,.24,56,1,true),new THREE.MeshBasicMaterial({color:new THREE.Color(AR_SIDE[theme]||"#5a3e24")}));side.position.set(x,.1,z);BV.bg.add(side);
+    const top=new THREE.Mesh(new THREE.CircleGeometry(r,56),new THREE.MeshBasicMaterial({map:AR_CACHE[key]}));top.rotation.x=-Math.PI/2;top.position.set(x,.22,z);BV.bg.add(top);});}
+// Plattformen der Karten-Kulisse: die sauberen aus v0.20
+bvPixelPlatforms=function(style){arPlatforms(arThemeFor(BV.lastKind||"grass"),"day");};
+// Fernhorizont hinter dem Kartenwald (nur draußen)
+{const _ws=bvWorldStage;bvWorldStage=function(kind){const ok=_ws(kind);if(!ok)return ok;
+  try{const m=curMap();const out=!!m.world,cave=!!m.cave,indoor=!out&&!m.outside;if(cave||indoor)return ok;
+    const theme=arThemeFor(kind),tod=battleTod(),key="pan:"+theme+":"+tod;
+    if(!AR_CACHE[key]){const t=texOf(arPanorama(theme,tod));t.wrapS=THREE.RepeatWrapping;t.repeat.x=3;AR_CACHE[key]=t;}
+    const R=96,CH=R*14.4/21,cyl=new THREE.Mesh(new THREE.CylinderGeometry(R,R,CH,72,1,true),new THREE.MeshBasicMaterial({map:AR_CACHE[key],side:THREE.BackSide,fog:false,transparent:true,alphaTest:.5}));
+    cyl.position.set(.5,CH/2-CH*(192-176)/192-.5,-10);cyl.renderOrder=-1;BV.bg.add(cyl);}catch(e){console.warn("Horizont",e);}
+  return ok;};}
+{const _orig=bvSetBg;
+bvSetBg=function(kind){BV.lastKind=kind;
+  if(!(typeof B!=="undefined"&&B&&B.duel))return _orig(kind);
   if(typeof y2kOn==="function"&&y2kOn()&&kind!=="indoor"){const yk="y2k:"+kind;if(BV.bgKind===yk)return;BV.bgKind=yk;while(BV.bg.children.length)BV.bg.remove(BV.bg.children[0]);bvClearDio();BV.tint=null;y2kStage(kind);return;}
   BV.y2k=null;const theme=arThemeFor(kind),bk="arena:"+theme+":"+battleTod();if(BV.bgKind===bk)return;BV.bgKind=bk;
   while(BV.bg.children.length)BV.bg.remove(BV.bg.children[0]);bvClearDio();BV.tint=null;BV.sc.background=null;
-  try{arBuild(theme);}catch(e){console.warn("Kulisse",e);}};
+  try{arBuild(theme);}catch(e){console.warn("Kulisse",e);}};}
 
 /* ===== movefx.js ===== */
 /* ================================ ATTACKEN- & STATUS-ANIMATIONEN je Typ (eigene Effekte, Stil der Hauptspiele) ================================ */
@@ -5671,8 +5693,16 @@ function uiArrows(x,y,dir="v"){const b=Math.floor(FRAME/12)%2;ctx.fillStyle="#ff
 function uiHint(s){} // v0.10: Tasten-Hinweise im Bild entfernt
 
 /* ---------- Menü-Icons: eigene Pixelgrafik (16×16, Retro-Stil wie in den GBA/DS-Spielen) ---------- */
-const UI_ICON_PAL={k:'#181820',w:'#f8f8f8',r:'#e83830',R:'#a81818',g:'#c8c8d0',G:'#8890a0',b:'#3878e0',B:'#1c3c88',c:'#a8d8f8',y:'#f8d038',Y:'#c89818',o:'#f09038',O:'#b85818',n:'#d6b880',N:'#6a4020',l:'#58c060',L:'#2a8038',p:'#f8c8a0'};
+const UI_ICON_PAL={k:'#181820',w:'#f8f8f8',r:'#e83830',R:'#a81818',g:'#c8c8d0',G:'#8890a0',b:'#3878e0',B:'#1c3c88',c:'#a8d8f8',y:'#f8d038',Y:'#c89818',o:'#f09038',O:'#b85818',n:'#d6b880',N:'#6a4020',l:'#58c060',L:'#2a8038',p:'#f8c8a0',v:'#9a6ae8',V:'#5a3aa8',u:'#d8c4ff'};
 const UI_ICON_GRID={
+  globe:["................", ".....kkkkkk.....", "...kkbbllbbkk...", "..kbbblllbbbbk..", "..kbllllbbbcbk..", ".kbbllllbbbbbBk.", ".kbbbllbbbllbBk.", ".kbbbbbbbllllBk.", ".kbcbbbbblllbBk.", ".kbbbbbbbbllbBk.", ".kbbllbbbbbbbBk.", "..kbllllbbbbBk..", "..kBbllbbbbBBk..", "...kkBBBBBBkk...", ".....kkkkkk.....", "................"],
+  trophy:["................", "...kkkkkkkkkk...", ".kkkwyyyyyyYkkk.", "kyykwyyyyyyYkyyk", "kykkwyyyyyyYkkyk", "kykkyyyyyyyYkkyk", ".kykkyyyyyYYkyk.", "..kkkyyyyyYkkk..", "....kkyyyYkk....", "......kyYk......", "......kyYk......", ".....kkyYkk.....", "....kYyyyYYk....", "...kNNNNNNNNk...", "...kNnnnnnnNk...", "...kkkkkkkkkk..."],
+  shard:["................", ".......kk.......", "......kuvk......", "......kuvk......", ".....kuvvVk.....", ".....kuvvVk.....", "....kuuvvVVk....", "....kuvvvVVk....", "...kuuvvvVVVk...", "...kuvvvvVVVk...", "....kuvvvVVk....", "....kuvvVVVk....", ".....kvvVVk.....", "......kvVk......", ".......kk.......", "................"],
+  news:["................", "..kkkkkkkkkkk.rr", ".kwwwwwwwwwwgkrr", ".kwkkkkkwwwwgk..", ".kwwwwwwwwwwgk..", ".kwrrrrrrrwwgk..", ".kwwwwwwwwwwgk..", ".kwGGGGGGGwwgk..", ".kwwwwwwwwwwgk..", ".kwGGGGGwwwwgk..", ".kwwwwwwwwwwgk..", ".kwGGGGGGwwwgk..", ".kwwwwwwwwwwgkk.", ".kggggggggggggk.", "..kkkkkkkkkkkkk.", "................"],
+  logout:["................", "..kkkkkkkk......", "..kNnnnnnk......", "..kNnnnnnk......", "..kNnnnnnk..k...", "..kNnnnnnk..kk..", "..kNnnnyykkkkrk.", "..kNnnnnnkrrrrrk", "..kNnnnnnkkkkrk.", "..kNnnnnnk..kk..", "..kNnnnnnk..k...", "..kNnnnnnk......", "..kNnnnnnk......", "..kkkkkkkk......", "................", "................"],
+  key:["................", "....kkkk........", "...kyyyyk.......", "..kyykkyyk......", "..kyk..kyk......", "..kyykkyyk......", "...kyyyyYk......", "....kyyYkk......", ".....kyYk.......", ".....kyYkk......", ".....kyYyyk.....", ".....kyYkk......", ".....kyYyyk.....", ".....kyYkk......", "......kk........", "................"],
+  home:["................", ".......kk.......", "......krRk......", ".....krrrRk.....", "....krrrrrRk....", "...krrrrrrrRk...", "..krrrrrrrrrRk..", ".kkkkkkkkkkkkkk.", "..kwwwwwwwwwgk..", "..kwkkwwwkkkgk..", "..kwkckwwkNkgk..", "..kwkkwwwkNkgk..", "..kwwwwwwkykgk..", "..kwwwwwwkNkgk..", "..kkkkkkkkkkkk..", "................"],
+  grave:["................", ".....kkkkkk.....", "....kggggggk....", "...kggwggggGk...", "...kggwggggGk...", "...kwwwwwggGk...", "...kggwggggGk...", "...kggwggggGk...", "...kgggggggGk...", "...kgggggggGk...", "...kgggggggGk...", "...kgggggggGk...", "..kkkkkkkkkkkk..", ".kllllLlllLlllk.", ".kLLLLLLLLLLLLk.", "................"],
   dex:["................","..kkkkkkkkkkkk..",".krrrrrrrrrrrrk.",".krkkkkrrrrrrRk.",".kkcwwckkrkykRk.",".kkcwcckRkkkkRk.",".kkccccRrrrrrRk.",".krkkkkrrrrrrRk.",".kRRRRRRRRRRRRk.",".krrrrrrrrrrrRk.",".krkkkkkkkkkrRk.",".krkllllllLkrRk.",".krkllLlLllkrRk.",".krkkkkkkkkkrRk.",".kRRRRRRRRRRRRk.","..kkkkkkkkkkkk.."],
   mon:["................",".....kkkkkk.....","...kkrrrrwrkk...","..krrrrrrrwwrk..","..krrrrrrrrwrk..",".krrrrrrrrrrrRk.",".kRrrrrkkkrrrRk.",".kkkkkkwwwkkkkk.",".kkkkkkwgwkkkkk.",".kwwwwwkkkwwwgk.",".kgwwwwwwwwwwgk.","..kgwwwwwwwwgk..","..kggwwwwwwggk..","...kkggggggkk...",".....kkkkkk.....","................"],
   bag:["................",".....kkkkkk.....","....kNk..kNk....","...kkkkkkkkkk...","..koooooooooOk..",".koooooooooooOk.",".kokkkkkkkkkkOk.",".konnnnnnnnnnOk.",".konnnkyykknnOk.",".konnnkYYknnnOk.",".konnnnkknnnnOk.",".kooooooooooOOk.",".koooooooooooOk.",".kOOOOOOOOOOOOk.","..kkkkkkkkkkkk..","................"],
@@ -6554,7 +6584,7 @@ function drawItemIcon(k,x,y){if(k==="vial"){ctx.fillStyle="#383848";ctx.fillRect
 // Item auf Pokémon anwenden (ohne Animation). Rückgabe: Meldung oder null
 function applyItem(k,m){
   const it=ITEMS[k];const mx=maxHp(m);
-  if(it.revive){if(alive(m))return null;m.hp=Math.floor(mx*it.revive);m.st="";return`${monName(m)} wurde wiederbelebt!`;}
+  if(it.revive){if(alive(m))return null;if(nuzRules())return null;m.hp=Math.floor(mx*it.revive);m.st="";return`${monName(m)} wurde wiederbelebt!`;}
   if(!alive(m))return null;
   let msgs=[];
   if(it.heal&&m.hp<mx){const before=m.hp;m.hp=Math.min(mx,m.hp+it.heal);msgs.push(`${monName(m)} hat ${m.hp-before} KP aufgefüllt.`);}
@@ -6605,7 +6635,7 @@ async function openStartMenu(){
     if(G.save.party.length)opts.push({ic:"mon",l:"POKéMON",f:()=>partyMenu({mode:"field"}),d:"Dein Team ansehen und ordnen."});
     opts.push({ic:"bag",l:"BEUTEL",f:()=>bagMenu({}),d:"Items benutzen und geben."},{ic:"map",l:"KARTE",f:openTownMap,d:canFly()?"Ganz Kanto – und mit Fliegen zu besuchten Städten reisen.":"Ganz Kanto auf einen Blick."},{ic:"pc",l:"PC",f:openPC,d:"Pokémon-Boxen – von überall erreichbar."},
       {ic:"card",l:G.save.name,f:trainerCard,d:"Dein Trainerpass."},{ic:"save",l:"SPEICHERN",f:saveMenu,d:"Den Spielstand sichern."},
-      {ic:"opt",l:"OPTIONEN",f:optionsMenu,d:"Text, Sound, Rennen, Folge-Pokémon …"},{ic:"back",l:"ZUM TITEL",f:toTitle,d:"Speichert automatisch und geht zurück zum Titelbildschirm (dort auch Abmelden). B schließt das Menü."});
+      {ic:"opt",l:"OPTIONEN",f:optionsMenu,d:"Text, Sound, Rennen, Folge-Pokémon …"},{ic:"home",l:"ZUM TITEL",f:toTitle,d:"Speichert automatisch und geht zurück zum Titelbildschirm (dort auch Abmelden). B schließt das Menü."});
     const c=await startMenuScene(opts,START_IDX);
     if(c<0||!opts[c].f)return;START_IDX=c;
     await opts[c].f();
@@ -6878,7 +6908,7 @@ function trainerCard(){
       prT("TRAINERPASS",X+12,Y+6,{c:"#ffffff",sh:fem?"#702040":"#103870"});prT("ID "+String(s.tid||0).padStart(5,"0"),X+W-12,Y+8,{size:12,align:"right",c:"#f0eaf8",sh:"rgba(0,0,0,.45)"});
       // Werte
       let mp="";try{mp=mapById(s.pos.map).name;}catch(e){}
-      const rows=[["Name",s.name||""],["Geld","₽"+(s.money||0).toLocaleString("de-DE")],["Pokédex",caughtCount()+" gefangen · "+seenCount()+" gesehen"],["Spielzeit",fmtTime(s.time)],["Ort",mp],["Level-Cap","Lv "+levelCap()+(s.mode==="run"?" · Run":"")]];
+      const rows=[["Name",s.name||""],["Geld","₽"+(s.money||0).toLocaleString("de-DE")],["Pokédex",caughtCount()+" gefangen · "+seenCount()+" gesehen"],["Spielzeit",fmtTime(s.time)],["Ort",mp],["Level-Cap","Lv "+levelCap()+(s.mode==="run"?" · Run":s.mode==="nuz"?" · Nuzlocke":"")]];if(s.mode==="nuz"||s.mode==="run")rows.push(["Regeln",`${Object.keys(s.runArea||{}).length} Gebiete · ${(s.grave||[]).length} gefallen`]);
       const lx=X+8,lw=190;rows.forEach(([a,v],r)=>{const y=Y+30+r*14;if(r%2===0){ctx.fillStyle="rgba(255,255,255,.05)";ctx.fillRect(lx,y-1,lw,14);}
         prT(a,lx+4,y,{size:12,c:"#c8c0d4"});prT(v,lx+lw-4,y,{size:12,align:"right",c:"#ffffff"});});
       // Trainer auf Podest
@@ -7038,6 +7068,14 @@ async function capNurse(){
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.22",d:"29.10.2026",items:[
+    "Neuer Modus NUZLOCKE: Pro Gebiet ist nur die erste Begegnung fangbar (schillernde immer), besiegte Pokémon sind für immer weg, Beleber wirken nicht. Bei einer Niederlage ist die Nuzlocke gescheitert – danach klassisch weiterspielen oder den Spielstand beenden.",
+    "Moduswahl neu: Klassisch, Nuzlocke und Run als Karten mit den wichtigsten Regeln, darunter Schwierigkeit, Min. Grinding und Randomizer.",
+    "Kampf-Kulisse wieder als echter Ausschnitt der aktuellen Karte – mit sauberen Plattformen und gemaltem Horizont (Berge, Wolken) dahinter.",
+    "Kampf-Kamera neu: Dein Pokémon steht jetzt vollständig über dem Textfeld, auch kleine Pokémon wie Glumanda.",
+    "Neue Menü-Symbole: Online, Bestenliste, Run-Boni, Patch-Info, Anmelden/Abmelden, Zum Titel u. a.",
+    "Kampfkarte: Alle Hintergründe sind frei wählbar (Pfeil hoch zum Hintergrund, dann links/rechts).",
+    "Rennen: keine Staubwolken mehr, und die Figur bleibt im Stand nicht mehr in der Lauf-Pose hängen."]},
   {v:"0.21",d:"29.10.2026",items:[
     "Eigener Server nur für Pokémon Obsidian: Konten, Spielstände und Bestenliste sind komplett eigenständig. Bitte einmal neu registrieren – jeder Name ist wieder frei.",
     "Neu: Kampfkarte mit deinem Lieblings-Pokémon (aus Team oder Box), Hintergrund nach Orden, Elo, Bilanz und Orden. Unter ONLINE → PROFIL & KONTO → KAMPFKARTE.",
@@ -7407,7 +7445,7 @@ async function onlineMenu(){
   let i=0;
   while(true){const team=onMyTeam();
     const c=await onMenu("ONLINE",()=>ON.sess?`${ON.sess.name} · ${ON.board?ON.board.elo:"…"} Elo`:"",
-      [["SCHNELLES DUELL","mon"],["RAUM ERSTELLEN","card"],["RAUM BEITRETEN","map"],["BESTENLISTE","dex"],["PROFIL & KONTO","card"],["ZURÜCK","back"]],
+      [["SCHNELLES DUELL","mon"],["RAUM ERSTELLEN","home"],["RAUM BEITRETEN","key"],["BESTENLISTE","trophy"],["PROFIL & KONTO","card"],["ZURÜCK","back"]],
       ()=>[`Duell-Team: ${onTeamLine(team)}`,"Live-Duell: bis zu 6 Pokémon, alle auf Lv. 50"],{i,side:(x,y)=>{team.slice(0,6).forEach((m,k)=>{const cx=x+30+(k%2)*60,cy=y+20+Math.floor(k/2)*44;obCard(cx-27,cy-20,54,40,false);
         prEnd();{const i=m.sp-1,f=Math.floor(FRAME/18)%2;ctx.drawImage(IMG.icon,(i%16)*40,Math.floor(i/16)*30,40,30,Math.round(cx*PRK-16),Math.round((cy-21)*PRK)-f,32,24);}prBegin();prT(monName(m).slice(0,8),cx,cy+7,{size:10,align:"center",c:OB.dim,sh:"transparent"});});}});
     if(c<0||c===5)return;i=c;
@@ -7520,7 +7558,7 @@ function accStats(){const sl=slotInfo().filter(Boolean);let time=0,badges=0,caug
   const last=onTeamSource();return{slots:sl.length,time,badges,caught,seen,last};}
 async function accProfile(){let i=0;
   while(ON.sess){const B0=ON.board||{elo:1000,wins:0,losses:0};const S=accStats();
-    const c0=await onMenu("PROFIL",ON.sess.name,[["KAMPFKARTE","card"],["JETZT ABGLEICHEN","save"],["PASSWORT ÄNDERN","card"],["NAME ÄNDERN","card"],["ÜBERALL ABMELDEN","opt"],["ABMELDEN","back"],["KONTO LÖSCHEN","opt"],["ZURÜCK","back"]],
+    const c0=await onMenu("PROFIL",ON.sess.name,[["KAMPFKARTE","card"],["JETZT ABGLEICHEN","globe"],["PASSWORT ÄNDERN","key"],["NAME ÄNDERN","news"],["ÜBERALL ABMELDEN","logout"],["ABMELDEN","logout"],["KONTO LÖSCHEN","grave"],["ZURÜCK","back"]],
       ()=>[ON.lastSync?`Zuletzt abgeglichen: ${fmtDate(ON.lastSync)}`:"Spielstände werden automatisch abgeglichen.",`${S.slots} Spielstand${S.slots===1?"":"e"} am Konto`],
       {i:Math.min(i,7),mw:.47,side:(x,y)=>{const w=PRW-x-8,cx=x+Math.max(0,(w-CARD_W)/2);cardDraw(cx,y,cardMine(),cardInfoMine());
         prT(`Spielzeit ${fmtTime(S.time)} · Seit ${B0.created_at?fmtDate(Date.parse(B0.created_at)).slice(0,6)+String(new Date(B0.created_at).getFullYear()).slice(2):"–"}`,cx+CARD_W/2,y+CARD_H+6,{size:11,align:"center",c:OB.mute,sh:"transparent"});}});
@@ -7618,11 +7656,11 @@ async function cardSave(c){LS.set(cardKey(),c);if(ON.sess&&ON.board){ON.board.ca
 /* ---------- Editor: Lieblings-Pokémon + Hintergrund ---------- */
 async function cardEditor(){const L=cardChoices();const C=cardMine();const bgs=Object.keys(CARD_BG);const S=typeof accStats==="function"?accStats():{badges:0};
   let foc=L.length?1:0,i=Math.max(0,L.findIndex(m=>m.sp===C.fav&&m.sh===!!C.sh)),bi=Math.max(0,bgs.indexOf(C.bg)),off=0,msgT=0,msg="";const COLS=4,ROWS=4;
-  const unlocked=k=>(CARD_BG[k].need||0)<=Math.max(S.badges||0,(ON.board&&ON.board.badges)||0);
+  const unlocked=k=>true;   // v0.22: alle Hintergründe frei wählbar
   await run({opaque:true,update(){if(msgT)msgT--;
       if(Input.hit("b")){sfx("back");this.done();return;}
       if(foc===0){if(Input.nav("left")){bi=(bi+bgs.length-1)%bgs.length;sfx("move");}if(Input.nav("right")){bi=(bi+1)%bgs.length;sfx("move");}
-        if(Input.hit("a")){if(unlocked(bgs[bi])){C.bg=bgs[bi];sfx("select");}else{sfx("deny");msg=`Ab ${CARD_BG[bgs[bi]].need} Orden freigeschaltet.`;msgT=90;}}
+        if(Input.nav("left")||Input.nav("right")||Input.hit("a"))C.bg=bgs[bi];
         if(Input.nav("down")&&L.length){foc=1;sfx("move");}return;}
       const n=L.length;if(!n)return;
       if(Input.nav("left")&&i%COLS>0){i--;sfx("move");}if(Input.nav("right")&&i%COLS<COLS-1&&i<n-1){i++;sfx("move");}
@@ -7632,8 +7670,8 @@ async function cardEditor(){const L=cardChoices();const C=cardMine();const bgs=O
     draw(){obBg();obHeader("KAMPFKARTE",ON.sess?ON.sess.name:"");
       cardDraw(8,30,Object.assign({},C,{bg:foc===0?bgs[bi]:C.bg}),cardInfoMine(),{big:1});
       // Hintergrund-Wahl
-      const k=bgs[bi],ok=unlocked(k);obCard(8,134,CARD_W,22,foc===0);prT("◀",14,138,{size:12,c:OB.gold});prT("▶",CARD_W-2,138,{size:12,c:OB.gold,align:"right"});
-      prT(ok?CARD_BG[k].n:`${CARD_BG[k].n} · ab ${CARD_BG[k].need} Orden`,8+CARD_W/2,138,{size:12,align:"center",c:ok?(C.bg===k?OB.gold:"#fff"):OB.mute});
+      const k=bgs[bi],ok=unlocked(k);obCard(8,138,CARD_W,20,foc===0);prT("HINTERGRUND",9,127,{size:9,c:foc===0?OB.gold:OB.mute,sh:"transparent"});prT("◀",14,141,{size:12,c:OB.gold});prT("▶",CARD_W-2,141,{size:12,c:OB.gold,align:"right"});
+      prT(CARD_BG[k].n,8+CARD_W/2,141,{size:12,align:"center",c:ok?(C.bg===k?OB.gold:"#fff"):OB.mute});
       // Pokémon-Raster
       const gx=172,gy=30,cw=35,ch=30;prT("LIEBLINGS-POKÉMON",gx,gy-2,{size:10,c:OB.gold,sh:"transparent"});
       if(!L.length)prWrap("Noch keine Pokémon. Fang welche – dann kannst du hier dein Lieblings-Pokémon wählen.",140,12).forEach((l,r)=>prT(l,gx,gy+14+r*14,{size:12,c:OB.dim}));
@@ -7642,8 +7680,8 @@ async function cardEditor(){const L=cardChoices();const C=cardMine();const bgs=O
         obSW(()=>{const ii=m.sp-1,f=foc===1&&j===i?Math.floor(FRAME/10)%2:0;ctx.drawImage(IMG.icon,(ii%16)*40,Math.floor(ii/16)*30,40,30,Math.round(PX(x+1)),Math.round(PX(y-1))-f,30,22.5);});
         if(m.sh){ctx.fillStyle="#fff6a0";ctx.fillRect(x+cw-8,y+3,2,2);}}
       if(off>0)obArrow(PRW-6,gy+14,true);if((off+ROWS)*COLS<L.length)obArrow(PRW-6,gy+10+ROWS*ch-4,false);
-      const cur=L[i];obFoot(msgT?msg:foc===0?"Hintergrund wählen (A). Weitere Hintergründe gibt es mit mehr Orden.":cur?`${SPECIES[cur.sp].n}${cur.sh?" (schillernd)":""} · aus Team oder Box`:"",
-        "A: wählen · B: speichern und zurück");prEnd();}});
+      const cur=L[i];obFoot(msgT?msg:foc===0?`Hintergrund: ${CARD_BG[bgs[bi]].n} (${bi+1}/${bgs.length}) · ↓ zu den Pokémon`:cur?`${SPECIES[cur.sp].n}${cur.sh?" (schillernd)":""} · aus Team oder Box · ↑ zum Hintergrund`:"",
+        foc===0?"◀▶ Hintergrund wechseln · B: speichern und zurück":"A: wählen · B: speichern und zurück");prEnd();}});
   await cardSave(C);}
 
 /* ---------- Karte eines anderen Trainers ansehen (Bestenliste) ---------- */
@@ -8532,14 +8570,14 @@ function ovUpdate(){
     const sp=+c.dataset.sp;if(IMG.icon&&IMG.icon.complete)g.drawImage(IMG.icon,((sp-1)%16)*40,Math.floor((sp-1)/16)*30,40,30,0,fr?-1:0,40,30);});
   // Spieler
   const lead=document.getElementById("lead");
-  lead.innerHTML=S?`<div style="color:#f8f2e4;font-size:24px">${S.name||"?"}</div><div>ID ${String(S.tid||0).padStart(5,"0")} · ${S.mode==="run"?"RUN-MODUS":"KLASSISCH"}</div>`:`<div>Noch kein Abenteuer gestartet</div>`;
+  lead.innerHTML=S?`<div style="color:#f8f2e4;font-size:24px">${S.name||"?"}</div><div>ID ${String(S.tid||0).padStart(5,"0")} · ${S.mode==="run"?"RUN-MODUS":S.mode==="nuz"?"NUZLOCKE":"KLASSISCH"}</div>`:`<div>Noch kein Abenteuer gestartet</div>`;
   // Orden
   document.querySelectorAll("#badges .badge").forEach((e,i)=>e.classList.toggle("on",!!(S&&S.badges&&S.badges.includes(BADGE_N[i]))));
   // Abenteuer
   const st=document.getElementById("stats");
   if(S){let mp="";try{mp=mapById(S.pos.map).name;}catch(e){}
     const rows=[["Ort",mp],["Spielzeit",fmtTime(S.time)],["Pokédex",`${caughtCount()} / ${seenCount()}`],["Geld","₽"+(S.money||0).toLocaleString("de-DE")],["Level-Cap","Lv "+levelCap()]];
-    if(S.mode==="run")rows.push(["Gefallen",String((S.grave||[]).length)]);
+    if(S.mode==="run"||S.mode==="nuz")rows.push(["Gefallen",String((S.grave||[]).length)]);
     st.innerHTML=rows.map(([a,b])=>`<div class="row"><span>${a}</span><b>${b}</b></div>`).join("")+`<div class="goal"><span>Nächstes Ziel</span>${curGoal()}</div>`;}
   else st.innerHTML=`<div class="row"><span>Bereit?</span><b>Drücke Start!</b></div>`;
 }
@@ -11210,7 +11248,7 @@ Object.assign(K.mart,{route4:K.mart.route3||K.mart.cerulean,route10:K.mart.route
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.21";
+const VERSION="0.22";
 function newSave(o){
   const R=REGIONS[o.region||"kanto"];
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
@@ -11246,7 +11284,7 @@ function saveCard(x,y,w,h,s,sel,label){
   if(sel){rr(x-1.5,y-1.5,w+3,h+3,7);ctx.strokeStyle=`rgba(255,255,255,${.5+Math.sin(FRAME/6)*.35})`;ctx.lineWidth=1.2;ctx.stroke();}
   txt(label,x+6,y+3,{size:9,w:700,c:sel?"#3a1800":"#ffffff",sh:sel?"transparent":"rgba(0,0,0,.6)"});
   if(!s){txt("— leer —",x+w/2,y+h/2-1,{size:9,w:600,c:sel?"#7a4a10":"#8a98c8",sh:"transparent",align:"center"});return;}
-  txt(s.mode==="run"?"RUN":"KLASSISCH",x+w-6,y+3.5,{size:7,w:700,c:s.mode==="run"?(sel?"#a02020":"#ff8a7a"):c,sh:"transparent",align:"right"});
+  txt(modeInfo(s.mode).n,x+w-6,y+3.5,{size:7,w:700,c:s.mode==="run"?(sel?"#a02020":"#ff8a7a"):s.mode==="nuz"?(sel?"#8a5a00":"#ffd890"):c,sh:"transparent",align:"right"});
   ctx.fillStyle=sel?"rgba(255,255,255,.45)":"rgba(255,255,255,.08)";rr(x+4,y+15,w-8,h-19,4);ctx.fill();
   txt(s.name||"?",x+9,y+17,{size:9,w:700,c:s.gender==="f"?(sel?"#c02848":"#ff98b0"):(sel?"#2050c0":"#90b8ff"),sh:"transparent"});
   txt("Zeit "+fmtTime(s.time),x+w-9,y+17,{size:8,w:600,c,sh:"transparent",align:"right"});
@@ -11285,8 +11323,8 @@ const TitleScene={opaque:true,
   enter(){this.t=0;this.ph=0;this.pt=0;this.i=0;this.sp=pick(TITLE_MONS);this.sw=0;Music.play("title");ivInit();this.refresh();},
   refresh(){this.sl=slotInfo();this.last=lastSlot(this.sl);},
   keepGL(){this.bg();},
-  opts(){const o=[];if(this.last){o.push(["WEITER",()=>continueGame(this.last),"save"]);o.push(["SPIELSTÄNDE",loadGame,"pc"]);}o.push(["NEUES SPIEL",newGame,"mon"]);o.push(["ONLINE",()=>onlineMenu(),"pc"]);o.push(["BESTENLISTE",()=>onBoardScreen(),"dex"]);o.push(["RUN-BONI",metaShop,"card"]);o.push(["OPTIONEN",()=>optionsMenu(),"opt"]);o.push(["PATCH-INFO",()=>patchInfo(),"card"]);
-    if(typeof ON!=="undefined"&&ON.sess)o.push(["ABMELDEN",()=>titleSignOut(),"back"]);else o.push(["ANMELDEN",()=>accGate(),"card"]);return o;},
+  opts(){const o=[];if(this.last){o.push(["WEITER",()=>continueGame(this.last),"save"]);o.push(["SPIELSTÄNDE",loadGame,"pc"]);}o.push(["NEUES SPIEL",newGame,"mon"]);o.push(["ONLINE",()=>onlineMenu(),"globe"]);o.push(["BESTENLISTE",()=>onBoardScreen(),"trophy"]);o.push(["RUN-BONI",metaShop,"shard"]);o.push(["OPTIONEN",()=>optionsMenu(),"opt"]);o.push(["PATCH-INFO",()=>patchInfo(),"news"]);
+    if(typeof ON!=="undefined"&&ON.sess)o.push(["ABMELDEN",()=>titleSignOut(),"logout"]);else o.push(["ANMELDEN",()=>accGate(),"key"]);return o;},
   update(){this.t++;
     if(this.t%420===0)this.sw=1;if(this.sw){this.sw++;if(this.sw===16){let n;do n=pick(TITLE_MONS);while(n===this.sp);this.sp=n;animData(n,false,false);}if(this.sw>32)this.sw=0;}
     if(this.ph===0){if(this.gating)return;if(this.t>16&&(Input.hit("a")||Input.hit("start"))){sfx("select");const go=()=>{this.ph=1;this.pt=0;this.i=0;this.refresh();const motd=()=>{if(typeof onMotd==="function"&&ON.sess)onMotd();};if(!patchSeen())patchInfo().then(motd);else motd();};
@@ -11331,7 +11369,7 @@ const TitleScene={opaque:true,
         if(sel){const hg=ctx.createLinearGradient(0,y,0,y+rh);hg.addColorStop(0,"rgba(255,255,255,.17)");hg.addColorStop(1,"rgba(255,255,255,.05)");ctx.fillStyle=hg;ctx.fillRect(wx+5,y,ww-10,rh);ctx.fillStyle="#e85a3a";ctx.fillRect(wx+5,y,2,rh);prCursor(wx+12,y+rh/2);}
         drawUiIcon(o[2],wx+18,y+(rh<14?-1:rh<20?0:1)+(sel?Math.round(Math.sin(FRAME/6)):0),rh<14?13:rh<20?15:17);prT(o[0],wx+40,y+(rh<20?1:2),{size:fs,c:sel?"#ffffff":"#d8d0e0"});
         if(o[2]==="save"){const sv=this.sl[this.last-1];if(sv){const bd=(sv.badges||[]).filter(Boolean).length;
-          prT(`${sv.name||"?"} · ${bd} Orden · ${fmtTime(sv.time)}`,wx+40,y+(SV<28?13:16),{size:SV<28?11:12,c:"#c8c0d4"});prT(sv.mode==="run"?"RUN":"KLASSISCH",wx+ww-10,y+4,{size:12,align:"right",c:sv.mode==="run"?"#ff8a7a":"#8ab4ff"});}}
+          prT(`${sv.name||"?"} · ${bd} Orden · ${fmtTime(sv.time)}`,wx+40,y+(SV<28?13:16),{size:SV<28?11:12,c:"#c8c0d4"});prT(modeInfo(sv.mode).n,wx+ww-10,y+4,{size:12,align:"right",c:modeInfo(sv.mode).c});}}
         y+=rh;});
       prBar();const L=prWrap(D[opts[this.i][0]]||"",296);L.slice(0,2).forEach((l,r)=>prT(l,12,PRH-39+r*16));
       prEnd();
@@ -11388,30 +11426,58 @@ async function ngFinale(gender){
   await fadeTo(1,24,"#fff");pop(NGStage);fade.col="#fff";
 }
 // Spiel-Einstellungen im Stil des Optionsmenüs
+/* ---------- Spielmodus + Regeln (v0.22: drei Modi als Karten, Obsidian-Stil) ---------- */
+const MODES=[
+  {k:"classic",n:"KLASSISCH",ic:"mon",c:"#8ab4ff",r:["Freies Spielen","Jederzeit speichern","Center heilt alles"],
+   d:"Klassisch: Spiel in Ruhe und fang so viele Pokémon wie du willst. Bei einer Niederlage geht es im Pokémon-Center weiter."},
+  {k:"nuz",n:"NUZLOCKE",ic:"grave",c:"#ffd890",r:["1 Fang pro Gebiet","K.O. = für immer weg","Niederlage = Ende"],
+   d:"Nuzlocke: Nur die erste Begegnung je Gebiet ist fangbar (schillernde immer). Besiegte Pokémon sind für immer weg, Beleber wirken nicht."},
+  {k:"run",n:"RUN",ic:"shard",c:"#ff8a7a",r:["Nuzlocke-Regeln","Run-Boni (Shop)","Gibt Splitter"],
+   d:"Run: Nuzlocke als Roguelite. Eine Niederlage beendet den Run, dafür gibt es Obsidian-Splitter für dauerhafte Boni."}];
+const modeInfo=k=>MODES.find(m=>m.k===k)||MODES[0];
+function nuzRules(){return!!(G.save&&(G.save.mode==="run"||G.save.mode==="nuz"));}
 function settingsPick(){
-  return new Promise(res=>{let i=0;const s={mode:"classic",diff:"normal",mgm:false,rand:false};
-    const rows=[["Modus",()=>s.mode==="run"?"Run":"Klassisch",()=>s.mode=s.mode==="run"?"classic":"run",()=>s.mode==="run"?"Run: Nur die 1. Begegnung je Gebiet fangbar, K.O. = weg, Niederlage = Run vorbei. Bringt Obsidian-Splitter.":"Klassisch: Freies Spielen, Speichern jederzeit."],
-      ["Schwierigkeit",()=>s.diff==="easy"?"Leicht":"Normal",()=>s.diff=s.diff==="easy"?"normal":"easy",()=>s.diff==="easy"?"Leicht: Bosse 2 Level schwächer, Beutel im Trainerkampf erlaubt.":"Normal = Hardcore wie Emerald Azure: schlaue KI, EV-trainierte Trainer, keine Heilitems im Trainerkampf, Kampfstil Folge, Schlafklausel."],
+  return new Promise(res=>{let i=0,mi=0;const s={mode:"classic",diff:"normal",mgm:false,rand:false};
+    const rows=[["Schwierigkeit",()=>s.diff==="easy"?"Leicht":"Normal",()=>s.diff=s.diff==="easy"?"normal":"easy",()=>s.diff==="easy"?"Leicht: Bosse 2 Level schwächer, Beutel im Trainerkampf erlaubt.":"Normal = Hardcore wie Emerald Azure: schlaue KI, EV-trainierte Trainer, keine Heilitems im Trainerkampf, Kampfstil Folge, Schlafklausel."],
       ["Min. Grinding",()=>s.mgm?"An":"Aus",()=>s.mgm=!s.mgm,()=>s.mgm?"Alle eigenen Pokémon haben perfekte IVs, keine EVs.":"Zufällige IVs, EVs durch Kämpfe."],
       ["Randomizer",()=>s.rand?"An":"Aus",()=>s.rand=!s.rand,()=>s.rand?"Wilde Pokémon werden zufällig getauscht (ähnliche Stärke).":"Originale Begegnungen."]];
+    const N=rows.length+2; // 0 = Modus-Karten, 1..3 = Regeln, 4 = Los
     const sc={opaque:true,t:0,update(){this.t++;
-        if(Input.nav("up")){i=(i+rows.length)%(rows.length+1);sfx("move");}if(Input.nav("down")){i=(i+1)%(rows.length+1);sfx("move");}
-        if(i<rows.length&&(Input.nav("left")||Input.nav("right")||Input.hit("a"))){rows[i][2]();sfx("select");}
-        else if(i===rows.length&&(Input.hit("a")||Input.hit("start"))){sfx("select");pop(sc);res(s);}
+        if(Input.nav("up")){i=(i+N-1)%N;sfx("move");}if(Input.nav("down")){i=(i+1)%N;sfx("move");}
+        if(i===0){if(Input.nav("left")){mi=(mi+2)%3;s.mode=MODES[mi].k;sfx("move");}if(Input.nav("right")){mi=(mi+1)%3;s.mode=MODES[mi].k;sfx("move");}if(Input.hit("a")){i=1;sfx("select");}}
+        else if(i<=rows.length){if(Input.nav("left")||Input.nav("right")||Input.hit("a")){rows[i-1][2]();sfx("select");}}
+        else if(Input.hit("a")||Input.hit("start")){sfx("select");pop(sc);res(s);return;}
         if(Input.hit("b")){sfx("back");pop(sc);res(null);}},
-      draw(){uiBg("blue");uiHeader("SPIEL-EINSTELLUNGEN");const k=easeOut(Math.min(1,this.t/12));ctx.save();ctx.globalAlpha=k;ctx.translate(0,(1-k)*12);
-        uiPanel(10,24,220,rows.length*16+30);
-        rows.forEach((r,j)=>{const y=30+j*16;const sel=j===i;if(sel)uiSel(13,y-1,214,14,4);
-          txt(r[0],20,y+1,{size:10,w:700,c:sel?"#3a1800":"dark",sh:"transparent"});
-          const v=r[1]();const w=tw(v,9,700)+16;glossBox(222-w,y+.5,w,12,sel?"#ffffff":"#6a88d0",sel?"#ffe8c0":"#3a58a8",6,"rgba(255,255,255,.5)");
-          txt(v,222-w/2,y+2,{size:9,w:700,c:sel?"#5a2800":"#ffffff",sh:"transparent",align:"center"});
-          });
-        const y=32+rows.length*16;uiBtn(70,y,100,15,"LOS GEHT'S!",i===rows.length,{size:9,col:["#68e078","#20a040"]});
+      draw(){obBg();obHeader("NEUES SPIEL","Modus & Regeln");const k=easeOut(Math.min(1,this.t/12));ctx.save();ctx.globalAlpha=k;ctx.translate(0,(1-k)*10);
+        MODES.forEach((m,j)=>{const x=10+j*102,y=28,w=96,h=78,on=j===mi,foc=on&&i===0;
+          obCard(x,y,w,h,foc,on?"rgba(255,255,255,.16)":null);if(on){ctx.strokeStyle=m.c;ctx.lineWidth=1.5;ctx.strokeRect(x+.5,y+.5,w-1,h-1);ctx.fillStyle=m.c;ctx.fillRect(x,y,w,2);}
+          drawUiIcon(m.ic,x+6,y+6+(foc?Math.round(Math.sin(FRAME/6)):0),16);prT(m.n,x+26,y+6,{size:14,c:on?"#fff":OB.dim});
+          m.r.forEach((l,r)=>{ctx.fillStyle=on?m.c:OB.mute;ctx.fillRect(x+7,y+31+r*15,3,3);prWrap(l,80,11).slice(0,1).forEach(t=>prT(t,x+13,y+27+r*15,{size:11,c:on?"#fff":OB.mute,sh:"transparent"}));});});
+        rows.forEach((r,j)=>{const y=110+j*13,sel=i===j+1;obCard(10,y,PRW-20,12,sel);prT(r[0],18,y,{size:12,c:sel?"#fff":OB.dim});
+          const v=r[1](),w=prW(v,11)+14;ctx.fillStyle=sel?OB.acc:"rgba(255,255,255,.1)";ctx.fillRect(PRW-16-w,y+1.5,w,9);prT(v,PRW-16-w/2,y,{size:11,align:"center",c:"#fff",sh:"transparent"});});
+        obBtn(PRW/2-60,150,120,13,"LOS GEHT'S!",i===N-1);
         ctx.restore();
-        const d=i<rows.length?rows[i][3]():"Alles bereit? Dann ab nach Kanto!";
-        glossBox(6,118,228,38,"rgba(255,255,255,.97)","#eef0f6",7,"#8898b8");wrap(d,214,9).slice(0,3).forEach((l,j)=>txt(l,13,122+j*11,{size:9,w:500,sh:"transparent"}));}};
+        const d=i===0?modeInfo(s.mode).d:i<=rows.length?rows[i-1][3]():`${modeInfo(s.mode).n.charAt(0)+modeInfo(s.mode).n.slice(1).toLowerCase()} · alles bereit? Dann ab nach Kanto!`;
+        prBar();prWrap(d,300,11).slice(0,3).forEach((l,r)=>prT(l,10,PRH-45+r*11,{size:11}));prT(i===0?"◀▶ Modus · A: weiter · B: zurück":"◀▶/A ändern · B: zurück",10,PRH-12,{size:9,c:OB.gold,sh:"#6a4a10"});prEnd();}};
     push(sc);});
 }
+// Nuzlocke verloren: Bilanz zeigen, dann klassisch weiterspielen oder den Spielstand beenden
+async function nuzOver(){
+  const grave=G.save.grave||[];const bd=(G.save.badges||[]).filter(Boolean).length;
+  Music.play("title");await fadeTo(0,1);
+  await run({opaque:true,t:0,update(){this.t++;if(this.t>30&&(Input.hit("a")||Input.hit("start")))this.done();},draw(){const t=this.t;
+    obBg();obHeader("NUZLOCKE GESCHEITERT","",OB.acc);
+    prT(`${G.save.name} hat keine Pokémon mehr.`,PRW/2,34,{align:"center",size:16,c:"#fff"});
+    [["Orden",bd],["Gefallene Pokémon",grave.length],["Spielzeit",fmtTime(G.save.time)]].forEach(([a,b],j)=>{const kk=easeOut(seg(t,j*5,j*5+14));ctx.save();ctx.globalAlpha=kk;
+      obCard(60,58+j*18,200,15,false);prT(a,68,58+j*18,{size:13,c:OB.dim});prT(String(b),252,58+j*18,{size:13,align:"right",c:"#fff"});ctx.restore();});
+    prT("In Erinnerung:",PRW/2,116,{align:"center",size:12,c:OB.gold,sh:"transparent"});
+    obSW(()=>grave.slice(-8).forEach((m,k)=>{ctx.save();ctx.globalAlpha=.8;drawIcon(m.sp||m,PX(PRW/2-((Math.min(8,grave.length))*30)/2+k*30),PX(130));ctx.restore();}));
+    obFoot("","A: weiter");prEnd();}});
+  if(await yesNo("Als Klassisch weiterspielen? Bei Nein wird dieser Spielstand beendet.")){
+    G.save.mode="classic";G.save.nuzFailed=1;G.save.party=G.save.party.concat(grave.splice(0));
+    healParty();const h=G.save.lastHeal||REG().start;placePlayer(h.map,h.x,h.y,"down");enterMap(curMap(),true);Music.play(curMap().music);saveGame();await fadeTo(0,10);
+    await say("Ab jetzt läuft dein Spielstand im Modus Klassisch weiter. Deine gefallenen Pokémon sind zurück.");return;}
+  slotDel(G.save.slot||1);Scenes.length=0;G.save=null;W.npcs={};push(TitleScene);await fadeTo(0,12);}
 function metaShop(){
   return new Promise(res=>{let i=0;const sc={opaque:true,t:0,update(){this.t++;
       if(Input.nav("up")){i=(i+META_SHOP.length)%(META_SHOP.length+1);sfx("move");}if(Input.nav("down")){i=(i+1)%(META_SHOP.length+1);sfx("move");}
