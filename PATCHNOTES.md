@@ -2,6 +2,15 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.22 (29.10.2026)
+- Neuer Modus NUZLOCKE: Pro Gebiet ist nur die erste Begegnung fangbar (schillernde immer), besiegte Pokémon sind für immer weg, Beleber wirken nicht. Bei einer Niederlage ist die Nuzlocke gescheitert – danach klassisch weiterspielen oder den Spielstand beenden.
+- Moduswahl neu: Klassisch, Nuzlocke und Run als Karten mit den wichtigsten Regeln, darunter Schwierigkeit, Min. Grinding und Randomizer.
+- Kampf-Kulisse wieder als echter Ausschnitt der aktuellen Karte – mit sauberen Plattformen und gemaltem Horizont (Berge, Wolken) dahinter.
+- Kampf-Kamera neu: Dein Pokémon steht jetzt vollständig über dem Textfeld, auch kleine Pokémon wie Glumanda.
+- Neue Menü-Symbole: Online, Bestenliste, Run-Boni, Patch-Info, Anmelden/Abmelden, Zum Titel u. a.
+- Kampfkarte: Alle Hintergründe sind frei wählbar (Pfeil hoch zum Hintergrund, dann links/rechts).
+- Rennen: keine Staubwolken mehr, und die Figur bleibt im Stand nicht mehr in der Lauf-Pose hängen.
+
 ## v0.21 (29.10.2026)
 - Eigener Server nur für Pokémon Obsidian: Konten, Spielstände und Bestenliste sind komplett eigenständig. Bitte einmal neu registrieren – jeder Name ist wieder frei.
 - Neu: Kampfkarte mit deinem Lieblings-Pokémon (aus Team oder Box), Hintergrund nach Orden, Elo, Bilanz und Orden. Unter ONLINE → PROFIL & KONTO → KAMPFKARTE.
