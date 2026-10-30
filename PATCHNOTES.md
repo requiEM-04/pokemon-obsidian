@@ -2,6 +2,19 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.25 (30.10.2026)
+- Neu: Erfolge mit Abzeichen in Bronze, Silber, Gold und Platin – 26 Stück, mit Fortschrittsbalken und Pop-up. Jeder Erfolg bringt Obsidian-Splitter. Was du schon geschafft hast, zählt rückwirkend.
+- Bis zu 3 Abzeichen kannst du an deine Kampfkarte heften (Profil → Erfolge → A).
+- Kampfkarte komplett überarbeitet: größer, echte Orden, Liga nach Elo, Abzeichen, Typ-Aura und Level des Lieblings-Pokémon.
+- Das Lieblings-Pokémon auf der Karte entwickelt sich jetzt mit: Aus Glumanda wird Glutexo, sobald deins sich entwickelt (auch rückwirkend).
+- Titelmenü aufgeräumt: WEITER · SPIELSTÄNDE ▸ · ONLINE · PROFIL · EXTRAS ▸ · OPTIONEN. Kampfkarte, Erfolge und Konto (inkl. Abmelden) liegen jetzt unter PROFIL mit Reitern.
+- Im Spiel heißt der Menüpunkt mit deinem Namen jetzt PROFIL: Trainerpass, Kampfkarte und Erfolge als Reiter.
+- Items im Kampf: Der Beutel ist jetzt auch im Trainerkampf benutzbar. Der Knopf heißt „Beutel“, Items stehen oben in der Liste.
+- Hinweise wie „Es hätte keine Wirkung“ verschwinden nicht mehr sofort, sondern warten auf deine Taste.
+- Nach einem Pokémon-Wechsel oder Item steht der Cursor wieder auf „Kampf“.
+- Route 3 → Route 4 (und alle anderen Übergänge zwischen Gebieten): Der Weg führt jetzt sichtbar aus der Karte ins Dunkle wie im Vertania-Wald, statt vor einer Baumwand zu enden.
+- Kämpfe in Höhlen (Mondberg, Felstunnel, Seeschauminseln …) haben eine eigene Höhlen-Kulisse statt loser Wandstücke quer durchs Bild.
+
 ## v0.24 (30.10.2026)
 - Neu: Mega-Entwicklung! 15 Kanto-Megas mit Original-Werten, -Typen und -Fähigkeiten: Bisaflor, Glurak X und Y, Turtok, Bibor, Tauboss, Simsala, Lahmus, Gengar, Kangama, Pinsir, Garados, Aerodactyl, Mewtu X und Y.
 - Das Mega-Armband schickt dir Prof. Eich nach dem 5. Orden (wer schon 5 Orden hat, bekommt es beim Laden).
