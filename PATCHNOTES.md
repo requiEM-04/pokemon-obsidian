@@ -2,6 +2,20 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.26 (31.10.2026)
+- Arenen überarbeitet: Wandfarbe je Typ, große Banner mit Emblem, Fackeln, Teppich von der Tür bis zum Arenaleiter und ein Podest für ihn. In Azuria schwimmen die Schwimmer jetzt im Becken.
+- Jedes Pokémon-Center ist jetzt ein eigener Raum je Stadt: Theke mit Heilmaschinen, Logo, Wartebereich, Aquarium und eigene Besucher. Die zweite Schwester ist weg – Level-Cap und Wesen gibt es bei der Schwester unter TRAINING.
+- Jeder Markt ist individuell: eigene Farben, eigener Aufbau, eigene Begrüßung, ein Stammkunde und ein Angebot des Hauses (−25 %).
+- Häuser deutlich gemütlicher: 6 verschiedene Einrichtungen (Küche, Wohnzimmer, Schlafzimmer …) mit Sofa, Kühlschrank, Kamin, Aquarium, Kommode, Lampe, Bildern, Uhr, Vorhängen und Wandfarben. Alle Räume haben jetzt Seitenwände statt im Schwarzen zu schweben.
+- Autosave: Das Spiel speichert automatisch beim Kartenwechsel, nach jedem Kampf, beim Heilen und jede Minute (Symbol unten rechts).
+- Leveln ist langsamer, ungefähr wie in Feuerrot: E.-Punkte werden unter den Kämpfern geteilt, Zuschauer bekommen nur mit EP-Teiler etwas. Den EP-Teiler gibt es im Kaufhaus Prismania.
+- Kampf-Hintergründe: Hinter dem Gegner bleibt die Sicht frei – keine einzelnen Bäume, Zäune oder Felsen mehr mitten im Bild.
+- Pokémon-Sprites stehen in Menüs jetzt mittig (vorher teils zu weit links). Die Nummer in der Pokémon-Info überdeckt das Sprite nicht mehr.
+- Neu im Kampf: Mit C (oder Start/MENÜ) im Kampfmenü siehst du die Werte beider Pokémon – eigene Werte, Statuswert-Stufen, Typen, Fähigkeit, Item, Wetter und Effekte.
+- TMs im Beutel zeigen jetzt Typ, Klasse, Stärke, Genauigkeit, AP, die Beschreibung und wer im Team sie lernen kann (✓ kann, ● kennt sie schon, ✗ nicht).
+- Schaufler, Fliegen, Taucher, Sprungfeder und Phantomkraft funktionieren wie im Original: Das Pokémon gräbt sich ein bzw. verschwindet und kann in der Zeit kaum getroffen werden (Erdbeben trifft Eingegrabene doppelt, Donner Fliegende). Solarstrahl & Co. haben eigene Texte.
+- Menüs feiner gestaltet: neue Kopfleiste, abgeschrägte Karten, deutlichere Auswahl. Die Werte-Balken zeigen jetzt den Basiswert (vorher sahen sie bei niedrigem Level fast leer aus).
+
 ## v0.25 (30.10.2026)
 - Neu: Erfolge mit Abzeichen in Bronze, Silber, Gold und Platin – 26 Stück, mit Fortschrittsbalken und Pop-up. Jeder Erfolg bringt Obsidian-Splitter. Was du schon geschafft hast, zählt rückwirkend.
 - Bis zu 3 Abzeichen kannst du an deine Kampfkarte heften (Profil → Erfolge → A).
