@@ -2,6 +2,25 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.24 (30.10.2026)
+- Neu: Mega-Entwicklung! 15 Kanto-Megas mit Original-Werten, -Typen und -Fähigkeiten: Bisaflor, Glurak X und Y, Turtok, Bibor, Tauboss, Simsala, Lahmus, Gengar, Kangama, Pinsir, Garados, Aerodactyl, Mewtu X und Y.
+- Das Mega-Armband schickt dir Prof. Eich nach dem 5. Orden (wer schon 5 Orden hat, bekommt es beim Laden).
+- Megasteine sind in Kanto versteckt oder werden verschenkt – z. B. im Vertania-Wald, im Pokémon-Turm, in der Safari-Zone, im Mondberg, auf den Seeschauminseln, in der Azuria-Höhle, beim Angler und bei Mr. Psycho. Die Starter-Steine gibt es von Prof. Eich, wenn du Champ bist.
+- So geht's: Gib einem Pokémon seinen Megastein, drücke im Attacken-Menü R (oder Start) und wähle eine Attacke. Die Mega passiert zu Beginn der Runde – einmal pro Kampf. Nach dem Kampf ist das Pokémon wieder normal.
+- Eigene Mega-Animation mit Regenbogen-Energie, Lichtkugel und Mega-Symbol; Mega-Pokémon tragen das Symbol an der KP-Anzeige.
+- Gegner mit Megas: Sabrina, Lorelei, Agathe, Siegfried und der Champ (auf „Leicht“ nur Top Vier und Champ). Im Online-Duell darf jeder einmal mega-entwickeln.
+- Neue Fähigkeiten im Kampf: Krallenwucht, Dürre, Megawumme, Erfassen, Wegsperre, Familienbande, Zenithaut, Überbrückung und Felsenfest.
+
+## v0.23 (30.10.2026)
+- Neu: TMs wie in Feuerrot/Blattgrün – alle 50 mit Original-Attacken und Original-Verträglichkeit. Wie damals ist jede TM einmal benutzbar. Neue Beutel-Tasche TM; im Team steht MÖGLICH / NICHT MÖGLICH / ERLERNT.
+- TMs gibt es wie im Original: garantiert von jedem Arenaleiter, als Items auf Routen, in Höhlen und Gebäuden (M.S. Anne, Rocket-Versteck, Silph Co., Pokémon-Villa, Kraftwerk, Siegesstraße …), als Geschenk (Mr. Psycho, Rüpel in Azuria, Lavandia), im Kaufhaus Prismania und in der Preis-Ecke der Spielhalle.
+- Alte Spielstände bekommen beim Laden nachträglich, was schon verdient war: TMs der besiegten Arenaleiter, TMs aus bereits aufgesammelten Item-Bällen (die vorher Sonderbonbons waren) und Schaufler vom besiegten Rüpel.
+- 13 neue Attacken für die TMs (u. a. Felsgrab, Stahlflügel, Fassade, Rückkehr, Anziehung, Hagelsturm).
+- Entwicklung komplett neu: Sternenbühne, einströmende Lichtkugeln, Lichtringe und Lichtsäule, immer schnellerer Formwechsel, Lichtblitz mit Druckwelle und Funkenregen.
+- Die Team-Leiste des Trainers erscheint jetzt erst mit der KP-Anzeige direkt darunter – nicht mehr schon beim Auftritt.
+- Kampf-Kulisse: Grasbüschel um die Plattformen, Lichtstimmung je Tageszeit, Leben in der Szene (Blätter, Glühwürmchen, Schnee, Staub, Glitzern am Wasser). Felskanten liegen nicht mehr als Balken quer durchs Bild.
+- „Welche Attacke vergessen?“ passt jetzt komplett auf den Bildschirm, mit Beschreibung der gewählten Attacke.
+
 ## v0.22 (29.10.2026)
 - Neuer Modus NUZLOCKE: Pro Gebiet ist nur die erste Begegnung fangbar (schillernde immer), besiegte Pokémon sind für immer weg, Beleber wirken nicht. Bei einer Niederlage ist die Nuzlocke gescheitert – danach klassisch weiterspielen oder den Spielstand beenden.
 - Moduswahl neu: Klassisch, Nuzlocke und Run als Karten mit den wichtigsten Regeln, darunter Schwierigkeit, Min. Grinding und Randomizer.
