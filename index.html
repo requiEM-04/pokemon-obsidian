@@ -7460,7 +7460,7 @@ for(const k in MEGA_STONES){const s=MEGA_STONES[k];
   ITEMS[k]={cat:"hold",price:0,n:s.n,mega:s.form,d:`Ein Megastein. Trägt ${SPECIES[s.base].n} ihn, kann es sich im Kampf zu ${SPECIES[s.form].n} entwickeln (Mega-Armband nötig).`};}
 ITEMS["mega-ring"]={cat:"key",n:"Mega-Armband",d:"Ein Armband mit Schlüsselstein. Damit können Pokémon mit passendem Megastein im Kampf die Mega-Entwicklung nutzen (einmal pro Kampf)."};
 function megaFormOf(m){const s=m&&m.item&&MEGA_STONES[m.item];return s&&s.base===m.sp&&!m.megaFrom?s.form:0;}
-function canMega(side){if(!B||!B.act[side])return false;B.megaUsed=B.megaUsed||[false,false];if(B.megaUsed[side])return false;
+function canMega(side){if(!B||!B.act[side])return false;if(B.duel&&typeof DUEL!=="undefined"&&DUEL&&DUEL.rules&&DUEL.rules.mega===false)return false;B.megaUsed=B.megaUsed||[false,false];if(B.megaUsed[side])return false;
   const b=B.act[side];if(b.tf||!megaFormOf(b.m))return false;return side===1||!!B.duel||bagCount("mega-ring")>0;}
 function megaRevert(m){if(m&&m.megaFrom){m.sp=m.megaFrom;delete m.megaFrom;}}
 
@@ -7513,6 +7513,12 @@ async function megaRingCheck(){if(!G.save||bagCount("mega-ring")||(G.save.badges
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.27",d:"31.10.2026",items:[
+    "Pokédex neu: Filter mit C (Alle, Gefangen, Fehlend, Schillernd und jeder Typ) und Schillernd-Ansicht mit R wie in Pokémon GO.",
+    "Schillernde Pokémon werden pro Form gezählt – auch Entwicklungen und Megas. Was du schon im Team oder in der Box hast, wird rückwirkend eingetragen (★ in der Liste).",
+    "Neue Detailseite mit Reitern: INFO (mit Basiswert-Summe), FUNDORTE (Ort, Level und Häufigkeit, getrennt nach Gras, Wasser und Höhle; Geschenk-Pokémon mit Hinweis) und FORMEN (ganze Entwicklungsreihe samt Megas und wie sich das Pokémon entwickelt).",
+    "Online-Duell: Beim Raum-Erstellen wählst du jetzt „Megas erlaubt“ oder „Ohne Megas“. Dein Gegner bekommt die Regel automatisch.",
+    "Besuche auch Pokélings: kleiner Link unten rechts im Titelmenü und unter EXTRAS."]},
   {v:"0.26",d:"31.10.2026",items:[
     "Arenen überarbeitet: Wandfarbe je Typ, große Banner mit Emblem, Fackeln, Teppich von der Tür bis zum Arenaleiter und ein Podest für ihn. In Azuria schwimmen die Schwimmer jetzt im Becken.",
     "Jedes Pokémon-Center ist jetzt ein eigener Raum je Stadt: Theke mit Heilmaschinen, Logo, Wartebereich, Aquarium und eigene Besucher. Die zweite Schwester ist weg – Level-Cap und Wesen gibt es bei der Schwester unter TRAINING.",
@@ -7829,7 +7835,7 @@ function duelOnMsg(m){if(!DUEL||!m||m.f===DUEL.me.id)return;if(m.to&&m.to!==DUEL
   DUEL.last=Date.now();
   if(m.t==="hello"&&DUEL.host&&!DUEL.started){if(m.v!==ON_PROTO){DUEL.err="Dein Gegner hat eine andere Spielversion. Beide bitte neu laden (Strg+F5).";return;}if(!DUEL.peer)DUEL.peer=m.info;if(DUEL.peer&&m.f===DUEL.peer.id)duelSend("start",{seed:DUEL.seed,info:DUEL.me,to:m.f});return;}
   if(m.t==="hello"&&DUEL.host&&DUEL.started&&DUEL.peer&&m.f===DUEL.peer.id){duelSend("start",{seed:DUEL.seed,info:DUEL.me,to:m.f});return;}
-  if(m.t==="start"&&!DUEL.host){if(m.v!==ON_PROTO){DUEL.err="Dein Gegner hat eine andere Spielversion. Beide bitte neu laden (Strg+F5).";return;}if(!DUEL.peer){DUEL.peer=m.info;DUEL.seed=m.seed;}return;}
+  if(m.t==="start"&&!DUEL.host){if(m.v!==ON_PROTO){DUEL.err="Dein Gegner hat eine andere Spielversion. Beide bitte neu laden (Strg+F5).";return;}DUEL.rules=m.rules||{mega:true};if(!DUEL.peer){DUEL.peer=m.info;DUEL.seed=m.seed;}return;}
   const put=(k,v)=>{if(DUEL.seen[k])return;DUEL.seen[k]=1;if(DUEL.waiters[k])DUEL.waiters[k](v);else DUEL.inbox[k]=v;};
   if(m.t==="act")put("act:"+m.n,m.a);else if(m.t==="rep")put("rep:"+m.n,m.i);
   else if(m.t==="bye"){duelGone();}
@@ -7847,7 +7853,7 @@ function onRoom(room,host,me,waitSc){return new Promise(res=>{
   D.tr=onTransport("obs-duel-"+room,duelOnMsg,st=>{if(st==="joined"){joined=true;if(!host){const h=()=>duelSend("hello",{info:me});h();hi=setInterval(h,1000);}}
     else if(!joined)fin("Keine Verbindung zum Duell-Server.");else duelGone();});
   const t0=Date.now();const chk=setInterval(()=>{if(waitSc&&waitSc.cancel)return fin("cancel");if(D.err)return fin(D.err);
-    if(D.peer&&(host||D.seed)){if(host){D.started=true;duelSend("start",{seed:D.seed,info:me,to:D.peer.id});}fin(true);}
+    if(D.peer&&(host||D.seed)){if(host){D.started=true;D.rules=D.rules||{mega:ON.roomMega!==false};duelSend("start",{seed:D.seed,info:me,to:D.peer.id,rules:D.rules});}fin(true);}
     else if(!host&&Date.now()-t0>25000)fin("In diesem Raum wartet niemand. Prüfe den Code.");},200);});}
 // Schnelles Duell: im Warteraum suchen, der Spieler mit der kleineren Kennung lädt ein
 function onSeek(me,waitSc){return new Promise(res=>{let done=false,iv=0;const fin=v=>{if(done)return;done=true;clearInterval(iv);clearInterval(chk);setTimeout(()=>tr.close(),400);res(v);};
@@ -7904,13 +7910,15 @@ async function onDuelFlow(kind){if(ON.busy)return;const team=onMyTeam();
   if(!team.length){await onMsgBox("Du brauchst ein Team. Starte zuerst ein Spiel und fange Pokémon.");return;}
   const me=onMyInfo(team);let room=null,host=false;
   if(kind==="join"){const v=await onForm({title:"RAUM BEITRETEN",ok:"Beitreten",fields:[{id:"c",label:"Raum-Code (4 Ziffern)",max:4,mode:"numeric"}],check:v=>/^\d{4}$/.test(v.c.trim())?null:"Der Code hat 4 Ziffern."});if(!v)return;room=v.c.trim();host=false;}
-  if(kind==="create"){room=String(1000+Math.floor(Math.random()*9000));host=true;}
+  ON.roomMega=true;
+  if(kind==="create"){const c=await onMenu("RAUM ERSTELLEN",me.name,[["MEGAS ERLAUBT","shard"],["OHNE MEGAS","mon"],["ZURÜCK","back"]],["Regel für dieses Duell: Darf jeder Spieler einmal mega-entwickeln?","Dein Gegner bekommt die Regel automatisch."]);
+    if(c<0||c===2)return;ON.roomMega=c===0;room=String(1000+Math.floor(Math.random()*9000));host=true;}
   ON.busy=true;let res=null;
   try{
     if(kind==="quick"){const w=onWait(["Suche Gegner …",`Team: ${onTeamLine(team)}`,"Alle Pokémon kämpfen auf Lv. 50."],{title:"SCHNELLES DUELL",right:`${me.name} · ${me.elo}`});
       const pr=onSeek(me,w);const r=await Promise.race([pr,run(w)]);if(r==="cancel"||(typeof r==="string")){if(w.done&&Scenes.includes(w))w.done();if(typeof r==="string"&&r!=="cancel")await onMsgBox(r);return;}
       room=r.room;host=r.host;if(Scenes.includes(w))w.done();}
-    const w2=onWait(()=>[host?(kind==="create"?"Raum erstellt – gib deinem Gegner den Code:":"Gegner gefunden – verbinde …"):"Verbinde mit Raum …",`Team: ${onTeamLine(team)}`,"Alle Pokémon kämpfen auf Lv. 50."],{title:"LIVE-DUELL",right:`${me.name} · ${me.elo}`,code:kind==="create"?room:null});
+    const w2=onWait(()=>[host?(kind==="create"?"Raum erstellt – gib deinem Gegner den Code:":"Gegner gefunden – verbinde …"):"Verbinde mit Raum …",`Team: ${onTeamLine(team)}`,"Alle Pokémon kämpfen auf Lv. 50."+(kind==="create"?(ON.roomMega?" Megas erlaubt.":" Ohne Megas."):"")],{title:"LIVE-DUELL",right:`${me.name} · ${me.elo}`,code:kind==="create"?room:null});
     const pr2=onRoom(room,host,me,w2);const r2=await Promise.race([pr2,run(w2)]);
     if(r2!==true){if(Scenes.includes(w2))w2.done();duelClose();if(typeof r2==="string"&&r2!=="cancel")await onMsgBox(r2);return;}
     await fadeTo(1,10);if(Scenes.includes(w2))w2.done();res=await onRunDuel();await onAfterDuel(res);
@@ -8638,6 +8646,107 @@ function drawBattleInfo(){prBegin();ctx.fillStyle="rgba(8,5,16,.82)";ctx.fillRec
       else{const a=b.st[5]||0,e=b.st[6]||0,f=v=>v?(v>0?"+":"−")+Math.abs(v):"±0";prT("Genauigk. / Fluchtw.",x+8,yy,{size:10,c:OB.dim,sh:"transparent"});prT(`${f(a)} / ${f(e)}`,x+w-8,yy,{size:10,align:"right",c:a||e?"#ffd890":OB.mute,sh:"transparent"});}}
     const sc=B.screens&&B.screens[side]||{},fx=[];if(sc.reflect)fx.push("Reflektor");if(sc.light)fx.push("Lichtschild");if(b.m.st)fx.push({par:"Paralyse",brn:"Verbrennung",psn:"Gift",tox:"Schweres Gift",slp:"Schlaf",frz:"Eis"}[b.m.st]||b.m.st);if(b.v.conf)fx.push("Verwirrt");if(b.v.seed)fx.push("Egelsamen");if(b.m.megaFrom)fx.push("Mega");
     prT((fx.length?fx.join(" · "):"Keine Effekte").slice(0,32),x+8,y+121,{size:9,c:fx.length?"#ffd890":OB.mute,sh:"transparent"});});
+  prEnd();}
+
+/* ===== dex2.js ===== */
+/* ================================ POKéDEX v0.27 ================================
+   - Filter (C): Alle · Gefangen · Fehlend · Schillernd · nach Typ
+   - Schillernd-Ansicht (R) wie in Pokémon GO: zeigt die Shiny-Farben, ★ für jede Form, die du schillernd besessen hast
+   - Schillernde werden pro Form gezählt – auch Entwicklungen und Megas (dex.shiny / dex.forms), rückwirkend aus Team und Boxen
+   - Detailseite mit Reitern: INFO · FUNDORTE (Karte, Level, Häufigkeit, Gras/Wasser) · FORMEN (Entwicklungsreihe + Megas) */
+function dexX(){const d=G.save.dex;d.shiny=d.shiny||{};d.forms=d.forms||{};return d;}
+function dexScan(){const d=dexX();for(const s of[G.save])for(const m of[...(s.party||[]),...(s.box||[]),...(s.grave||[])]){if(!m)continue;
+    const sp=m.megaFrom||m.sp;if(m.shiny)d.shiny[sp]=1;if(m.megaFrom){d.forms[m.sp]=1;if(m.shiny)d.shiny[m.sp]=1;}}}
+{const _mc=markCaught;markCaught=function(sp){_mc(sp);try{dexScan();}catch(e){}};}
+{const _ev=evolve;evolve=function(m,to){const r=_ev(m,to);try{if(m.shiny)dexX().shiny[to]=1;}catch(e){}return r;};}
+if(typeof doMega==="function"){const _dm=doMega;doMega=async function(b){await _dm(b);try{if(b.m.megaFrom){const d=dexX();d.seen[b.m.megaFrom]=1;if(b.side===0){d.forms[b.m.sp]=1;if(b.m.shiny)d.shiny[b.m.sp]=1;}}}catch(e){}};}
+
+/* ---------- Fundorte ---------- */
+let DEX_LOC=null;
+function dexLocations(){if(DEX_LOC)return DEX_LOC;DEX_LOC={};const R=REGIONS[(G.save&&G.save.region)||"kanto"];
+  const add=(sp,id,name,kind,lo,hi,rate)=>{const L=DEX_LOC[sp]||(DEX_LOC[sp]=[]);const e=L.find(x=>x.name===name&&x.kind===kind);if(e){e.lo=Math.min(e.lo,lo);e.hi=Math.max(e.hi,hi);e.rate=Math.max(e.rate,rate);}else L.push({id,name,kind,lo,hi,rate});};
+  for(const id in R.maps){let m;try{m=mapById(id);}catch(e){continue;}
+    for(const[key,kind]of[["enc","Gras"],["encWater","Wasser"]]){const E=m[key];if(!E)continue;const list=E.list||E;if(!Array.isArray(list))continue;
+      const tot=list.reduce((a,x)=>a+(x[3]||1),0)||1;for(const x of list)if(Array.isArray(x)&&SPECIES[x[0]])add(x[0],id,m.name,m.cave||/^(mtmoon|rocktunnel|cercave|seafoam|diglett|victory)/.test(id)&&kind==="Gras"?"Höhle":kind,x[1],x[2],Math.round(100*(x[3]||1)/tot));}}
+  for(const sp in DEX_LOC)DEX_LOC[sp].sort((a,b)=>b.rate-a.rate);return DEX_LOC;}
+const DEX_GIFT={1:"Starter bei Prof. Eich",4:"Starter bei Prof. Eich",7:"Starter bei Prof. Eich",131:"Geschenk in der Silph Co.",133:"Geschenk in der Prisma-Villa",106:"Geschenk im Kampf-Dojo",107:"Geschenk im Kampf-Dojo",
+  138:"Fossil aus dem Mondberg (Labor Zinnober)",140:"Fossil aus dem Mondberg (Labor Zinnober)",142:"Altbernstein (Labor Zinnober)",143:"Schläft auf Route 12 und 16",144:"Seeschauminseln",145:"Kraftwerk",146:"Siegesstraße",150:"Azuria-Höhle",129:"Verkäufer im Pokémon-Center Route 4",63:"Spielhalle",35:"Spielhalle",147:"Spielhalle / Safari-Zone",137:"Spielhalle"};
+/* ---------- Formen ---------- */
+function dexLine(sp){let root=sp,g=0;while(typeof PREV!=="undefined"&&PREV[root]&&g++<4)root=PREV[root];const out=[],seen=new Set();
+  const walk=(x,d)=>{if(seen.has(x)||!SPECIES[x])return;seen.add(x);out.push({sp:+x,d});for(const e of SPECIES[x].ev||[]){const to=e[e.length-1];if(typeof to==="number"&&to<=MAXDEX)walk(to,d+1);}};walk(root,0);
+  const megas=Object.keys(typeof MEGA_FORMS!=="undefined"?MEGA_FORMS:{}).filter(k=>out.some(o=>o.sp===MEGA_FORMS[k].base)).map(k=>({sp:+k,mega:1}));return out.concat(megas);}
+function evoText(sp){const S=SPECIES[sp];const ev=(S.ev||[])[0];if(!ev)return"";const[k,v]=ev;
+  if(k==="lv")return`ab Lv. ${v}`;if(k==="item")return ITEMS[v]?itemName(v):String(v);if(k==="trade")return"durch Tausch";if(k==="happy")return"Zuneigung";return"";}
+
+/* ---------- Bildschirm ---------- */
+const DEX_F=[["ALLE",()=>true],["GEFANGEN",(n,d)=>d.caught[n]],["FEHLEND",(n,d)=>!d.caught[n]],["SCHILLERND",(n,d)=>d.shiny[n]]];
+for(let t=1;t<=18;t++)if(TYPE_N[t])DEX_F.push([TYPE_N[t].toUpperCase(),(n,d)=>d.seen[n]&&SPECIES[n].t.includes(t),t]);
+openDex=function(o={}){dexScan();dexLocations();
+  return new Promise(res=>{let fi=0,i=0,off=0,det=false,tab=0,sh=!!o.sh,li=0;const vis=8;const d=dexX();
+    const list=()=>{const f=DEX_F[fi][1];const L=[];for(let n=1;n<=MAXDEX;n++)if(f(n,d))L.push(n);return L;};let L=list();
+    if(o.sp){i=Math.max(0,L.indexOf(o.sp));off=Math.max(0,i-3);det=!!o.det;tab=o.tab||0;}
+    const scene={opaque:true,update(){
+        if(det){const sp=L[i];if(Input.hit("b")){det=false;sfx("back");return;}
+          if(Input.nav("left")||Input.hit("quick")){tab=(tab+2)%3;li=0;sfx("move");}if(Input.nav("right")||Input.hit("r")){tab=(tab+1)%3;li=0;sfx("move");}
+          if(Input.hit("start")){sh=!sh;sfx("select");}
+          if(tab===1){const n=(DEX_LOC[sp]||[]).length;if(Input.nav("down")&&li<n-6){li++;sfx("move");}if(Input.nav("up")&&li>0){li--;sfx("move");}}
+          else{if(Input.nav("up")){i=(i+L.length-1)%L.length;sfx("move");}if(Input.nav("down")){i=(i+1)%L.length;sfx("move");}}
+          return;}
+        if(Input.hit("quick")){fi=(fi+1)%DEX_F.length;L=list();i=0;off=0;sfx("select");}
+        if(Input.hit("r")||Input.hit("start")){sh=!sh;sfx("select");}
+        const N=L.length;if(N){if(Input.nav("up")){i=(i+N-1)%N;sfx("move");}if(Input.nav("down")){i=(i+1)%N;sfx("move");}
+          if(Input.nav("left")){i=Math.max(0,i-vis);sfx("move");}if(Input.nav("right")){i=Math.min(N-1,i+vis);sfx("move");}
+          if(i<off)off=i;if(i>=off+vis)off=i-vis+1;
+          if(Input.hit("a")&&d.seen[L[i]]){det=true;tab=0;li=0;sfx("select");}}
+        if(Input.hit("b")){sfx("back");pop(scene);res();}},
+      draw(){dexDraw(L,i,off,vis,det,tab,sh,fi,li);}};
+    push(scene);});};
+function dexDraw(L,i,off,vis,det,tab,sh,fi,li){const d=dexX(),sp=L[i],S=SPECIES[sp]||{};const seen=sp&&d.seen[sp],ct=sp&&d.caught[sp],shy=sp&&d.shiny[sp];
+  const shN=Object.keys(d.shiny).filter(k=>+k<=MAXDEX).length;
+  obBg();obHeader("POKéDEX",`${Object.keys(d.caught).length}/${MAXDEX} · ★${shN}`);
+  // links: Anzeige
+  fancyWin(6,28,136,128);const gx=12,gy=34,gw=124,gh=86;
+  const gg=ctx.createRadialGradient(gx+gw/2,gy+gh*.6,6,gx+gw/2,gy+gh*.6,80);gg.addColorStop(0,sh?"#6a4a88":"#3a5878");gg.addColorStop(1,"#141c2c");ctx.fillStyle=gg;ctx.fillRect(gx,gy,gw,gh);
+  ctx.fillStyle="rgba(255,255,255,.05)";for(let y=gy;y<gy+gh;y+=3)ctx.fillRect(gx,y,gw,1);ctx.strokeStyle=sh?"rgba(255,220,140,.5)":"rgba(140,180,255,.35)";ctx.strokeRect(gx+.5,gy+.5,gw-1,gh-1);
+  ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(gx+gw/2,gy+gh-10,30,6,0,0,7);ctx.fill();
+  if(sp){obSW(()=>{if(seen)drawAnim(sp,PX(gx+gw/2),PX(gy+gh-10),{shiny:sh,sil:ct?(sh&&!shy?"#3a3048":null):"#2a3a4a"});});
+    if(sh){prT(shy?"★ SCHILLERND":"noch nicht schillernd",gx+4,gy+gh-12,{size:10,c:shy?"#ffe070":OB.mute,sh:"transparent"});if(shy){const k=Math.floor(FRAME/8)%6;if(k<3){ctx.fillStyle="#fff6a0";const sx=gx+gw-18,sy=gy+20;ctx.fillRect(sx-k,sy,2*k+1,1);ctx.fillRect(sx,sy-k,1,2*k+1);}}}
+    if(!seen)prT("?",gx+gw/2,gy+24,{size:32,align:"center",c:"#5a7aa0"});
+    prT(seen?`${String(sp).padStart(3,"0")} ${S.n}`:`${String(sp).padStart(3,"0")} ???`,12,124,{size:14});
+    if(seen)obSW(()=>S.t.forEach((t,k)=>typeIcon(t,PX(12)+k*34,PX(141),32)));}
+  else prWrap("Keine Pokémon in diesem Filter.",120,12).forEach((t,k)=>prT(t,14,60+k*13,{size:12,c:OB.dim}));
+  fancyWin(146,28,168,128);
+  if(!det){// Filter-Kopf
+    const fn=DEX_F[fi][0];ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(151,32,158,13);prT("FILTER",155,33,{size:9,c:OB.mute,sh:"transparent"});prT(fn,305,33,{size:10,align:"right",c:DEX_F[fi][2]?(TYPE_C[DEX_F[fi][2]]||OB.gold):OB.gold,sh:"transparent"});
+    for(let k=0;k<vis;k++){const j=off+k;if(j>=L.length)break;const n=L[j],y=47+k*13.4,sel=j===i;if(sel)obSel(151,y,158,13);
+      prT(String(n).padStart(3,"0"),157,y+1,{size:11,c:sel?OB.gold:OB.mute});prT(d.seen[n]?SPECIES[n].n:"- - - - -",182,y,{size:13,c:sel?"#ffffff":d.seen[n]?OB.dim:OB.mute});
+      if(d.shiny[n])prT("★",290,y,{size:11,c:"#ffe070",sh:"transparent"});
+      if(d.caught[n]){const bx=302,by=y+6;ctx.fillStyle="#e04848";ctx.beginPath();ctx.arc(bx,by,3.3,Math.PI,0);ctx.fill();ctx.fillStyle="#ffffff";ctx.beginPath();ctx.arc(bx,by,3.3,0,Math.PI);ctx.fill();ctx.fillStyle="#201820";ctx.fillRect(bx-3.5,by-.5,7,1);}}
+    if(off>0)obArrow(230,46,true);if(off+vis<L.length)obArrow(230,154,false);
+    obFoot(sp?(seen?`${S.g}${(DEX_LOC[sp]||[]).length?" · "+(DEX_LOC[sp]||[]).length+" Fundorte":""}`:"Noch nicht gesehen."):"",`A: Details · C: Filter · R: ${sh?"normale Farben":"Schillernd-Ansicht"} · B: zurück`);}
+  else{const tabs=["INFO","FUNDORTE","FORMEN"];tabs.forEach((n,k)=>{const x=150+k*54,on=k===tab;ctx.fillStyle=on?OB.acc:"rgba(255,255,255,.08)";ctx.fillRect(x,32,52,13);prT(n,x+26,33,{size:10,align:"center",c:on?"#fff":OB.mute,sh:on?"#6a1808":"transparent"});});
+    const X=154,Y=50;
+    if(tab===0){prT(S.g,X,Y,{size:12,c:OB.gold});prT(`Größe ${(S.h/10).toFixed(1).replace(".",",")} m · Gewicht ${(S.w/10).toFixed(1).replace(".",",")} kg`,X,Y+14,{size:10,c:OB.dim,sh:"transparent"});
+      prWrap(ct?S.fl:"Fange dieses Pokémon, um mehr zu erfahren.",154,11).slice(0,6).forEach((t,k)=>prT(t,X,Y+28+k*11,{size:11}));
+      const SN=["KP","Ang","Ver","SpA","SpV","Ini"];prBar();
+      if(ct){S.b.forEach((v,k)=>{const x=12+k*50;prT(SN[k],x,PRH-40,{size:10,c:OB.mute});prT(String(v),x,PRH-27,{size:14});ctx.fillStyle="#18141e";ctx.fillRect(x+24,PRH-22,20,4);ctx.fillStyle=v>=100?"#5ad868":v>=60?"#f8c838":"#f05a3a";ctx.fillRect(x+24,PRH-22,Math.min(20,v/150*20),4);});
+        prT(`Summe ${S.b.reduce((a,b)=>a+b,0)}`,PRW-10,PRH-44,{size:10,align:"right",c:OB.gold,sh:"transparent"});}
+      else prT("Basiswerte: erst nach dem Fangen.",12,PRH-36,{size:14});}
+    else if(tab===1){const Lc=DEX_LOC[sp]||[];const g=DEX_GIFT[sp];
+      if(!Lc.length)prWrap(g?`Nicht wild zu finden. ${g}.`:"Nicht wild zu finden – vielleicht durch Entwicklung, Tausch oder ein Geschenk.",156,11).forEach((t,k)=>prT(t,X,Y+k*12,{size:11,c:OB.dim}));
+      Lc.slice(li,li+6).forEach((e,k)=>{const y=Y+k*16;ctx.fillStyle=k%2?"rgba(255,255,255,.03)":"rgba(255,255,255,.07)";ctx.fillRect(X-3,y-1,160,15);
+        const kc={Gras:"#7ad87a",Wasser:"#6ab8ff","Höhle":"#c8a878"}[e.kind]||OB.dim;ctx.fillStyle=kc;ctx.fillRect(X-3,y-1,2,15);
+        prT(String(e.name).slice(0,16),X+2,y,{size:11,c:"#fff",sh:"transparent"});prT(`Lv ${e.lo}${e.hi>e.lo?"–"+e.hi:""}`,X+120,y,{size:10,align:"right",c:OB.dim,sh:"transparent"});
+        prT(`${e.rate}%`,X+154,y,{size:10,align:"right",c:e.rate>=20?"#8ae09a":e.rate>=8?OB.gold:"#ff9a7a",sh:"transparent"});});
+      if(li>0)obArrow(230,48,true);if(li+6<Lc.length)obArrow(230,150,false);
+      obFoot(Lc.length?`${Lc.length} Fundorte · Grün = Gras · Blau = Wasser · Braun = Höhle`+(g?` · ${g}`:""):"","◀▶/C/R: Reiter · ↑↓: blättern · Start: Schillernd · B: zurück");}
+    else{const F=dexLine(sp);const n=F.length,cw=Math.min(52,156/Math.max(1,Math.min(3,n)));
+      F.slice(0,6).forEach((f,k)=>{const col=k%3,row=Math.floor(k/3),x=X+col*cw,y=Y+row*50,on=f.mega?d.forms[f.sp]:d.caught[f.sp],sy=d.shiny[f.sp];
+        obCard(x,y,cw-4,46,f.sp===sp,f.mega?"rgba(194,124,255,.18)":null);
+        obSW(()=>{ctx.save();ctx.beginPath();ctx.rect(PX(x),PX(y),PX(cw-4),PX(46));ctx.clip();drawAnim(f.sp,PX(x+(cw-4)/2),PX(y+38),{s:.45,shiny:sh,sil:on||(d.seen[f.sp]&&!f.mega)?null:"#2a3a4a"});ctx.restore();});
+        const nm=(SPECIES[f.sp]||{}).n||"?";prT((on||d.seen[f.sp]?nm:"???").replace(/^Mega-/,"M-").slice(0,9),x+(cw-4)/2,y+38,{size:8,align:"center",c:on?"#fff":OB.mute,sh:"rgba(0,0,0,.7)"});
+        if(sy)prT("★",x+cw-12,y+2,{size:10,c:"#ffe070",sh:"transparent"});if(f.mega)prT("MEGA",x+3,y+2,{size:7,c:"#e8c8ff",sh:"transparent"});});
+      const ev=evoText(sp);obFoot(`${ev?S.n+" entwickelt sich "+ev+".":"Entwicklungsreihe"} ★ = schillernd besessen`,"◀▶/C/R: Reiter · Start: Schillernd · B: zurück");}}
   prEnd();}
 
 /* ===== prsum.js ===== */
@@ -12154,7 +12263,7 @@ if(M.gym_cerulean){for(const n of M.gym_cerulean.npcs){if(n.ch==="swimmer"){n.x=
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.26";
+const VERSION="0.27";
 function newSave(o){
   const R=REGIONS[o.region||"kanto"];
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
@@ -12232,7 +12341,7 @@ const TitleScene={opaque:true,
   // v0.25: aufgeräumt – Gruppen klappen im selben Fenster auf (▸), Kampfkarte/Erfolge/Konto unter PROFIL
   opts(){const grp=k=>()=>{this.grp=k;this.gi=this.i;this.i=0;};
     if(this.grp==="spiel")return[["LADEN",loadGame,"pc"],["NEUES SPIEL",newGame,"mon"],["ZURÜCK",()=>this.back(),"back"]];
-    if(this.grp==="extras")return[["RUN-BONI",metaShop,"shard"],["PATCH-INFO",()=>patchInfo(),"news"],["ZURÜCK",()=>this.back(),"back"]];
+    if(this.grp==="extras")return[["RUN-BONI",metaShop,"shard"],["PATCH-INFO",()=>patchInfo(),"news"],["POKéLINGS ↗",()=>openPokelings(),"globe"],["ZURÜCK",()=>this.back(),"back"]];
     const o=[];if(this.last){o.push(["WEITER",()=>continueGame(this.last),"save"]);o.push(["SPIELSTÄNDE",grp("spiel"),"pc",1]);}else o.push(["NEUES SPIEL",newGame,"mon"]);
     o.push(["ONLINE",()=>onlineMenu(),"globe"]);o.push(["PROFIL",()=>profileScreen("title"),"card"]);o.push(["EXTRAS",grp("extras"),"news",1]);o.push(["OPTIONEN",()=>optionsMenu(),"opt"]);
     if(!(typeof ON!=="undefined"&&ON.sess))o.push(["ANMELDEN",()=>accGate(),"key"]);return o;},
@@ -12273,7 +12382,7 @@ const TitleScene={opaque:true,
       ctx.fillStyle=gl;ctx.fillRect(70,190,180,1);prT("DRÜCKE START",PRW/2,174,{align:"center",c:"#fff6e0",sh:"#5a3a2a"});ctx.globalAlpha=1;prEnd();
     }else{
       // Titelmenü im PokéRogue-Stil
-      const opts=this.opts();const D={WEITER:"Deinen letzten Spielstand fortsetzen.",SPIELSTÄNDE:"Spielstand laden oder ein neues Spiel beginnen.",["NEUES SPIEL"]:"Ein neues Abenteuer in Kanto beginnen.",["RUN-BONI"]:"Obsidian-Splitter gegen dauerhafte Run-Boni tauschen.",OPTIONEN:"Text, Sound, Licht, Steuerung …",["PATCH-INFO"]:"Was in den letzten Updates behoben und neu ist.",ONLINE:"Live-Duelle gegen andere Trainer und die Bestenliste.",BESTENLISTE:"Die besten Trainer nach Duell-Elo und Fortschritt – mit Kampfkarten.",PROFIL:"Deine Kampfkarte, Erfolge mit Abzeichen und dein Konto (Abmelden, Passwort …).",EXTRAS:"Run-Boni und Patch-Info.",LADEN:"Einen deiner Spielstände laden.",ZURÜCK:"Zurück zum Hauptmenü.",
+      const opts=this.opts();const D={WEITER:"Deinen letzten Spielstand fortsetzen.",SPIELSTÄNDE:"Spielstand laden oder ein neues Spiel beginnen.",["NEUES SPIEL"]:"Ein neues Abenteuer in Kanto beginnen.",["RUN-BONI"]:"Obsidian-Splitter gegen dauerhafte Run-Boni tauschen.",OPTIONEN:"Text, Sound, Licht, Steuerung …",["PATCH-INFO"]:"Was in den letzten Updates behoben und neu ist.",ONLINE:"Live-Duelle gegen andere Trainer und die Bestenliste.",BESTENLISTE:"Die besten Trainer nach Duell-Elo und Fortschritt – mit Kampfkarten.",PROFIL:"Deine Kampfkarte, Erfolge mit Abzeichen und dein Konto (Abmelden, Passwort …).",EXTRAS:"Run-Boni, Patch-Info – und ein Besuch bei Pokélings.",["POKéLINGS ↗"]:"Besuche auch Pokélings – unser Pokémon-Auto-Battler. Öffnet sich in einem neuen Tab.",LADEN:"Einen deiner Spielstände laden.",ZURÜCK:"Zurück zum Hauptmenü.",
         ABMELDEN:"Speichert alles in der Cloud und meldet dich ab.",ANMELDEN:"Mit deinem Konto anmelden – Spielstände liegen dann in der Cloud."};
       prBegin();
       const hasSv=opts.some(o=>o[2]==="save"),n=opts.length,SV=hasSv?24:0,wy=this.last?34:52,wx=8-(1-mk)*200,ww=178,RH=clamp(Math.floor((163-wy-12-SV)/(n-(hasSv?1:0))),12,18);let h=12;opts.forEach(o=>h+=o[2]==="save"?SV:RH);prWin(wx,wy,ww,h);
@@ -12494,6 +12603,15 @@ function bootGate(){
   else ivInit();
   push(TitleScene);await fadeTo(0,20,"#fff");fade.col="#000";
 })();
+
+/* v0.27: dezenter Link „Besuche auch: Pokélings“ (Titelmenü unten rechts + EXTRAS) */
+const POKELINGS_URL="https://requiem-04.github.io/pokelings/";
+function openPokelings(){try{window.open(POKELINGS_URL,"_blank","noopener");}catch(e){location.href=POKELINGS_URL;}}
+{const a=document.createElement("a");a.id="pklLink";a.href=POKELINGS_URL;a.target="_blank";a.rel="noopener";a.textContent="Besuche auch: Pokélings ↗";
+  a.style.cssText="position:fixed;right:10px;bottom:8px;z-index:40;font:600 12px 'Pixelify Sans',sans-serif;color:rgba(255,216,144,.55);text-decoration:none;padding:3px 7px;border-radius:4px;background:rgba(10,6,20,.35);display:none;transition:color .2s,background .2s";
+  a.onmouseenter=()=>{a.style.color="#ffd890";a.style.background="rgba(10,6,20,.75)";};a.onmouseleave=()=>{a.style.color="rgba(255,216,144,.55)";a.style.background="rgba(10,6,20,.35)";};
+  const add=()=>document.body.appendChild(a);if(document.body)add();else addEventListener("DOMContentLoaded",add);
+  setInterval(()=>{const on=Scenes[Scenes.length-1]===TitleScene&&TitleScene.ph===1&&!document.getElementById("accGate")&&!document.getElementById("onForm");a.style.display=on?"block":"none";},300);}
 
 
 /* Ladebildschirm ausblenden, sobald das Spiel läuft */
