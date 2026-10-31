@@ -2596,8 +2596,10 @@ function evSpread(sp,lv){const b=SPECIES[sp].b;const k=Math.min(1,lv/50);const v
   const off=b[1]>=b[3]?1:3;ev[off]=v(252);if(b[5]>=70){ev[5]=v(252);ev[0]=v(4);}else{ev[0]=v(252);ev[off===1?2:4]=v(4);}return ev;}
 async function startTrainerBattle(tr,ch){
   const easy=G.save.diff==="easy";
-  const team=(typeof tr.team==="function"?tr.team():tr.team).map(([sp,lv,o={}])=>{
-    const L=Math.max(2,lv-(easy&&tr.boss?2:0));
+  // v0.28: Trainer-Pokémon sind passend zu ihrem Level entwickelt (kein Raupy auf Lv. 22 mehr)
+  const evo=(sp,L)=>{let x=sp,g=0;while(g++<3){const e=(SPECIES[x].ev||[]).find(q=>q[0]==="lv"&&L>=q[1]&&SPECIES[q[2]]&&q[2]<=MAXDEX);if(!e)break;x=e[2];}return x;};
+  const team=(typeof tr.team==="function"?tr.team():tr.team).map(([sp0,lv,o={}])=>{
+    const L=Math.max(2,lv-(easy&&tr.boss?2:0));const sp=tr.duel?sp0:evo(sp0,L);
     return makeMon(sp,L,Object.assign({iv:tr.boss?[31,31,31,31,31,31]:easy?[15,15,15,15,15,15]:[25,25,25,25,25,25],shiny:false,ev:o.ev||(easy?null:evSpread(sp,L))},o));});
   return startBattle({type:"trainer",foes:team,tr,ch:tr.ch||ch,bg:tr.bg||curMap().bg||"grass"});
 }
@@ -6505,19 +6507,13 @@ const PR_EFF={0:"#929292",.25:"#FF7400",.5:"#FE8E00",2:"#4AA500",4:"#4BB400"};
 function prPPStyle(r){return r<=0?["#e13d3d","#632929"]:r<=.25?["#d64b00","#69402a"]:r<=.5?["#ccbe00","#6e672c"]:["#f8f8f8","#6b5a73"];}
 
 /* ---------- Infoboxen ---------- */
-// v0.28: KP-Balken feiner (Verlauf, Glanzkante, weicher Farbwechsel, roter „Nachzieh“-Balken bei Schaden)
-const _hpGhost={};
-function prHpBar(x,y,f,key){f=clamp(f,0,1);const W=48;const k=key||x+","+y;let g=_hpGhost[k];if(g==null||g<f)g=f;else g=Math.max(f,g-.006);_hpGhost[k]=g;
-  ctx.fillStyle="#2a2a32";ctx.fillRect(x-.5,y-.5,W+1,3);
-  if(g>f){ctx.fillStyle="#f86a4a";ctx.fillRect(x,y,W*g,2);}
-  const c=f>.5?["#7cf08a","#3ab85a"]:f>.2?["#ffe066","#e0a020"]:["#ff7a6a","#d83a2a"];const w=W*f;
-  if(w>0){const gr=ctx.createLinearGradient(0,y,0,y+2);gr.addColorStop(0,c[0]);gr.addColorStop(1,c[1]);ctx.fillStyle=gr;ctx.fillRect(x,y,w,2);ctx.fillStyle="rgba(255,255,255,.55)";ctx.fillRect(x,y,w,.5);}}
+function prHpBar(x,y,f){const fr=f>.5?0:f>.2?2:4;const w=Math.round(48*clamp(f,0,1)*6)/6;if(w>0)dI("hp",0,fr,48,2,x,y,w,2);}
 function prEnemyInfo(b){const m=b.m,X=140,Y=39;
   dI("pbe",0,0,130,31,X-130,Y-15.5);
   const t=b.types;dI("te1",0,PR_T2F[t[0]]*12,20,12,X-15,Y-15.5);if(t[1])dI("te2",0,PR_T2F[t[1]]*12,20,12,X-15,Y-2.5);
   const nm=monName(m);prT(nm,X-124,Y-11.2,{size:12});prGender(m,X-124+prW(nm,12),Y-11.2,12);
   dI("lv",0,0,8,7,X-50+5.5-8,Y-5-3.5);prNum(m.lv,X-50+9.5+String(m.lv).length*8-4,Y-5-.5);
-  dI("hplab",0,0,13,7,X-71-1-13,Y+4.5-3);prHpBar(X-71,Y+4.5,B.hpD[1]/maxHp(m),"e");
+  dI("hplab",0,0,13,7,X-71-1-13,Y+4.5-3);prHpBar(X-71,Y+4.5,B.hpD[1]/maxHp(m));
   let sx=X-124;if(B.type==="wild"&&G.save.dex.caught[m.sp]){dI("owned",0,0,7,7,sx,Y-11.2+11.75);sx+=8;}
   if(m.st)prStatus(m.st,sx,Y-11.2+11.5);
   if(m.shiny)dI("shiny",0,0,8,8,X-124-9,Y-11.2+3);
@@ -6536,15 +6532,13 @@ function prPlayerInfo(b){const m=b.m,X=310,Y=PRB+108;
   const t=b.types;dI("tp1",0,PR_T2F[t[0]]*12,20,12,X-139,Y-17);if(t[1])dI("tp2",0,PR_T2F[t[1]]*12,20,12,X-139,Y-1);
   const nm=monName(m);prT(nm,X-115,Y-15.2,{size:12});prGender(m,X-115+prW(nm,12),Y-15.2,12);
   const lv=B.expLv||m.lv;dI("lv",0,0,8,7,X-41+5.5-8,Y-10-3.5);prNum(lv,X-41+9.5+String(lv).length*8-4,Y-10-.5);
-  dI("hplab",0,0,13,7,X-61-1-13,Y-1-3);prHpBar(X-61,Y-1,B.hpD[0]/maxHp(m),"p");
+  dI("hplab",0,0,13,7,X-61-1-13,Y-1-3);prHpBar(X-61,Y-1,B.hpD[0]/maxHp(m));
   prNum(`${Math.ceil(B.hpD[0])}/${maxHp(m)}`,X-15+4,Y+10);
   if(m.st)prStatus(m.st,X-115,Y-15.2+11.5);
   if(m.shiny)dI("shiny",0,0,8,8,X-115-9,Y-15.2+3);
   if(m.megaFrom&&typeof megaSymbol==="function")megaSymbol(X-115+prW(nm,12)+16,Y-10,5);
   const a=expAt(m.sp,lv),z=expAt(m.sp,lv+1);const f=lv>=100?0:clamp((B.expD-a)/(z-a),0,1);
-  // v0.28: eigene EP-Leiste (Beschriftung war abgeschnitten)
-  const ex=X-98,ey=Y+17.5;ctx.fillStyle="#1e1a2a";ctx.fillRect(ex-1,ey-.5,87,3);prT("EP",ex-3,ey-4.6,{size:7,align:"right",c:"#5ac8ff",sh:"#1a3a5a"});
-  if(f>0){const gr=ctx.createLinearGradient(0,ey,0,ey+2);gr.addColorStop(0,"#8ae0ff");gr.addColorStop(1,"#3a9ae0");ctx.fillStyle=gr;ctx.fillRect(ex,ey,85*f,2);ctx.fillStyle="rgba(255,255,255,.5)";ctx.fillRect(ex,ey,85*f,.5);}
+  dI("explab",0,0,16,7,X-91-16,Y+20-7);if(f>0)dI("exp",0,0,85*f,2,X-98,Y+18);
 }
 // Werte-Stufen wie PokéRogue: C gedrückt halten → das Info-Feld blendet zum Stufen-Panel über (ANG/VER/S.ANG/S.VER/GEN/FLU/INI, -6 … +6)
 const PR_SLAB={atk:[68,13],def:[81,13],spa:[0,19],spd:[19,19],acc:[55,13],eva:[94,13],spe:[107,13]};
@@ -7570,9 +7564,10 @@ const PATCH=[
     "Ausgänge sind besser zu erkennen: Pfeil und Lichtfleck auf Türmatten, Höhlen-Ausgängen, Treppen und Leitern in deiner Nähe.",
     "Alle Gespräche überarbeitet: keine veralteten Tipps mehr (z. B. zur zweiten Schwester), dafür passende Hinweise je Ort – z. B. in der Digda-Höhle, wohin sie führt.",
     "Kampf-Hintergründe in allen Innenräumen (Arenen, Gebäude, Pokémon-Turm …) jetzt gemalt wie in den Höhlen – keine schwarze Leere und keine Wandkanten mehr.",
-    "Kampfanzeige feiner: KP-Balken mit Verlauf und rotem Nachzieh-Balken bei Schaden, eigene EP-Leiste, Team-Leiste des Trainers zeigt nur echte Pokémon.",
+    "Kampfanzeige: Die Team-Leiste des Trainers zeigt nur noch seine echten Pokémon (keine leeren Kreise mehr).",
     "Team-Bildschirm schöner: kompaktere Karten (alle 6 passen jetzt aufs Bild), Typ-Farbe, Typen, EP-Leiste und Item-Symbol. Im Kampf steht das aktive Pokémon immer links im großen Feld, Schrift dort besser lesbar.",
     "VM02 Fliegen: Das Mädchen mit der VM wohnt jetzt im Haus direkt links neben dem Pokémon-Center in Orania City (vorher war das Haus nicht erreichbar). Zusätzlich gibt es sie wie in Feuerrot im Haus auf Route 16.",
+    "Trainer-Pokémon sind jetzt passend zu ihrem Level entwickelt – kein Raupy auf Lv. 22 mehr, sondern Smettbo.",
     "Schwebende Pokémon wie Goldini versinken nicht mehr in der Plattform.",
     "Figuren gefixt: Schwimmer an Land (z. B. im Center Azuria, Route 19) waren nur ein Kopf – jetzt normale Figuren.",
     "Attacken-Info im Kampf: C gedrückt halten zeigt die Beschreibung unten in der Leiste (wie PokéRogue). Die Werte-Übersicht liegt jetzt auf Start/MENÜ."]},
