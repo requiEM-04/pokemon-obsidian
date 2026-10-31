@@ -2,6 +2,13 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.27 (31.10.2026)
+- Pokédex neu: Filter mit C (Alle, Gefangen, Fehlend, Schillernd und jeder Typ) und Schillernd-Ansicht mit R wie in Pokémon GO.
+- Schillernde Pokémon werden pro Form gezählt – auch Entwicklungen und Megas. Was du schon im Team oder in der Box hast, wird rückwirkend eingetragen (★ in der Liste).
+- Neue Detailseite mit Reitern: INFO (mit Basiswert-Summe), FUNDORTE (Ort, Level und Häufigkeit, getrennt nach Gras, Wasser und Höhle; Geschenk-Pokémon mit Hinweis) und FORMEN (ganze Entwicklungsreihe samt Megas und wie sich das Pokémon entwickelt).
+- Online-Duell: Beim Raum-Erstellen wählst du jetzt „Megas erlaubt“ oder „Ohne Megas“. Dein Gegner bekommt die Regel automatisch.
+- Besuche auch Pokélings: kleiner Link unten rechts im Titelmenü und unter EXTRAS.
+
 ## v0.26 (31.10.2026)
 - Arenen überarbeitet: Wandfarbe je Typ, große Banner mit Emblem, Fackeln, Teppich von der Tür bis zum Arenaleiter und ein Podest für ihn. In Azuria schwimmen die Schwimmer jetzt im Becken.
 - Jedes Pokémon-Center ist jetzt ein eigener Raum je Stadt: Theke mit Heilmaschinen, Logo, Wartebereich, Aquarium und eigene Besucher. Die zweite Schwester ist weg – Level-Cap und Wesen gibt es bei der Schwester unter TRAINING.
