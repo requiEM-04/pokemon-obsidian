@@ -16,6 +16,7 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Kampfanzeige: Die Team-Leiste des Trainers zeigt nur noch seine echten Pokémon (keine leeren Kreise mehr).
 - Team-Bildschirm schöner: kompaktere Karten (alle 6 passen jetzt aufs Bild), Typ-Farbe, Typen, EP-Leiste und Item-Symbol. Im Kampf steht das aktive Pokémon immer links im großen Feld, Schrift dort besser lesbar.
 - VM02 Fliegen: Das Mädchen mit der VM wohnt jetzt im Haus direkt links neben dem Pokémon-Center in Orania City (vorher war das Haus nicht erreichbar). Zusätzlich gibt es sie wie in Feuerrot im Haus auf Route 16.
+- Team-EP ist zurück: Alle Pokémon im Team bekommen E.-Punkte, wer nicht gekämpft hat die Hälfte. Beim neuen Spiel unter „Team-EP“ abschaltbar (dann wie in Feuerrot). Alte Spielstände: an.
 - Trainer-Pokémon sind jetzt passend zu ihrem Level entwickelt – kein Raupy auf Lv. 22 mehr, sondern Smettbo.
 - Schwebende Pokémon wie Goldini versinken nicht mehr in der Plattform.
 - Figuren gefixt: Schwimmer an Land (z. B. im Center Azuria, Route 19) waren nur ein Kopf – jetzt normale Figuren.
