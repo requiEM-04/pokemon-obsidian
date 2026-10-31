@@ -2731,7 +2731,7 @@ async function playerTurn(){
     else if(c===2){const i=await partyMenu({mode:"battle",cur:G.save.party.indexOf(me.m)});if(i==null||i<0){B.lastCmd=0;continue;}act={k:"switch",i};}
     else if(c===3){if(B.type!=="wild"){await msg("Du kannst nicht aus einem Trainerkampf fliehen!",true);continue;}if(B.noRun){await msg("Du kannst nicht fliehen!",true);continue;}act={k:"run"};}
   }
-  if(act.k!=="move")B.lastCmd=0; // v0.25: nach Wechsel/Item steht der Cursor wieder auf „Kampf“
+  if(act.k!=="move")B.lastCmd=(act.k==="item"&&ITEMS[act.it]&&ITEMS[act.it].cat==="ball")?1:0; // v0.31: nach einem Ballwurf bleibt der Cursor auf „Beutel/Ball“, sonst wieder „Kampf“
   if(act.k==="move"&&B.megaArm&&typeof canMega==="function"&&canMega(0))act.mega=1;B.megaArm=false;
   // Gegner wählt (im Online-Duell: Wahl des Gegenspielers abwarten)
   let fAct=foe.v.charge?{k:"move",id:foe.v.charge}:foe.v.recharge?{k:"recharge"}:null;
@@ -7682,7 +7682,9 @@ const PATCH=[
     "Story: Die Starterwahl findet jetzt wie im Original im Labor von Prof. Esche statt – drei Pokébälle auf dem Tisch, danach die ersten Kämpfe gegen Bell und Cheren.",
     "Randomizer komplett im Soul-Link-Stil: komplett zufällige Starter (jede Entwicklungsstufe, auch Legenden), alle wilden Pokémon, alle Trainer, Arenaleiter, Top Vier, Rivalen, Geschenk- und Legenden-Begegnungen (Legenden können überall auftauchen), Fähigkeiten und alle gefundenen Items (auch versteckte). Alles fest je Spielstand.",
     "Story: Die ersten Kämpfe gegen Bell, Cheren und N sind fair wie im Original – vor dem 1. Orden haben die Rivalen Anfänger-Werte, bis zum 2. Orden normale Werte.",
-    "Gespräche: Über dem Textfenster steht jetzt ein Namensschild, wer gerade spricht (dein eigener Name in Blau)."]},
+    "Gespräche: Über dem Textfenster steht jetzt ein Namensschild, wer gerade spricht (dein eigener Name in Blau).",
+    "Städte lebendiger: Vorgärten mit Zaun, Blumenbeete an den Hauswänden, Hecken an den Wegen und Bäume auf den Wiesen – ohne Wege zu verbauen.",
+    "Kampf: Nach einem Ballwurf steht der Cursor wieder auf dem Ball/Beutel statt auf „Kampf“ – so wirft man schnell den nächsten Ball."]},
   {v:"0.30",d:"31.10.2026",items:[
     "Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!",
     "Alle Spielstände und Konten wurden zurückgesetzt. Jeder startet neu in Avenitia.",
@@ -11074,6 +11076,45 @@ legend("dreamyard",[12,10],494,60,post,"Victini: Vic! Victiiini! Ein kleines Pok
 legend("coldstorage",[12,10],649,65,post,"Hinter den Containern surrt etwas. Ein Pokémon mit Kanone auf dem Rücken – Genesect, ein Experiment von Team Plasma!");
 legend("musical",[3,5],648,65,post,"Auf der leeren Bühne singt ein Pokémon eine uralte Melodie ... Meloetta!");
 legend("route8",[16,11],647,65,()=>post()&&flag("leg_638")&&flag("leg_639")&&flag("leg_640"),"Über das Moor springt ein junges Pokémon mit einem Horn aus Wasser. Keldeo will von den Musketieren lernen – und von dir!");
+})();
+
+/* ===== regions/unova_ez_decor.js ===== */
+/* ================================ EINALL · STADT-DEKO (v0.31) ================================
+   Macht die Städte lebendiger, ohne Wege zu verbauen: Vorgärten mit Zaun, Blumenbeete an den Hauswänden,
+   Hecken an den Wegen und einzelne Bäume auf freien Wiesen. Jede feste Deko wird nur gesetzt, wenn danach
+   noch alle Türen, Ausgänge, Schilder und Personen erreichbar sind. */
+(function(){
+const M=REGIONS.unova.maps,H=REGIONS.unova.hash;
+const TOWNS=Object.keys(typeof UNOVA_MAPS!=="undefined"?UNOVA_MAPS:{}).filter(id=>UNOVA_MAPS[id].kind==="town"&&M[id]);
+const WALK=c=>c&&!SOLID.has(c)&&c!=="~";
+function decorate(id){const m=M[id];const T=m.tiles.map(r=>r.split(""));const h=T.length,w=T[0].length;
+  const at=(x,y)=>(T[y]||[])[x];const inB=(x,y)=>(m.bld||[]).some(b=>x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h);
+  const ok=(x,y)=>WALK(at(x,y))&&!inB(x,y);
+  // wichtige Felder: vor Türen, Warps, Schilder, Personen, Kartenränder mit Weg
+  const imp=[];for(const b of m.bld||[])for(const d of b.doors||[])imp.push([b.x+d.x,b.y+d.y+1]);
+  for(const wp of m.warps||[])imp.push([wp.x,wp.y]);for(const n of m.npcs||[])imp.push([n.x,n.y,1]);
+  for(const s of m.signs||[])imp.push([s.x,s.y,1]);
+  for(let x=0;x<w;x++){if(ok(x,0))imp.push([x,0]);if(ok(x,h-1))imp.push([x,h-1]);}for(let y=0;y<h;y++){if(ok(0,y))imp.push([0,y]);if(ok(w-1,y))imp.push([w-1,y]);}
+  const busy=new Set(imp.map(([x,y])=>x+","+y));for(const n of m.npcs||[])for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]])busy.add((n.x+dx)+","+(n.y+dy));
+  for(const b of m.bld||[])for(const d of b.doors||[])for(let k=1;k<=2;k++)busy.add((b.x+d.x)+","+(b.y+d.y+k));
+  const reachAll=()=>{const st=imp.find(([x,y,adj])=>!adj&&ok(x,y));if(!st)return true;const seen=new Set([st[0]+","+st[1]]),q=[[st[0],st[1]]];
+    while(q.length){const[x,y]=q.pop();for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const X=x+dx,Y=y+dy,k=X+","+Y;if(seen.has(k)||!ok(X,Y))continue;seen.add(k);q.push([X,Y]);}}
+    return imp.every(([x,y,adj])=>adj?[[0,1],[0,-1],[1,0],[-1,0],[0,0]].some(([dx,dy])=>seen.has((x+dx)+","+(y+dy))):(!ok(x,y)||seen.has(x+","+y)));};
+  const solid=(x,y,c)=>{if(at(x,y)!=="."||busy.has(x+","+y))return false;const o=T[y][x];T[y][x]=c;if(!reachAll()){T[y][x]=o;return false;}return true;};
+  const flower=(x,y)=>{if(at(x,y)==="."&&!busy.has(x+","+y))T[y][x]="F";};
+  // 1) Häuser: Blumen an den Seiten, Vorgarten-Zaun mit Lücke vor der Tür
+  for(const b of m.bld||[]){if(b.k!=="house")continue;const dx0=(b.doors&&b.doors[0])?b.x+b.doors[0].x:-9;
+    for(let y=b.y+1;y<b.y+b.h;y++){flower(b.x-1,y);flower(b.x+b.w,y);}
+    const fy=b.y+b.h+1;if(fy<h-1)for(let x=b.x-1;x<=b.x+b.w;x++){if(Math.abs(x-dx0)<=1)continue;solid(x,fy,"f");}
+    for(let y=b.y+b.h;y<=fy;y++){if(at(b.x-1,y)===".")solid(b.x-1,y,"f");if(at(b.x+b.w,y)===".")solid(b.x+b.w,y,"f");}}
+  // 2) Hecken an langen Wegen (Abschnitte mit Lücken)
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(at(x,y)!==".")continue;const nb=[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dy])=>at(x+dx,y+dy)===":");if(nb.length!==1)continue;
+    const[dx,dy]=nb[0];const along=dx?y:x;if(along%8<5)continue;if(at(x-dx,y-dy)!==".")continue;solid(x,y,"b");}
+  // 3) Bäume auf freien Wiesen (rundum Gras, Abstand zu anderen Bäumen)
+  const trees=[];for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){if(at(x,y)!==".")continue;let free=true;for(let yy=-1;yy<=1&&free;yy++)for(let xx=-1;xx<=1;xx++){const c=at(x+xx,y+yy);if(c!=="."&&c!=="F"&&c!==","){free=false;break;}}
+    if(!free||(H(id+":t"+x+","+y)%100)>=22||trees.some(([a,b])=>Math.abs(a-x)+Math.abs(b-y)<4))continue;if(solid(x,y,"T"))trees.push([x,y]);}
+  m.tiles=T.map(r=>r.join(""));}
+for(const id of TOWNS){try{decorate(id);}catch(e){console.warn("Deko",id,e);}}
 })();
 
 /* ===== regions/unova_f_extra.js ===== */
