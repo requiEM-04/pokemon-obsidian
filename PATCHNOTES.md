@@ -13,9 +13,10 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Ausgänge sind besser zu erkennen: Pfeil und Lichtfleck auf Türmatten, Höhlen-Ausgängen, Treppen und Leitern in deiner Nähe.
 - Alle Gespräche überarbeitet: keine veralteten Tipps mehr (z. B. zur zweiten Schwester), dafür passende Hinweise je Ort – z. B. in der Digda-Höhle, wohin sie führt.
 - Kampf-Hintergründe in allen Innenräumen (Arenen, Gebäude, Pokémon-Turm …) jetzt gemalt wie in den Höhlen – keine schwarze Leere und keine Wandkanten mehr.
-- Kampfanzeige feiner: KP-Balken mit Verlauf und rotem Nachzieh-Balken bei Schaden, eigene EP-Leiste, Team-Leiste des Trainers zeigt nur echte Pokémon.
+- Kampfanzeige: Die Team-Leiste des Trainers zeigt nur noch seine echten Pokémon (keine leeren Kreise mehr).
 - Team-Bildschirm schöner: kompaktere Karten (alle 6 passen jetzt aufs Bild), Typ-Farbe, Typen, EP-Leiste und Item-Symbol. Im Kampf steht das aktive Pokémon immer links im großen Feld, Schrift dort besser lesbar.
 - VM02 Fliegen: Das Mädchen mit der VM wohnt jetzt im Haus direkt links neben dem Pokémon-Center in Orania City (vorher war das Haus nicht erreichbar). Zusätzlich gibt es sie wie in Feuerrot im Haus auf Route 16.
+- Trainer-Pokémon sind jetzt passend zu ihrem Level entwickelt – kein Raupy auf Lv. 22 mehr, sondern Smettbo.
 - Schwebende Pokémon wie Goldini versinken nicht mehr in der Plattform.
 - Figuren gefixt: Schwimmer an Land (z. B. im Center Azuria, Route 19) waren nur ein Kopf – jetzt normale Figuren.
 - Attacken-Info im Kampf: C gedrückt halten zeigt die Beschreibung unten in der Leiste (wie PokéRogue). Die Werte-Übersicht liegt jetzt auf Start/MENÜ.
