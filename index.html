@@ -3125,9 +3125,10 @@ async function giveExp(foe){
   const nPart=Math.max(1,party.filter(m=>B.part.has(m.uid)).length);
   for(const m of party){
     const part=B.part.has(m.uid);
-    if(!part&&m.item!=="exp-share")continue;
+    const all=G.save.expAll!==false; // Team-EP (Einstellung beim neuen Spiel, alte Spielstände: an)
+    if(!part&&!all&&m.item!=="exp-share")continue;
     const Lf=foe.lv,Lp=m.lv;
-    let exp=Math.floor((S.bx*Lf/7)*t*Math.pow((2*Lf+10)/(Lf+Lp+10),2.5)/(part?nPart:2))+1;
+    let exp=Math.floor((S.bx*Lf/7)*t*Math.pow((2*Lf+10)/(Lf+Lp+10),2.5)/(part?(all?1:nPart):2))+1;
     if(m.item==="lucky-egg")exp=Math.floor(exp*1.5);
     gainEVs(m,foe.sp);
     if(m.lv>=cap){if(part)await msg(`${monName(m)} hat das Level-Cap (Lv ${cap}) erreicht.`);continue;}
@@ -7567,6 +7568,7 @@ const PATCH=[
     "Kampfanzeige: Die Team-Leiste des Trainers zeigt nur noch seine echten Pokémon (keine leeren Kreise mehr).",
     "Team-Bildschirm schöner: kompaktere Karten (alle 6 passen jetzt aufs Bild), Typ-Farbe, Typen, EP-Leiste und Item-Symbol. Im Kampf steht das aktive Pokémon immer links im großen Feld, Schrift dort besser lesbar.",
     "VM02 Fliegen: Das Mädchen mit der VM wohnt jetzt im Haus direkt links neben dem Pokémon-Center in Orania City (vorher war das Haus nicht erreichbar). Zusätzlich gibt es sie wie in Feuerrot im Haus auf Route 16.",
+    "Team-EP ist zurück: Alle Pokémon im Team bekommen E.-Punkte, wer nicht gekämpft hat die Hälfte. Beim neuen Spiel unter „Team-EP“ abschaltbar (dann wie in Feuerrot). Alte Spielstände: an.",
     "Trainer-Pokémon sind jetzt passend zu ihrem Level entwickelt – kein Raupy auf Lv. 22 mehr, sondern Smettbo.",
     "Schwebende Pokémon wie Goldini versinken nicht mehr in der Plattform.",
     "Figuren gefixt: Schwimmer an Land (z. B. im Center Azuria, Route 19) waren nur ein Kopf – jetzt normale Figuren.",
@@ -12545,7 +12547,7 @@ function newSave(o){
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
     badges:[],flags:{},def:{},party:[],box:[],grave:[],bag:{},dex:{seen:{},caught:{}},
     pos:{map:R.start.map,x:R.start.x,y:R.start.y,dir:R.start.dir},ret:R.startRet||{map:"pallet",x:16,y:17,dir:"down"},lastHeal:R.home,
-    mode:o.mode,diff:o.diff,mgm:o.mgm,rand:o.rand,seed:rint(1,2**31),vial:-1,
+    mode:o.mode,diff:o.diff,mgm:o.mgm,rand:o.rand,expAll:o.expAll!==false,seed:rint(1,2**31),vial:-1,
     bonus:o.mode==="run"?(o.bonus||{}):{},charm:o.mode==="run"&&o.bonus&&o.bonus.charm,
     runStats:{badges:0,tr:0,caught:0,ko:0},runArea:{},time:0,steps:0,lastBall:"poke-ball"};
 }
@@ -12737,10 +12739,11 @@ const MODES=[
 const modeInfo=k=>MODES.find(m=>m.k===k)||MODES[0];
 function nuzRules(){return!!(G.save&&(G.save.mode==="run"||G.save.mode==="nuz"));}
 function settingsPick(){
-  return new Promise(res=>{let i=0,mi=0;const s={mode:"classic",diff:"normal",mgm:false,rand:false};
+  return new Promise(res=>{let i=0,mi=0;const s={mode:"classic",diff:"normal",mgm:false,rand:false,expAll:true};
     const rows=[["Schwierigkeit",()=>s.diff==="easy"?"Leicht":"Normal",()=>s.diff=s.diff==="easy"?"normal":"easy",()=>s.diff==="easy"?"Leicht: Bosse 2 Level schwächer, Gegner nutzen seltener Megas.":"Normal = Hardcore wie Emerald Azure: schlaue KI, EV-trainierte Trainer, Kampfstil Folge, Schlafklausel."],
       ["Min. Grinding",()=>s.mgm?"An":"Aus",()=>s.mgm=!s.mgm,()=>s.mgm?"Alle eigenen Pokémon haben perfekte IVs, keine EVs.":"Zufällige IVs, EVs durch Kämpfe."],
-      ["Randomizer",()=>s.rand?"An":"Aus",()=>s.rand=!s.rand,()=>s.rand?"Wilde Pokémon werden zufällig getauscht (ähnliche Stärke).":"Originale Begegnungen."]];
+      ["Randomizer",()=>s.rand?"An":"Aus",()=>s.rand=!s.rand,()=>s.rand?"Wilde Pokémon werden zufällig getauscht (ähnliche Stärke).":"Originale Begegnungen."],
+      ["Team-EP",()=>s.expAll?"An":"Aus",()=>s.expAll=!s.expAll,()=>s.expAll?"Team-EP an: Alle Pokémon im Team bekommen E.-Punkte, wer nicht gekämpft hat die Hälfte (wie der moderne EP-Teiler).":"Team-EP aus: Nur wer kämpft bekommt E.-Punkte, aufgeteilt wie in Feuerrot. Zuschauer nur mit EP-Teiler."]];
     const N=rows.length+2; // 0 = Modus-Karten, 1..3 = Regeln, 4 = Los
     const sc={opaque:true,t:0,update(){this.t++;
         if(Input.nav("up")){i=(i+N-1)%N;sfx("move");}if(Input.nav("down")){i=(i+1)%N;sfx("move");}
@@ -12753,9 +12756,9 @@ function settingsPick(){
           obCard(x,y,w,h,foc,on?"rgba(255,255,255,.16)":null);if(on){ctx.strokeStyle=m.c;ctx.lineWidth=1.5;ctx.strokeRect(x+.5,y+.5,w-1,h-1);ctx.fillStyle=m.c;ctx.fillRect(x,y,w,2);}
           drawUiIcon(m.ic,x+6,y+6+(foc?Math.round(Math.sin(FRAME/6)):0),16);prT(m.n,x+26,y+6,{size:14,c:on?"#fff":OB.dim});
           m.r.forEach((l,r)=>{ctx.fillStyle=on?m.c:OB.mute;ctx.fillRect(x+7,y+31+r*15,3,3);prWrap(l,80,11).slice(0,1).forEach(t=>prT(t,x+13,y+27+r*15,{size:11,c:on?"#fff":OB.mute,sh:"transparent"}));});});
-        rows.forEach((r,j)=>{const y=110+j*13,sel=i===j+1;obCard(10,y,PRW-20,12,sel);prT(r[0],18,y,{size:12,c:sel?"#fff":OB.dim});
-          const v=r[1](),w=prW(v,11)+14;ctx.fillStyle=sel?OB.acc:"rgba(255,255,255,.1)";ctx.fillRect(PRW-16-w,y+1.5,w,9);prT(v,PRW-16-w/2,y,{size:11,align:"center",c:"#fff",sh:"transparent"});});
-        obBtn(PRW/2-60,150,120,13,"LOS GEHT'S!",i===N-1);
+        rows.forEach((r,j)=>{const y=109+j*11.5,sel=i===j+1;obCard(10,y,PRW-20,10.5,sel);prT(r[0],18,y,{size:12,c:sel?"#fff":OB.dim});
+          const v=r[1](),w=prW(v,11)+14;ctx.fillStyle=sel?OB.acc:"rgba(255,255,255,.1)";ctx.fillRect(PRW-16-w,y+1,w,8.5);prT(v,PRW-16-w/2,y-.5,{size:11,align:"center",c:"#fff",sh:"transparent"});});
+        obBtn(PRW/2-60,156,120,12,"LOS GEHT'S!",i===N-1);
         ctx.restore();
         const d=i===0?modeInfo(s.mode).d:i<=rows.length?rows[i-1][3]():`${modeInfo(s.mode).n.charAt(0)+modeInfo(s.mode).n.slice(1).toLowerCase()} · alles bereit? Dann ab nach Kanto!`;
         prBar();prWrap(d,300,11).slice(0,3).forEach((l,r)=>prT(l,10,PRH-45+r*11,{size:11}));prT(i===0?"◀▶ Modus · A: weiter · B: zurück":"◀▶/A ändern · B: zurück",10,PRH-12,{size:9,c:OB.gold,sh:"#6a4a10"});prEnd();}};
