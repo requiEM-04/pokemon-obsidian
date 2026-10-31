@@ -1733,6 +1733,7 @@ function drawWorld(){
   drawRunDust();
   if(cm.darkness){const[px,py]=charWorldPos(PL,true);const[sx,sy]=projectToScreen(px+.5,.7,py+.4);const r=W.flashOn?300:62;
     const gr=ctx.createRadialGradient(sx,sy,r*.35,sx,sy,r);gr.addColorStop(0,"rgba(0,0,0,0)");gr.addColorStop(1,"rgba(2,2,6,.94)");ctx.fillStyle=gr;ctx.fillRect(0,0,SW,SH);}
+  if(typeof drawExitHints==="function"&&OPT.exitHints!==false)drawExitHints(cm);
   vignette(cm.world?.22:.3);
   if(W.emote){const o=W.emote.t;const[x,y]=o===PL?charWorldPos(PL,true):charWorldPos(o);const[sx,sy]=projectToScreen(x+.5,1.85*CP,y+.66-1.85*SPI);emote(Math.round(sx-8),Math.round(sy-16));}
   drawPopup();
@@ -2516,6 +2517,25 @@ function roomKind(m){if(GYM_THEME[m.id]||/^e4_/.test(m.id))return"gym";if(/^cent
   }catch(e){console.warn("Boden-Deko",e);}
   return cv;};}
 
+/* ---------- Ausgänge sichtbar machen (v0.28) ----------
+   Pulsierender Pfeil + Lichtfleck auf jedem Ausgang in der Nähe: Türmatten, Kanten-Ausgänge in Höhlen/Gebäuden, Treppen und Leitern. */
+let EXH_CACHE=null;
+function exitList(m){if(EXH_CACHE&&EXH_CACHE.m===m)return EXH_CACHE.L;const L=[],seen=new Set();const at=(x,y)=>(x<0||y<0||x>=m.w||y>=m.h)?null:m.g[y][x];
+  const add=(x,y,d)=>{const k=x+","+y;if(seen.has(k))return;seen.add(k);L.push({x,y,d});};
+  if(!m.world){for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){const c=at(x,y);if(c==="D")add(x,y,"down");else if(c==="l"||c==="U"||c==="d")add(x,y,"stairs");}}
+  for(const w of m.warps||[]){if(m.world&&w.edge)continue;const c=at(w.x,w.y);const d=w.ent||(c==="l"||c==="U"||c==="d"?"stairs":w.y>=m.h-1?"down":w.y<=0?"up":w.x<=0?"left":w.x>=m.w-1?"right":"stairs");add(w.x,w.y,d);}
+  EXH_CACHE={m,L};return L;}
+function drawExitHints(m){if(!V3.ok||!G.save)return;const L=exitList(m);if(!L.length)return;const[px,py]=charWorldPos(PL,true);const t=FRAME/14;
+  ctx.save();for(const e of L){const X=m.ox+e.x,Z=m.oy+e.y,dist=Math.hypot(X-px,Z-py);if(dist>7||dist<.4)continue;const a=Math.min(1,(7-dist)/3)*(.55+.25*Math.sin(t+e.x));
+    const[sx,sy]=projectToScreen(X+.5,.03,Z+.5);const g=ctx.createRadialGradient(sx,sy,1,sx,sy,10);g.addColorStop(0,`rgba(255,236,160,${.45*a})`);g.addColorStop(1,"rgba(255,236,160,0)");ctx.fillStyle=g;ctx.fillRect(sx-12,sy-8,24,16);
+    ctx.globalAlpha=a;if(e.d==="stairs"){const b=Math.sin(t*1.3)*1.5;ctx.fillStyle="#fff6c8";ctx.strokeStyle="rgba(60,30,0,.7)";ctx.lineWidth=1;
+      for(const k of[-3,3]){ctx.beginPath();ctx.moveTo(sx+k,sy-6+b);ctx.lineTo(sx+k+2.2,sy-3+b);ctx.lineTo(sx+k-2.2,sy-3+b);ctx.closePath();ctx.fill();ctx.stroke();}}
+    else{const[dx,dy]={down:[0,1],up:[0,-1],left:[-1,0],right:[1,0]}[e.d]||[0,1];const b=Math.sin(t*1.3)*1.6;const cx=sx+dx*(2+b),cy=sy+dy*(1+b*.6)-1;
+      ctx.fillStyle="#fff6c8";ctx.strokeStyle="rgba(60,30,0,.75)";ctx.lineWidth=1;ctx.beginPath();
+      if(dy){ctx.moveTo(cx-4,cy-dy*1.5);ctx.lineTo(cx+4,cy-dy*1.5);ctx.lineTo(cx,cy+dy*3);}else{ctx.moveTo(cx-dx*1.5,cy-3);ctx.lineTo(cx-dx*1.5,cy+3);ctx.lineTo(cx+dx*3.5,cy);}
+      ctx.closePath();ctx.fill();ctx.stroke();}}
+  ctx.restore();}
+
 /* ===== battle.js ===== */
 /* ================================ KAMPF: Logik, KI, Fangen, EXP, Darstellung ================================ */
 let B=null;
@@ -2584,7 +2604,7 @@ async function startTrainerBattle(tr,ch){
 async function startBattle(cfg){
   B={type:cfg.type,tr:cfg.tr,trCh:cfg.ch,foes:cfg.foes,bg:cfg.bg,area:cfg.area,act:[null,null],hpD:[0,0],expD:0,text:null,menu:null,fx:[],
     vis:{0:{on:false,clip:64,white:0,blink:0,dx:0,scale:1,alpha:1},1:{on:false,clip:64,white:0,blink:0,dx:0,scale:1,alpha:1},trMe:{on:false,x:0},trFoe:{on:false,x:0},ball:null,boxes:[false,false]},
-    part:new Set(),screens:[{},{}],turn:0,runs:0,used:{},result:null,money:0,lvUps:new Set(),moneyBonus:0};
+    part:new Set(),screens:[{},{}],turn:0,runs:0,used:{},result:null,money:0,lvUps:new Set(),moneyBonus:0,noExp:!!cfg.noExp};
   const prevMus=Music.cur;Music.play(cfg.type==="wild"?"wild":cfg.tr.boss?"boss":"trainer");
   bvInit();if(BV.ok)bvSetBg(cfg.bg);PFX.length=0;BV.idle=false;
   await Promise.all([animData(cfg.foes[0].sp,false,cfg.foes[0].shiny).p,animData(G.save.party.find(alive).sp,true,G.save.party.find(alive).shiny).p]);
@@ -2600,6 +2620,7 @@ async function startBattle(cfg){
   for(const m of G.save.party){if(m._item!==undefined){m.item=m._item;delete m._item;}restoreMoves(m);if(typeof megaRevert==="function")megaRevert(m);}
   if(B.type==="wild"&&res!=="lose"&&B.moneyBonus)G.save.money+=B.moneyBonus;
   const lvUps=B.lvUps;B=null;
+  if(res==="lose"&&cfg.noLose){Music.play(curMap().music||prevMus);await fadeTo(0,8);return res;}
   if(res==="lose"){await whiteout();return res;}
   Music.play(curMap().music||prevMus);
   await fadeTo(0,8);
@@ -3094,6 +3115,7 @@ async function trainerWin(){
   return"win";
 }
 async function giveExp(foe){
+  if(B&&B.noExp)return;
   const S=SPECIES[foe.sp];const cap=levelCap();const t=B.type==="trainer"?1.5:1;
   const party=G.save.party.filter(alive);
   // v0.26: langsameres Leveln wie in Feuerrot/Blattgrün – Basis /7 statt /5, EP werden unter den Kämpfern geteilt,
@@ -3297,7 +3319,7 @@ const BattleScene={opaque:true,
     if(prMenuUpdate(M)){
     }else if(M.k==="move"){
       const n=B.act[0].m.moves.length;
-      if(Input.hit("quick")){OPT.minfo=!OPT.minfo;sfx("move");} // C: Attacken-Beschreibung ein/aus (wie PokéRogue)
+      // v0.27: C gedrückt halten zeigt die Beschreibung (wie PokéRogue) – siehe prMoves
       if((Input.hit("r")||Input.hit("start"))&&typeof canMega==="function"&&canMega(0)){B.megaArm=!B.megaArm;sfx(B.megaArm?"select":"back");} // R/Start: Mega ein/aus
       if(Input.nav("left")||Input.nav("right")){const j=M.i^1;if(j<n){M.i=j;sfx("move");}}
       if(Input.nav("up")||Input.nav("down")){const j=M.i^2;if(j<n){M.i=j;sfx("move");}}
@@ -4480,8 +4502,13 @@ function animData(sp,back,shiny){
 }
 function recolor(im,map){const c=mk(im.width,im.height,g=>g.drawImage(im,0,0));const g=c.getContext("2d");const id=g.getImageData(0,0,c.width,c.height),d=id.data;
   const M=new Map(map);for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;const k=(d[i]<<16)|(d[i+1]<<8)|d[i+2];const v=M.get(k);if(v!=null){d[i]=v>>16;d[i+1]=v>>8&255;d[i+2]=v&255;}}g.putImageData(id,0,0);return c;}
-function spriteBottom(im,meta){const c=mk(meta.w,meta.h,g=>g.drawImage(im,0,0,meta.w,meta.h,0,0,meta.w,meta.h));const d=c.getContext("2d").getImageData(0,0,meta.w,meta.h).data;
-  for(let y=meta.h-1;y>=0;y--)for(let x=0;x<meta.w;x++)if(d[(y*meta.w+x)*4+3]>40)return meta.h-1-y;return 0;}
+// v0.28: tiefster sichtbarer Pixel über ALLE Animationsbilder (vorher nur Bild 1 – schwebende Pokémon wie Goldini sanken in die Plattform)
+function spriteBottom(im,meta){const cols=Math.max(1,Math.floor(im.width/meta.w)),rows=Math.max(1,Math.floor(im.height/meta.h));const c=mk(im.width,im.height,g=>g.drawImage(im,0,0));const d=c.getContext("2d").getImageData(0,0,im.width,im.height).data;
+  let best=meta.h;const n=Math.min(cols*rows,(meta.s&&meta.s.length?Math.max(...meta.s)+1:cols*rows));
+  for(let f=0;f<n;f++){const ox=(f%cols)*meta.w,oy=Math.floor(f/cols)*meta.h;let b=-1;
+    for(let y=meta.h-1;y>=0&&b<0;y--)for(let x=0;x<meta.w;x++)if(d[((oy+y)*im.width+ox+x)*4+3]>40){b=meta.h-1-y;break;}
+    if(b>=0&&b<best)best=b;}
+  return best===meta.h?0:best;}
 // waagerechte Mitte der sichtbaren Pixel (Bild 1) – manche Sprites stehen nicht mittig im Rahmen (z. B. Schweif auf einer Seite)
 function spriteCx(im,meta){const c=mk(meta.w,meta.h,g=>g.drawImage(im,0,0,meta.w,meta.h,0,0,meta.w,meta.h));const d=c.getContext("2d").getImageData(0,0,meta.w,meta.h).data;let a=meta.w,b=-1;
   for(let y=0;y<meta.h;y++)for(let x=0;x<meta.w;x++)if(d[(y*meta.w+x)*4+3]>40){if(x<a)a=x;if(x>b)b=x;}return b<0?0:(a+b+1)/2-meta.w/2;}
@@ -5144,7 +5171,8 @@ bvPixelPlatforms=function(style){arPlatforms(arThemeFor(BV.lastKind||"grass"),"d
 bvSetBg=function(kind){BV.lastKind=kind;
   // v0.25: Höhlen nutzen die gemalte Höhlen-Kulisse – der Kartenausschnitt zeigte dort nur lose Wandstücke quer durchs Bild
   const _cm=typeof curMap==="function"&&G.save&&G.save.pos?curMap():null;
-  if(!(typeof B!=="undefined"&&B&&B.duel)&&!(_cm&&_cm.cave))return _orig(kind);
+  // v0.28: auch alle Innenräume (Arenen, Gebäude, Türme) bekommen die gemalte Kulisse – der Kartenausschnitt zeigte dort schwarze Leere und Wandkanten
+  if(!(typeof B!=="undefined"&&B&&B.duel)&&!(_cm&&(_cm.cave||(!_cm.world&&!_cm.outside))))return _orig(kind);
   if(typeof y2kOn==="function"&&y2kOn()&&kind!=="indoor"){const yk="y2k:"+kind;if(BV.bgKind===yk)return;BV.bgKind=yk;while(BV.bg.children.length)BV.bg.remove(BV.bg.children[0]);bvClearDio();BV.tint=null;y2kStage(kind);return;}
   BV.y2k=null;const theme=arThemeFor(kind),bk="arena:"+theme+":"+battleTod();if(BV.bgKind===bk)return;BV.bgKind=bk;
   while(BV.bg.children.length)BV.bg.remove(BV.bg.children[0]);bvClearDio();BV.tint=null;BV.sc.background=null;
@@ -6477,20 +6505,28 @@ const PR_EFF={0:"#929292",.25:"#FF7400",.5:"#FE8E00",2:"#4AA500",4:"#4BB400"};
 function prPPStyle(r){return r<=0?["#e13d3d","#632929"]:r<=.25?["#d64b00","#69402a"]:r<=.5?["#ccbe00","#6e672c"]:["#f8f8f8","#6b5a73"];}
 
 /* ---------- Infoboxen ---------- */
-function prHpBar(x,y,f){const fr=f>.5?0:f>.2?2:4;const w=Math.round(48*clamp(f,0,1)*6)/6;if(w>0)dI("hp",0,fr,48,2,x,y,w,2);}
+// v0.28: KP-Balken feiner (Verlauf, Glanzkante, weicher Farbwechsel, roter „Nachzieh“-Balken bei Schaden)
+const _hpGhost={};
+function prHpBar(x,y,f,key){f=clamp(f,0,1);const W=48;const k=key||x+","+y;let g=_hpGhost[k];if(g==null||g<f)g=f;else g=Math.max(f,g-.006);_hpGhost[k]=g;
+  ctx.fillStyle="#2a2a32";ctx.fillRect(x-.5,y-.5,W+1,3);
+  if(g>f){ctx.fillStyle="#f86a4a";ctx.fillRect(x,y,W*g,2);}
+  const c=f>.5?["#7cf08a","#3ab85a"]:f>.2?["#ffe066","#e0a020"]:["#ff7a6a","#d83a2a"];const w=W*f;
+  if(w>0){const gr=ctx.createLinearGradient(0,y,0,y+2);gr.addColorStop(0,c[0]);gr.addColorStop(1,c[1]);ctx.fillStyle=gr;ctx.fillRect(x,y,w,2);ctx.fillStyle="rgba(255,255,255,.55)";ctx.fillRect(x,y,w,.5);}}
 function prEnemyInfo(b){const m=b.m,X=140,Y=39;
   dI("pbe",0,0,130,31,X-130,Y-15.5);
   const t=b.types;dI("te1",0,PR_T2F[t[0]]*12,20,12,X-15,Y-15.5);if(t[1])dI("te2",0,PR_T2F[t[1]]*12,20,12,X-15,Y-2.5);
   const nm=monName(m);prT(nm,X-124,Y-11.2,{size:12});prGender(m,X-124+prW(nm,12),Y-11.2,12);
   dI("lv",0,0,8,7,X-50+5.5-8,Y-5-3.5);prNum(m.lv,X-50+9.5+String(m.lv).length*8-4,Y-5-.5);
-  dI("hplab",0,0,13,7,X-71-1-13,Y+4.5-3);prHpBar(X-71,Y+4.5,B.hpD[1]/maxHp(m));
+  dI("hplab",0,0,13,7,X-71-1-13,Y+4.5-3);prHpBar(X-71,Y+4.5,B.hpD[1]/maxHp(m),"e");
   let sx=X-124;if(B.type==="wild"&&G.save.dex.caught[m.sp]){dI("owned",0,0,7,7,sx,Y-11.2+11.75);sx+=8;}
   if(m.st)prStatus(m.st,sx,Y-11.2+11.5);
   if(m.shiny)dI("shiny",0,0,8,8,X-124-9,Y-11.2+3);
   if(m.megaFrom&&typeof megaSymbol==="function")megaSymbol(X-124+prW(nm,12)+16,Y-6,5);
   // Team-Leiste des Trainers als Balken direkt unter der KP-Anzeige (kommt und geht mit ihr)
-  if(B.type==="trainer"&&B.foes&&B.foes.length>1){const x0=X-122,y=Y+17;dI("traye",0,0,104,4,x0,y+5);
-    for(let i=0;i<6;i++){const f=B.foes[i];const fx=f?(alive(f)?(f.st?21:0):14):7;dI("tray",fx,0,7,7,x0+96-i*10,y);}}
+  if(B.type==="trainer"&&B.foes&&B.foes.length>1){const n=B.foes.length,w=n*10+8,x0=X-124,y=Y+17;
+    ctx.fillStyle="rgba(20,16,30,.78)";ctx.beginPath();ctx.moveTo(x0,y-1);ctx.lineTo(x0+w+4,y-1);ctx.lineTo(x0+w,y+8);ctx.lineTo(x0,y+8);ctx.closePath();ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.18)";ctx.fillRect(x0,y-1,w+3,.6);
+    for(let i=0;i<n;i++){const f=B.foes[i];const fx=alive(f)?(f.st?21:0):14;dI("tray",fx,0,7,7,x0+4+i*10,y);}}
   // Effektivitäts-Fenster (beim Wählen einer Attacke)
   const M=B.menu;if(M&&M.k==="move"&&!B.text){const s=B.act[0].m.moves[M.i];if(s){const mo=MOVES[s.id];if(mo.c!==1){const e=effOf(mo,b,B.act[0]);
     const lab=(e===.25?"¼":e===.5?"½":e)+"x";const w=10+prW(lab,12);const ex=X-15+22,ey=Y-15.5+4;prWin(ex,ey,w,20,"winx",8);prT(lab,ex+5,ey+4.5,{size:12});}}}
@@ -6500,13 +6536,15 @@ function prPlayerInfo(b){const m=b.m,X=310,Y=PRB+108;
   const t=b.types;dI("tp1",0,PR_T2F[t[0]]*12,20,12,X-139,Y-17);if(t[1])dI("tp2",0,PR_T2F[t[1]]*12,20,12,X-139,Y-1);
   const nm=monName(m);prT(nm,X-115,Y-15.2,{size:12});prGender(m,X-115+prW(nm,12),Y-15.2,12);
   const lv=B.expLv||m.lv;dI("lv",0,0,8,7,X-41+5.5-8,Y-10-3.5);prNum(lv,X-41+9.5+String(lv).length*8-4,Y-10-.5);
-  dI("hplab",0,0,13,7,X-61-1-13,Y-1-3);prHpBar(X-61,Y-1,B.hpD[0]/maxHp(m));
+  dI("hplab",0,0,13,7,X-61-1-13,Y-1-3);prHpBar(X-61,Y-1,B.hpD[0]/maxHp(m),"p");
   prNum(`${Math.ceil(B.hpD[0])}/${maxHp(m)}`,X-15+4,Y+10);
   if(m.st)prStatus(m.st,X-115,Y-15.2+11.5);
   if(m.shiny)dI("shiny",0,0,8,8,X-115-9,Y-15.2+3);
   if(m.megaFrom&&typeof megaSymbol==="function")megaSymbol(X-115+prW(nm,12)+16,Y-10,5);
-  dI("explab",0,0,16,7,X-91-16,Y+20-7);
-  const a=expAt(m.sp,lv),z=expAt(m.sp,lv+1);const f=lv>=100?0:clamp((B.expD-a)/(z-a),0,1);if(f>0)dI("exp",0,0,85*f,2,X-98,Y+18);
+  const a=expAt(m.sp,lv),z=expAt(m.sp,lv+1);const f=lv>=100?0:clamp((B.expD-a)/(z-a),0,1);
+  // v0.28: eigene EP-Leiste (Beschriftung war abgeschnitten)
+  const ex=X-98,ey=Y+17.5;ctx.fillStyle="#1e1a2a";ctx.fillRect(ex-1,ey-.5,87,3);prT("EP",ex-3,ey-4.6,{size:7,align:"right",c:"#5ac8ff",sh:"#1a3a5a"});
+  if(f>0){const gr=ctx.createLinearGradient(0,ey,0,ey+2);gr.addColorStop(0,"#8ae0ff");gr.addColorStop(1,"#3a9ae0");ctx.fillStyle=gr;ctx.fillRect(ex,ey,85*f,2);ctx.fillStyle="rgba(255,255,255,.5)";ctx.fillRect(ex,ey,85*f,.5);}
 }
 // Werte-Stufen wie PokéRogue: C gedrückt halten → das Info-Feld blendet zum Stufen-Panel über (ANG/VER/S.ANG/S.VER/GEN/FLU/INI, -6 … +6)
 const PR_SLAB={atk:[68,13],def:[81,13],spa:[0,19],spd:[19,19],acc:[55,13],eva:[94,13],spe:[107,13]};
@@ -6558,10 +6596,9 @@ function prMoves(M){const b=B.act[0],foe=B.act[1];prBar();prWin(0,PRH-48,243,48)
   const pw=mo.c===1||!(mo.p>0)?"---":String(mo.p);
   lab("AP",26);val(`${String(s.pp).padStart(2," ")}/${String(mo.pp).padStart(2," ")}`,26,prPPStyle(s.pp/mo.pp));
   lab("STÄRKE",18);val(pw,18);lab("GENAU.",10);val(mo.a?String(mo.a):"---",10);
-  // Attacken-Info (C): Beschreibung in einem Fenster über dem Balken, wie PokéRogue
-  if(OPT.minfo){const h=58,y=PRH-48-h;prWin(0,y,PRW,h);prT(mo.n,10,y+6,{size:16});
-    dI("types",0,PR_T2F[mo.t]*14,32,14,PRW-80,y+7);dI("cat",(mo.c===2?0:mo.c===3?28:56),0,28,11,PRW-40,y+8);
-    prWrap(MOVE_DESC[s.id]||"Keine Beschreibung.",298,13).slice(0,3).forEach((l,r)=>prT(l,10,y+22+r*11,{size:13,c:"#e8e0f0",sh:"#4a4058"}));}
+  // Attacken-Info: solange C gehalten wird, steht die Beschreibung unten in der Leiste (wie PokéRogue)
+  if(Input.held.quick){prWin(0,PRH-48,243,48);prWrap(MOVE_DESC[s.id]||"Keine Beschreibung.",222,13).slice(0,3).forEach((l,r)=>prT(l,10,PRH-41+r*12,{size:13,c:"#f8f8f8"}));}
+  else prT("C halten: Info",238,PRH-60,{size:9,align:"right",c:"rgba(255,255,255,.7)",sh:"rgba(0,0,0,.7)"});
 }
 // Ball-Auswahl (Fenster rechts über dem Balken)
 function prBalls(M){const L=M.list;const tw_=Math.max(...L.map(o=>prW(o.n))),cw=Math.max(0,...L.map(o=>o.c!=null?prW("×"+o.c):0));
@@ -6638,15 +6675,15 @@ function prPartySlot(m,k,sel,sw){const fnt=!alive(m);const main=k===0;
   const pb=main?[4,4]:[2,12];const ph=sel?[0,24]:[24,22];dI("ppb",0,ph[0],20,ph[1],x+pb[0]-10,y+pb[1]-ph[1]/2);
   drawIcon(m.sp,x+pb[0]-20,y+pb[1]-15-(sel?0:0),(sel||k===0)&&Math.floor(FRAME/(sel?6:14))%2);
   const np=main?[24,10]:[21,2],lp=main?[32,22]:[29,14];
-  const nm=monName(m);prT(nm,x+np[0],y+np[1],{size:8,f:"p",sh:"#707070",sx:.5,sy:.5,dy:.3});
+  const nm=monName(m);prT(nm,x+np[0],y+np[1]-2,{size:12,sh:"#505058"});
   if(m.shiny)dI("shiny",0,0,8,8,x+np[0]-9,y+np[1]+3);
-  dI("plv",0,0,8,8,x+lp[0],y+lp[1]);prT(String(m.lv),x+lp[0]+9,y+lp[1]-2,{size:8,f:"p",sh:"#707070",sx:.5,sy:.5});
-  if(m.gender&&PR_GC[m.gender]){const go=main?[68,-9]:[36,0];prT(m.gender==="m"?"♂":"♀",x+lp[0]+go[0],y+lp[1]+go[1]-2,{size:8,f:"p",c:PR_GC[m.gender][0],sh:PR_GC[m.gender][1],sx:.5,sy:.5});}
+  dI("plv",0,0,8,8,x+lp[0],y+lp[1]);prT(String(m.lv),x+lp[0]+9,y+lp[1]-3,{size:11,sh:"#505058"});
+  if(m.gender&&PR_GC[m.gender]){const go=main?[68,-9]:[36,0];prT(m.gender==="m"?"♂":"♀",x+lp[0]+go[0],y+lp[1]+go[1]-3,{size:11,c:PR_GC[m.gender][0],sh:PR_GC[m.gender][1]});}
   if(m.st||fnt){const so=main?55:43;prStatus(fnt?"fnt":m.st,x+lp[0]+so,y+lp[1]);}
   const hp=main?[8,31]:[72,6];const mx=maxHp(m),r=m.hp/mx;
   dI("phpbar",0,0,100,7,x+hp[0],y+hp[1]);dI("phplab",0,0,13,6,x+hp[0]+15-13,y+hp[1]+.5);
   if(r>0)dI("phpov",0,r>.5?0:r>.25?3:6,80,3,x+hp[0]+16,y+hp[1]+2,Math.round(80*r*3)/3,3);
-  prT(`${m.hp}/${mx}`,x+hp[0]+100-3,y+hp[1]+7-2,{size:8,f:"p",align:"right",sh:"#707070",sx:.5,sy:.5});
+  prT(`${m.hp}/${mx}`,x+hp[0]+100-3,y+hp[1]+6,{size:11,align:"right",sh:"#505058"});
   if(m.item){const ix=main?x+100:x+164,iy=main?y+40:y+16;ctx.fillStyle="#f8f8f8";ctx.beginPath();ctx.arc(ix,iy,3,0,7);ctx.fill();ctx.fillStyle="#e04848";ctx.beginPath();ctx.arc(ix,iy,2,0,7);ctx.fill();}
 }
 function drawPartyPR(P,i,swapFrom,msgT){prBegin();
@@ -6654,7 +6691,7 @@ function drawPartyPR(P,i,swapFrom,msgT){prBegin();
   for(let k=0;k<Math.min(6,P.length);k++)prPartySlot(P[k],k,i===k,swapFrom===k);
   prWin(1,PRH-31,262,30);const L=prWrap(msgT,240);prT(L[0]||"",10,PRH-24);
   const sel=i===P.length;const cx=291,cy=PRH-16;dI("pcan",0,sel?16:0,52,16,cx-26,cy-8);
-  const ph=sel?[0,24]:[24,22];dI("ppb",0,ph[0],20,ph[1],cx-17-10,cy-ph[1]/2);prT("Zurück",cx-10,cy-7,{size:8,f:"p",sh:"#707070",sx:.5,sy:.5,dy:1});
+  const ph=sel?[0,24]:[24,22];dI("ppb",0,ph[0],20,ph[1],cx-17-10,cy-ph[1]/2);prT("Zurück",cx-10,cy-7,{size:11,sh:"#505058"});
   prEnd();}
 
 /* ===== obui.js ===== */
@@ -6693,21 +6730,27 @@ const PX=v=>v*PRK; // PR -> SW
 function obGender(m,x,y){if(m.gender==="m")prT("♂",x,y,{size:12,c:"#8ec8ff",sh:"rgba(0,0,0,.5)"});else if(m.gender==="f")prT("♀",x,y,{size:12,c:"#ffa8c0",sh:"rgba(0,0,0,.5)"});}
 
 /* ---------- Team ---------- */
+function pr0(o){return o.mode==="battle"||o.mode==="forced";}
 function obPartyDraw(P,i,swapFrom,msgT,o){
   obBg();obHeader("POKéMON",o.mode==="battle"||o.mode==="forced"?"Kampf":`${P.length}/6`);
-  P.forEach((m,k)=>{const col=k%2,row=Math.floor(k/2),w=150,h=46,x=8+col*(w+4),y=30+row*50;const sel=k===i,sw=k===swapFrom,fnt=!alive(m),mx=maxHp(m);
-    obCard(x,y,w,h,sel,sw?"rgba(255,216,120,.28)":fnt?"rgba(240,90,58,.22)":k===0?"rgba(232,90,58,.2)":null);
-    ctx.fillStyle="rgba(255,255,255,.07)";ctx.beginPath();ctx.arc(x+22,y+23,17,0,7);ctx.fill();
-    obSW(()=>drawIcon(m.sp,PX(x-3),PX(y+3),(sel||k===0)&&Math.floor(FRAME/(sel?6:14))%2));
-    const nm=monName(m);prT(nm,x+44,y+4,{size:14,c:fnt?"#a898a8":"#ffffff"});obGender(m,x+46+prW(nm,14),y+5);
-    prT("Lv."+m.lv,x+w-6,y+6,{size:12,align:"right",c:"#f8d878",sh:"#6a5010"});
-    obHp(x+44,y+26,w-52,m.hp/mx);prT(`${m.hp}/${mx}`,x+w-6,y+31,{size:10,align:"right",c:OB.dim});
-    if(fnt||m.st)prStatus(fnt?"fnt":m.st,x+44,y+33);
-    if(m.item){ctx.fillStyle="#ffffff";ctx.beginPath();ctx.arc(x+36,y+38,4,0,7);ctx.fill();ctx.fillStyle="#e04848";ctx.beginPath();ctx.arc(x+36,y+38,2.6,0,7);ctx.fill();}
-    if(m.shiny)prT("★",x+5,y+31,{size:12,c:"#fff07a"});
-    if(o.mode==="item"&&o.item&&ITEMS[o.item].evo){const ok=!!evoTarget(m,o.item);prT(ok?"MÖGLICH":"NICHT MÖGLICH",x+44+(w-52)/2,y+33,{size:10,align:"center",c:ok?"#a0ffa0":"#ffb0a0"});}
-    if(o.mode==="item"&&o.item&&ITEMS[o.item].tm&&typeof tmState==="function"){const st=tmState(m,o.item);prT(st,x+44+(w-52)/2,y+33,{size:10,align:"center",c:st==="MÖGLICH"?"#a0ffa0":st==="ERLERNT"?"#ffe890":"#ffb0a0"});}});
-  for(let k=P.length;k<6;k++){const col=k%2,row=Math.floor(k/2),x=8+col*154,y=30+row*50;ctx.fillStyle="rgba(0,0,0,.22)";ctx.fillRect(x,y,150,46);ctx.fillStyle="rgba(255,255,255,.08)";ctx.beginPath();ctx.arc(x+75,y+23,5,0,7);ctx.fill();}
+  // v0.28: kompaktere, schönere Karten (passen jetzt alle 6 über die Leiste): Typ-Akzent, Typ-Symbole, EP-Leiste, echtes Item-Symbol
+  const W=150,H=40,ST=44;
+  P.forEach((m,k)=>{const col=k%2,row=Math.floor(k/2),w=W,h=H,x=8+col*(w+4),y=28+row*ST;const sel=k===i,sw=k===swapFrom,fnt=!alive(m),mx=maxHp(m),S=SPECIES[m.sp],tc=TYPE_C[S.t[0]]||OB.acc;
+    obCard(x,y,w,h,sel,sw?"rgba(255,216,120,.28)":fnt?"rgba(240,90,58,.22)":null);
+    {const g=ctx.createLinearGradient(x,0,x+60,0);g.addColorStop(0,_obA(tc,fnt?.12:.32));g.addColorStop(1,_obA(tc,0));ctx.fillStyle=g;ctx.fillRect(x+1,y+1,60,h-2);ctx.fillStyle=_obA(tc,.9);ctx.fillRect(x+w-3,y+3,2,h-6);}
+    ctx.fillStyle="rgba(0,0,0,.28)";ctx.beginPath();ctx.ellipse(x+20,y+31,13,3.5,0,0,7);ctx.fill();
+    obSW(()=>{if(fnt)ctx.globalAlpha=.5;drawIcon(m.sp,PX(x),PX(y-1),(sel||k===0)&&!fnt&&Math.floor(FRAME/(sel?6:14))%2);ctx.globalAlpha=1;});
+    const nm=monName(m);prT(nm,x+42,y+2,{size:13,c:fnt?"#a898a8":"#ffffff"});obGender(m,x+44+prW(nm,13),y+3);
+    prT("Lv."+m.lv,x+w-7,y+3,{size:11,align:"right",c:"#f8d878",sh:"#6a5010"});
+    obHp(x+42,y+20,w-50,m.hp/mx);prT(`${m.hp}/${mx}`,x+w-7,y+25,{size:10,align:"right",c:OB.dim,sh:"transparent"});
+    {const a=expAt(m.sp,m.lv),z=expAt(m.sp,m.lv+1),f=m.lv>=100?1:clamp((m.exp-a)/(z-a||1),0,1);ctx.fillStyle="#18141e";ctx.fillRect(x+42,y+h-5,w-50,2);ctx.fillStyle="#58b8f8";ctx.fillRect(x+42,y+h-5,(w-50)*f,2);}
+    if(fnt||m.st)prStatus(fnt?"fnt":m.st,x+42,y+26);else S.t.forEach((t,j)=>{const cx=x+42+j*34,cy=y+25;const c=TYPE_C[t]||"#888";ctx.fillStyle=c;ctx.fillRect(cx,cy,32,9);ctx.fillStyle="rgba(255,255,255,.3)";ctx.fillRect(cx,cy,32,1);ctx.fillStyle="rgba(0,0,0,.25)";ctx.fillRect(cx,cy+8,32,1);prT(String(TYPE_N[t]||"").toUpperCase().slice(0,7),cx+16,cy,{size:8,align:"center",c:"#fff",sh:"rgba(0,0,0,.5)"});});
+    if(m.item)obSW(()=>drawItem(m.item,PX(x+26),PX(y+22),.38));
+    if(m.shiny)prT("★",x+4,y+2,{size:11,c:"#fff07a",sh:"rgba(0,0,0,.6)"});
+    if(k===0&&!pr0(o))prT("VORN",x+4,y+h-11,{size:8,c:"#ffd890",sh:"rgba(0,0,0,.6)"});
+    if(o.mode==="item"&&o.item&&ITEMS[o.item].evo){const ok=!!evoTarget(m,o.item);prT(ok?"MÖGLICH":"NICHT MÖGLICH",x+w-7,y+25,{size:10,align:"right",c:ok?"#a0ffa0":"#ffb0a0"});}
+    if(o.mode==="item"&&o.item&&ITEMS[o.item].tm&&typeof tmState==="function"){const st=tmState(m,o.item);ctx.fillStyle="rgba(10,6,20,.8)";ctx.fillRect(x+w-70,y+23,64,11);prT(st,x+w-38,y+24,{size:10,align:"center",c:st==="MÖGLICH"?"#a0ffa0":st==="ERLERNT"?"#ffe890":"#ffb0a0",sh:"transparent"});}});
+  for(let k=P.length;k<6;k++){const col=k%2,row=Math.floor(k/2),x=8+col*154,y=28+row*ST;ctx.fillStyle="rgba(0,0,0,.22)";ctx.fillRect(x,y,150,H);ctx.fillStyle="rgba(255,255,255,.08)";ctx.beginPath();ctx.arc(x+75,y+H/2,5,0,7);ctx.fill();}
   prBar();prT(msgT,12,PRH-38,{size:14});obBtn(PRW-84,PRH-40,72,22,"ZURÜCK",i===P.length);
   prEnd();}
 
@@ -7060,6 +7103,9 @@ function partyMenu(o){
   return new Promise(res=>{
     const P=G.save.party;let i=o.cur!=null&&o.mode!=="battle"&&o.mode!=="forced"?o.cur:0;if(o.mode==="forced")i=P.findIndex((m,k)=>alive(m)&&k!==o.cur);if(i<0)i=0;
     let swapFrom=-1,msgT=o.title||"Wähle ein Pokémon.",busy=false;const pr=!!(B&&(o.mode==="battle"||o.mode==="forced"||o.mode==="item")); // Kampf: PokéRogue-Team-Ansicht
+    // v0.28: im Kampf steht das aktive Pokémon immer links im großen Feld (nur Anzeige – die Team-Reihenfolge bleibt)
+    const cur=B&&B.act&&B.act[0]?P.indexOf(B.act[0].m):-1;const ord=pr&&cur>0?[cur,...P.map((_,k)=>k).filter(k=>k!==cur)]:P.map((_,k)=>k);const V=ord.map(k=>P[k]);
+    if(pr)i=Math.max(0,ord.indexOf(i));
     const scene={opaque:true,
       update(){
         if(busy)return;const n=P.length;
@@ -7073,18 +7119,18 @@ function partyMenu(o){
         if(Input.hit("a")){if(i===n){if(o.mode==="forced"){sfx("deny");return;}sfx("back");close(-1);return;}sfx("select");busy=true;act().finally(()=>busy=false);}
       },
       draw(){
-        if(pr){drawPartyPR(P,i,swapFrom,msgT);return;}obPartyDraw(P,i,swapFrom,msgT,o);
+        if(pr){drawPartyPR(V,i,swapFrom,msgT);return;}obPartyDraw(P,i,swapFrom,msgT,o);
       }};
     const close=v=>{pop(scene);res(v);};
     async function act(){
-      const m=P[i];
+      const ri=pr?ord[i]:i;const m=P[ri];
       if(swapFrom>=0){if(swapFrom!==i){[P[swapFrom],P[i]]=[P[i],P[swapFrom]];sfx("item");}swapFrom=-1;msgT="Wähle ein Pokémon.";return;}
-      if(o.mode==="item"||o.mode==="pick"){close(i);return;}
-      if(o.mode==="forced"){if(!alive(m)||i===o.cur){sfx("deny");msgT=!alive(m)?"Es kann nicht kämpfen!":"Es kämpft bereits!";return;}close(i);return;}
+      if(o.mode==="item"||o.mode==="pick"){close(ri);return;}
+      if(o.mode==="forced"){if(!alive(m)||ri===o.cur){sfx("deny");msgT=!alive(m)?"Es kann nicht kämpfen!":"Es kämpft bereits!";return;}close(ri);return;}
       if(o.mode==="battle"){
         const c=await choose(["Wechseln","Status","Zurück"],{x:150,y:72,w:80,style:"pr"});
-        if(c===0){if(!alive(m)){msgT="Es kann nicht kämpfen!";return;}if(i===o.cur){msgT="Es kämpft bereits!";return;}close(i);return;}
-        if(c===1)await summary(P,i);return;
+        if(c===0){if(!alive(m)){msgT="Es kann nicht kämpfen!";return;}if(ri===o.cur){msgT="Es kämpft bereits!";return;}close(ri);return;}
+        if(c===1)await summary(V,i);return;
       }
       const opts=["STATUS","TAUSCHEN","ITEM","SPITZNAME","ATTACKEN","ZURÜCK"];
       const c=await choose(opts,{x:150,y:30,w:86});
@@ -7513,6 +7559,23 @@ async function megaRingCheck(){if(!G.save||bagCount("mega-ring")||(G.save.badges
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.28",d:"31.10.2026",items:[
+    "Post-Game: Nach dem Champ steigt das Level-Cap auf 100. Alle Arenaleiter wollen eine Revanche mit 6 Pokémon auf Lv. 62–68 (mit Megas).",
+    "Kampfturm in der Pokémon-Liga (nach dem Champ): 3 Pokémon auf Lv. 50, 7 Kämpfe am Stück, Rekord wird gespeichert. Alle 7 Siege gibt es 3 Sonderbonbons und 25 Obsidian-Splitter.",
+    "Kampffahnder (Geschenk im Pokémon-Center Orania): Besiegte Trainer in der Nähe wollen eine Revanche – mit jedem Mal stärker. Lädt sich in 100 Schritten auf.",
+    "Pokémon-Pension: Gib bis zu 2 Pokémon ab, sie sammeln pro Schritt E.-Punkte. Passende Paare (gleiche Entwicklungsreihe, verschiedenes Geschlecht – oder mit Ditto) legen Eier, die beim Laufen schlüpfen.",
+    "Spielhalle Prismania: Münzkorb und Münzen an der Theke, spielbare Automaten und die Preis-Ecke mit Münzen (Abra, Piepi, Dratini, Sichlor, Pinsir, Porygon und TMs).",
+    "Angeln: Angel (Anglerhaus Orania), Profiangel (Fuchsania) und Superangel (Route 12). Vor Wasser A drücken oder im Beutel benutzen.",
+    "Level-Cap gilt jetzt auch für wilde Pokémon, Fänge und Geschenke – nichts kommt mehr über dem Cap ins Team.",
+    "Ausgänge sind besser zu erkennen: Pfeil und Lichtfleck auf Türmatten, Höhlen-Ausgängen, Treppen und Leitern in deiner Nähe.",
+    "Alle Gespräche überarbeitet: keine veralteten Tipps mehr (z. B. zur zweiten Schwester), dafür passende Hinweise je Ort – z. B. in der Digda-Höhle, wohin sie führt.",
+    "Kampf-Hintergründe in allen Innenräumen (Arenen, Gebäude, Pokémon-Turm …) jetzt gemalt wie in den Höhlen – keine schwarze Leere und keine Wandkanten mehr.",
+    "Kampfanzeige feiner: KP-Balken mit Verlauf und rotem Nachzieh-Balken bei Schaden, eigene EP-Leiste, Team-Leiste des Trainers zeigt nur echte Pokémon.",
+    "Team-Bildschirm schöner: kompaktere Karten (alle 6 passen jetzt aufs Bild), Typ-Farbe, Typen, EP-Leiste und Item-Symbol. Im Kampf steht das aktive Pokémon immer links im großen Feld, Schrift dort besser lesbar.",
+    "VM02 Fliegen: Das Mädchen mit der VM wohnt jetzt im Haus direkt links neben dem Pokémon-Center in Orania City (vorher war das Haus nicht erreichbar). Zusätzlich gibt es sie wie in Feuerrot im Haus auf Route 16.",
+    "Schwebende Pokémon wie Goldini versinken nicht mehr in der Plattform.",
+    "Figuren gefixt: Schwimmer an Land (z. B. im Center Azuria, Route 19) waren nur ein Kopf – jetzt normale Figuren.",
+    "Attacken-Info im Kampf: C gedrückt halten zeigt die Beschreibung unten in der Leiste (wie PokéRogue). Die Werte-Übersicht liegt jetzt auf Start/MENÜ."]},
   {v:"0.27",d:"31.10.2026",items:[
     "Pokédex neu: Filter mit C (Alle, Gefangen, Fehlend, Schillernd und jeder Typ) und Schillernd-Ansicht mit R wie in Pokémon GO.",
     "Schillernde Pokémon werden pro Form gezählt – auch Entwicklungen und Megas. Was du schon im Team oder in der Box hast, wird rückwirkend eingetragen (★ in der Liste).",
@@ -7528,7 +7591,7 @@ const PATCH=[
     "Leveln ist langsamer, ungefähr wie in Feuerrot: E.-Punkte werden unter den Kämpfern geteilt, Zuschauer bekommen nur mit EP-Teiler etwas. Den EP-Teiler gibt es im Kaufhaus Prismania.",
     "Kampf-Hintergründe: Hinter dem Gegner bleibt die Sicht frei – keine einzelnen Bäume, Zäune oder Felsen mehr mitten im Bild.",
     "Pokémon-Sprites stehen in Menüs jetzt mittig (vorher teils zu weit links). Die Nummer in der Pokémon-Info überdeckt das Sprite nicht mehr.",
-    "Neu im Kampf: Mit C (oder Start/MENÜ) im Kampfmenü siehst du die Werte beider Pokémon – eigene Werte, Statuswert-Stufen, Typen, Fähigkeit, Item, Wetter und Effekte.",
+    "Neu im Kampf: Mit Start/MENÜ im Kampfmenü siehst du die Werte beider Pokémon – eigene Werte, Statuswert-Stufen, Typen, Fähigkeit, Item, Wetter und Effekte.",
     "TMs im Beutel zeigen jetzt Typ, Klasse, Stärke, Genauigkeit, AP, die Beschreibung und wer im Team sie lernen kann (✓ kann, ● kennt sie schon, ✗ nicht).",
     "Schaufler, Fliegen, Taucher, Sprungfeder und Phantomkraft funktionieren wie im Original: Das Pokémon gräbt sich ein bzw. verschwindet und kann in der Zeit kaum getroffen werden (Erdbeben trifft Eingegrabene doppelt, Donner Fliegende). Solarstrahl & Co. haben eigene Texte.",
     "Menüs feiner gestaltet: neue Kopfleiste, abgeschrägte Karten, deutlichere Auswahl. Die Werte-Balken zeigen jetzt den Basiswert (vorher sahen sie bei niedrigem Level fast leer aus)."]},
@@ -8621,13 +8684,13 @@ function saveIconDraw(){if(SAVE_ICON<=0)return;SAVE_ICON--;const a=Math.min(1,SA
 
 /* ===== binfo.js ===== */
 /* ================================ KAMPF-INFO v0.26 ================================
-   Im Kampfmenü mit C (oder Start/MENÜ) umschalten: Werte beider Pokémon ansehen –
+   Im Kampfmenü mit Start/MENÜ umschalten: Werte beider Pokémon ansehen –
    eigene Werte mit allen Veränderungen, Statuswert-Stufen beider Seiten, Typen, Fähigkeit, Item, Wetter und Schutzschilde. */
 {const _mu=prMenuUpdate;prMenuUpdate=function(M){
-  if(B&&B.info){if(Input.hit("quick")||Input.hit("start")||Input.hit("b")||Input.hit("a")){B.info=false;sfx("back");}return true;}
-  if(M&&M.k==="cmd"&&(Input.hit("quick")||Input.hit("start"))){B.info=true;sfx("select");return true;}
+  if(B&&B.info){if(Input.hit("start")||Input.hit("b")||Input.hit("a")){B.info=false;sfx("back");}return true;}
+  if(M&&M.k==="cmd"&&Input.hit("start")){B.info=true;sfx("select");return true;}
   return _mu(M);};}
-{const _du=drawBattleUI;drawBattleUI=function(){_du();if(B&&B.info&&B.menu&&!B.text)drawBattleInfo();else if(B&&B.menu&&B.menu.k==="cmd"&&!B.text){prBegin();prT("C: Werte ansehen",196,PRH-17,{size:10,align:"right",c:OB.gold,sh:"transparent"});prEnd();}};}
+{const _du=drawBattleUI;drawBattleUI=function(){_du();if(B&&B.info&&B.menu&&!B.text)drawBattleInfo();else if(B&&B.menu&&B.menu.k==="cmd"&&!B.text){prBegin();prT("Start: Werte ansehen",196,PRH-17,{size:10,align:"right",c:OB.gold,sh:"transparent"});prEnd();}};}
 const BI_STN=["Angriff","Verteid.","Sp.-Ang.","Sp.-Vert.","Init.","Genauigk.","Fluchtw."];
 function biStage(v,x,y){if(!v){prT("±0",x,y,{size:10,align:"right",c:OB.mute,sh:"transparent"});return;}
   const up=v>0,n=Math.abs(v);for(let i=0;i<Math.min(6,n);i++){ctx.fillStyle=up?"#ff8a5a":"#5aa8ff";const ax=x-6-i*6,ay=y+5;ctx.beginPath();if(up){ctx.moveTo(ax-2.5,ay+2);ctx.lineTo(ax+2.5,ay+2);ctx.lineTo(ax,ay-2);}else{ctx.moveTo(ax-2.5,ay-2);ctx.lineTo(ax+2.5,ay-2);ctx.lineTo(ax,ay+2);}ctx.fill();}
@@ -11380,7 +11443,7 @@ const E={
   route23:{rate:.1,list:[[22,40,44,20],[24,40,44,20],[28,40,44,15],[57,40,44,15],[132,40,44,10],[47,40,44,10],[20,40,44,10]]},
   victory:{rate:.1,list:[[67,42,46,20],[75,42,46,20],[95,42,46,15],[105,42,46,10],[42,42,46,20],[66,40,42,8],[74,40,42,7]]},
 };
-const HEAL_NOTE=" Tipp: Die zweite Schwester im Pokémon-Center bringt dein Team aufs Level-Cap.";
+const HEAL_NOTE=" Tipp: Unter TRAINING bringt dich die Schwester aufs Level-Cap.";
 
 /* ================= Zone ORANIA ================= */
 const ZV="vermilion";
@@ -11825,41 +11888,47 @@ function talk(cls,id){const p=TALK[cls]||[["Lass uns kämpfen!","Du bist stark!"
 
 /* ---------- NPC-Texte: Hinweise je Ort (eigene Texte) ---------- */
 const HINT={
+  diglett_n:["Diese Höhle haben die Digda gegraben. Sie führt bis zu Route 11 bei Orania City!","Die Leiter führt hinunter in die Digda-Höhle."],
+  diglett_s:["Am anderen Ende der Höhle kommst du auf Route 2 bei Vertania raus.","Die Digda graben hier seit Jahren. Manchmal sieht man sogar ein Digdri!"],
+  diglett:["Überall Digda! Der Tunnel verbindet Route 2 und Route 11."],
+  cercave1:["Hier drinnen leben nur starke Pokémon. Pass auf dich auf!"],cercave2:["Ganz tief unten soll ein Pokémon lauern, das Menschen erschaffen haben ..."],
+  tower5:["Hier oben ist die Luft eisig ... Bleib im heiligen Kreis, dann heilt dein Team."],tower7:["Mr. Fuji ist ganz oben – Team Rocket hält ihn fest!"],
+  victory2:["Die Siegesstraße ist die letzte Prüfung vor der Pokémon-Liga.","Felsbrocken kannst du mit Stärke verschieben."],
   pallet:["Im Gras lauern wilde Pokémon. Ohne eigenes Pokémon solltest du da nicht rein!","Prof. Eichs Labor ist das große Gebäude im Süden.","Im Süden liegt das Meer. Mit Surfer käme man bis zur Zinnoberinsel."],
-  route1:["Nördlich liegt Vertania City. Der Weg ist kurz, aber das Gras ist voller Taubsi.","Über die Kanten kannst du nur nach unten springen."],
-  viridian:["Die Arena von Vertania ist seit Ewigkeiten verschlossen. Wo der Leiter wohl ist?","Westlich geht's über Route 22 zur Pokémon-Liga – aber nur mit acht Orden.","Nach Norden führt Route 2 durch den Vertania-Wald nach Marmoria City."],
+  route1:["Nördlich liegt Vertania City. Der Weg ist kurz, aber das Gras ist voller Taubsi.","Über die Kanten kannst du nur nach unten springen.","Ganz im Süden liegt Alabastia, ganz im Norden Vertania City."],
+  viridian:["Die Arena von Vertania ist seit Ewigkeiten verschlossen. Wo der Leiter wohl ist?","Westlich geht's über Route 22 zur Pokémon-Liga – aber nur mit acht Orden.","Nach Norden führt Route 2 durch den Vertania-Wald nach Marmoria City.","Im Pokémon-Center kannst du dich jederzeit kostenlos heilen."],
   route2:["Der Vertania-Wald ist ein Labyrinth. Halte dich an die Wege!","Hinter dem dürren Baum liegt eine Höhle voller Digda. Ohne Zerschneider kommst du da nicht hin."],
-  forest:["Käfersammler lieben diesen Wald. Bring Gegenmittel mit!","Der Ausgang nach Marmoria liegt ganz im Norden.","Pikachu soll hier leben – aber es ist sehr selten!"],
+  forest:["Käfersammler lieben diesen Wald. Bring Gegenmittel mit!","Der Ausgang nach Marmoria liegt ganz im Norden.","Pikachu soll hier leben – aber es ist sehr selten!","Der Ausgang nach Alabastia liegt im Süden."],
   pewter:["Rocko benutzt Gestein-Pokémon. Wasser und Pflanze sind sehr effektiv!","Das Museum zeigt Fossilien aus dem Mondberg.","Östlich geht's über Route 3 zum Mondberg."],
-  route3:["Der Mondberg liegt im Osten. Das Pokémon-Center steht direkt davor.","Hier wimmelt es von Trainern. Heile dich zwischendurch!"],
-  route4:["Im Mondberg gibt es viele Zubat. Schutzschild oder Tränke nicht vergessen!","Östlich liegt Azuria City."],
-  mtmoon1:["Team Rocket gräbt hier nach Fossilien!","Leitern führen in tiefere Ebenen. Der Ausgang ist im Osten."],mtmoon2:["Es ist so dunkel hier ... wo war noch mal der Ausgang?"],mtmoon3:["Fossilien! Zwei Stück liegen hier ... aber ein Supernerd bewacht sie."],
+  route3:["Der Mondberg liegt im Osten. Das Pokémon-Center steht direkt davor.","Hier wimmelt es von Trainern. Heile dich zwischendurch!","Die Trainer hier warten nur darauf, dass du in ihr Blickfeld läufst."],
+  route4:["Im Mondberg gibt es viele Zubat. Schutzschild oder Tränke nicht vergessen!","Östlich liegt Azuria City.","Von hier kommst du nicht zurück zum Mondberg – die Kanten gehen nur nach unten. Zurück geht's durch die Digda-Höhle.","Ein Mann im Pokémon-Center verkauft ein Karpador. Ob das ein gutes Geschäft ist?"],
+  mtmoon1:["Team Rocket gräbt hier nach Fossilien!","Leitern führen in tiefere Ebenen. Der Ausgang ist im Osten.","Hier gibt es Piepi – aber nur ganz selten!"],mtmoon2:["Es ist so dunkel hier ... wo war noch mal der Ausgang?"],mtmoon3:["Fossilien! Zwei Stück liegen hier ... aber ein Supernerd bewacht sie."],
   cerulean:["Misty ist die Arenaleiterin. Ihre Wasser-Pokémon sind gefährlich!","Nördlich über die Nuggetbrücke wohnt Bill, der Pokémon-Forscher.","Team Rocket hat hier eingebrochen! Der Dieb ist hinter dem Haus verschwunden.","Die Höhle im Westen ist gesperrt. Darin soll ein unheimlich starkes Pokémon leben ..."],
-  route24:["Auf der Nuggetbrücke warten fünf Trainer. Schaffst du alle?"],route25:["Bills Haus steht am Ende des Weges am Meer."],
+  route24:["Auf der Nuggetbrücke warten fünf Trainer. Schaffst du alle?"],route25:["Bills Haus steht am Ende des Weges am Meer.","Bill soll sich bei einem Experiment in ein Pokémon verwandelt haben!"],
   route5:["Saffronia City ist gesperrt. Nimm den Untergrundweg nach Süden!"],route6:["Orania City liegt direkt südlich. Dort ankert die M.S. Anne."],
   vermilion:["Die M.S. Anne ist im Hafen. Ohne Ticket kommst du nicht an Bord!","Major Bob ist ein Elektro-Ass. Boden-Pokémon sind dagegen immun!","Die Arena steht hinter einem dürren Baum. Ohne Zerschneider geht's nicht."],
-  route11:["Die Höhle im Westen ist voller Digda. Sie führt bis zu Route 2!"],route9:["Der Felstunnel liegt im Osten. Ohne Licht ist es darin stockfinster."],
+  route11:["Die Höhle im Westen ist voller Digda. Sie führt bis zu Route 2!"],route9:["Der Felstunnel liegt im Osten. Ohne Licht ist es darin stockfinster.","Viele Trainer hier – und keine Heilung bis zum Center vor dem Felstunnel."],
   route10:["Das Pokémon-Center steht direkt vor dem Felstunnel.","Das Kraftwerk ist verlassen. Man munkelt von einem legendären Vogel."],
-  rocktunnel1:["Hier sieht man die Hand vor Augen nicht ... halte dich an die Wände!"],rocktunnel2:["Irgendwo hier unten geht es weiter nach Süden."],
+  rocktunnel1:["Hier sieht man die Hand vor Augen nicht ... halte dich an die Wände!"],rocktunnel2:["Irgendwo hier unten geht es weiter nach Süden.","Bald hast du es geschafft – Lavandia liegt südlich des Tunnels."],
   lavender:["Im Pokémon-Turm spukt es seit Team Rocket hier war.","Mr. Fuji kümmert sich um verwaiste Pokémon. Er ist in den Turm gegangen ...","Westlich geht's über Route 8 nach Saffronia und Prismania."],
-  tower1:["Hier ruhen die Pokémon von Kanto. Bitte sei leise ..."],tower2:["Die Geister werden oben immer stärker ..."],
-  route8:["Saffronia ist gesperrt. Der Untergrundweg führt nach Prismania."],route7:["Prismania liegt westlich. Dort gibt es ein riesiges Kaufhaus!"],
-  celadon:["Erika ist die Arenaleiterin. Ihre Pflanzen-Pokémon mögen kein Feuer!","In der Spielhalle steht ein Rüpel vor einem Plakat. Verdächtig!","Im Haus im Norden wohnt eine Dame, die Tee verschenkt. Sehr erfrischend!","Hinter dem Kaufhaus sind Dachgärten. Ganz oben gibt's Getränke."],
-  route12:["Ein schlafendes Relaxo blockiert die Brücke. Nur ein Lied könnte es wecken ..."],route16:["Auch hier schläft ein Relaxo. Hast du eine Pokéflöte?","Im Haus hier versteckt sich ein Mädchen mit einer seltenen VM."],
-  route17:["Die Radweg-Strecke geht nur bergab. Hier fahren die Rowdys!"],route18:["Fuchsania City liegt östlich."],
+  tower1:["Hier ruhen die Pokémon von Kanto. Bitte sei leise ...","Die Treppe nach oben ist links. Oben spukt es."],tower2:["Die Geister werden oben immer stärker ...","Ohne Silph Scope erkennst du die Geister nicht."],
+  route8:["Saffronia ist gesperrt. Der Untergrundweg führt nach Prismania.","Das Wächterhäuschen nach Saffronia ist geschlossen. Die Wachen sind durstig ..."],route7:["Prismania liegt westlich. Dort gibt es ein riesiges Kaufhaus!"],
+  celadon:["Erika ist die Arenaleiterin. Ihre Pflanzen-Pokémon mögen kein Feuer!","In der Spielhalle steht ein Rüpel vor einem Plakat. Verdächtig!","Im Haus im Norden wohnt eine Dame, die Tee verschenkt. Sehr erfrischend!","Hinter dem Kaufhaus sind Dachgärten. Ganz oben gibt's Getränke.","Im Restaurant gibt es angeblich die beste Torte von Kanto."],
+  route12:["Ein schlafendes Relaxo blockiert die Brücke. Nur ein Lied könnte es wecken ..."],route16:["Auch hier schläft ein Relaxo. Hast du eine Pokéflöte?","Im Haus hier versteckt sich ein Mädchen mit einer seltenen VM.","Den Radweg nach Süden darfst du nur mit Fahrrad befahren."],
+  route17:["Die Radweg-Strecke geht nur bergab. Hier fahren die Rowdys!","Achtung, Rowdys! Die Strecke führt bis nach Fuchsania."],route18:["Fuchsania City liegt östlich."],
   fuchsia:["In der Safari-Zone leben Pokémon, die es sonst nirgends gibt.","Koga, der Ninja, leitet die Arena. Gift ist seine Spezialität.","Der Wärter hat seine Zähne verloren. Er sucht sie überall!"],
-  route13:["Ein Labyrinth aus Zäunen und Gras. Halte dich an die Wege!"],route14:["Vogelfänger lieben diese Route."],route15:["Fuchsania City ist im Westen."],
-  saffron:["Team Rocket hat Silph Co. besetzt! Die ganze Stadt ist in Aufruhr.","Sabrina leitet die Arena. Psycho-Pokémon lesen deine Gedanken!","Das Kampf-Dojo war früher die offizielle Arena."],
-  route19:["Mit Surfer kommst du über das Meer nach Westen zu den Seeschauminseln."],route20:["Auf den Seeschauminseln soll ein eisiger Vogel leben."],
-  cinnabar:["Blaine ist ein Feuer-Ass. Er hat den Arenaschlüssel in der alten Villa versteckt!","Im Labor kann man aus Fossilien wieder Pokémon machen."],
+  route13:["Ein Labyrinth aus Zäunen und Gras. Halte dich an die Wege!","Vogelfänger und Gentlemen kämpfen hier gern."],route14:["Vogelfänger lieben diese Route."],route15:["Fuchsania City ist im Westen."],
+  saffron:["Team Rocket hat Silph Co. besetzt! Die ganze Stadt ist in Aufruhr.","Sabrina leitet die Arena. Psycho-Pokémon lesen deine Gedanken!","Das Kampf-Dojo war früher die offizielle Arena.","Die Wachen lassen dich nur rein, wenn du ihnen etwas zu trinken gibst."],
+  route19:["Mit Surfer kommst du über das Meer nach Westen zu den Seeschauminseln."],route20:["Auf den Seeschauminseln soll ein eisiger Vogel leben.","Die Strömung zwischen den Inseln ist tückisch."],
+  cinnabar:["Blaine ist ein Feuer-Ass. Er hat den Arenaschlüssel in der alten Villa versteckt!","Im Labor kann man aus Fossilien wieder Pokémon machen.","Die alte Pokémon-Villa ist verlassen. Angeblich wurde dort Mewtu erschaffen ..."],
   route21n:["Nördlich liegt Alabastia."],route21s:["Die Zinnoberinsel liegt im Süden."],
   route22:["Westlich liegt das Tor zur Pokémon-Liga. Die Wache lässt nur Trainer mit acht Orden durch."],
   route23:["Hinter der Siegesstraße liegt das Indigo-Plateau."],indigo:["Die Top Vier warten. Rüste dich gut aus!"],
-  safari1:["Wirf Bälle schnell, bevor die Pokémon fliehen!"],safari2:["Hier im Osten gibt's seltene Pokémon."],safari3:["Im Norden liegt ein Rasthaus."],safari4:["Ganz im Westen steht das geheime Haus!"],
+  safari1:["Wirf Bälle schnell, bevor die Pokémon fliehen!"],safari2:["Hier im Osten gibt's seltene Pokémon."],safari3:["Im Norden liegt ein Rasthaus."],safari4:["Ganz im Westen steht das geheime Haus!","Das geheime Haus liegt hinter dem großen Teich."],
   underground_ns:["Dieser Tunnel verbindet Route 5 und Route 6 – also Azuria und Orania."],underground_we:["Dieser Tunnel führt von Route 7 nach Route 8."],
 };
-const GENERIC=["Pokémon werden stärker, wenn man ihnen vertraut.","Hast du schon die KARTE im Menü benutzt? Da siehst du, wo du bist.","Halte C gedrückt, um im Kampf die Statuswerte zu sehen!",
-  "Mit R wirfst du im Kampf schnell einen Ball.","Tippe Shift kurz an, um das Rennen festzustellen.","Heile dich im Pokémon-Center, bevor du weiterziehst!","Die zweite Schwester im Center bringt dein Team aufs Level-Cap."];
+const GENERIC=["Pokémon werden stärker, wenn man ihnen vertraut.","Im Menü unter KARTE siehst du ganz Kanto – und wo du gerade bist.","Im Kampf zeigt Start die Werte beider Pokémon. C gedrückt halten erklärt die Attacke.",
+  "Mit R wirfst du im wilden Kampf schnell einen Ball.","Tippe Shift kurz an, um das Rennen festzustellen.","Heile dich im Pokémon-Center, bevor du weiterziehst!","Die Schwester im Pokémon-Center hilft auch beim Training: unter TRAINING gibt's Level-Cap und Wesen."];
 const npcText=(mid,seed)=>pick((HINT[mid]||[]).concat(HINT[mid]&&HINT[mid].length>2?[]:GENERIC),seed);
 
 /* ---------- Schilder ---------- */
@@ -11867,7 +11936,7 @@ const SLOGAN={pallet:"Ein ruhiger Ort, rein und weiß.",viridian:"Das ewig grün
   vermilion:"Hafenstadt der orangefarbenen Sonnenuntergänge.",lavender:"Die edle, violette Stadt.",celadon:"Stadt der Regenbogenträume.",fuchsia:"Rosa Farbtöne der Leidenschaft.",
   saffron:"Die goldene Stadt des Handels.",cinnabar:"Die feurige Stadt der brennenden Leidenschaft.",indigo:"Der Gipfel aller Pokémon-Trainer."};
 const GYM={pewter:["Rocko","Gestein"],cerulean:["Misty","Wasser"],vermilion:["Major Bob","Elektro"],celadon:["Erika","Pflanze"],fuchsia:["Koga","Gift"],saffron:["Sabrina","Psycho"],cinnabar:["Blaine","Feuer"],viridian:["???","?"]};
-const TIPS=["TRAINER-TIPP: Halte C gedrückt, um im Kampf Statusänderungen zu sehen.","TRAINER-TIPP: Pokémon unter dem Level-Cap lernen schneller. Die zweite Schwester im Center hilft!",
+const TIPS=["TRAINER-TIPP: Im Kampf zeigt Start die Werte, C gedrückt halten erklärt die Attacke.","TRAINER-TIPP: Unter TRAINING bringt dich die Schwester im Pokémon-Center aufs Level-Cap.",
   "TRAINER-TIPP: Schwächere Pokémon lassen sich leichter fangen. Schlaf und Paralyse helfen!","TRAINER-TIPP: Mit R wirfst du im Kampf sofort einen Ball.","TRAINER-TIPP: Im Menü unter KARTE siehst du ganz Kanto.",
   "TRAINER-TIPP: Trainer, die dich sehen, fordern dich sofort heraus. Bleib aus ihrem Blickfeld!","TRAINER-TIPP: Typvorteile sind alles. Wasser schlägt Feuer, Feuer schlägt Pflanze ..."];
 function neighbours(id){const m=F[id];if(!m||!m.world)return[];const W=m.tiles[0].length,H=m.tiles.length,[x0,y0]=m.world,out=[];
@@ -11915,7 +11984,7 @@ function ensureInterior(id){if(M[id])return;
   if(id==="fly_house"){M.fly_house=Object.assign({},M.ver_flyhouse,{name:"ROUTE 16"});return;}
   house(id,INT_NAMES[id]||"HAUS",[{x:5,y:4,ch:"man",move:"look",text:INT_TXT[id]||"Schön, dass du vorbeischaust!"}]);}
 // *house: generische Wohnhäuser – vorhandene Saga-Häuser zuerst
-const HOUSE_POOL={cerulean:["cer_house1","cer_house2","cer_house3","cer_house4"],lavender:["lav_house"],fuchsia:["fuch_house"],saffron:["saf_house"],viridian:["viridian_house"]};
+const HOUSE_POOL={vermilion:["ver_flyhouse"],cerulean:["cer_house1","cer_house2","cer_house3","cer_house4"],lavender:["lav_house"],fuchsia:["fuch_house"],saffron:["saf_house"],viridian:["viridian_house"]};
 const HOUSE_NPC=[["woman","Mach es dir gemütlich! Möchtest du einen Tee? ... Ach, ich habe keinen mehr."],["oldman","Früher gab es hier nur Wiesen und Pokémon. Wie die Zeit vergeht."],
   ["boy","Ich will auch mal Trainer werden! Wie viele Orden hast du?"],["girl","Mein Pokémon schläft gerade. Psst!"],["man","Ein Pokémon-Kampf ist wie Schach – nur lauter."],
   ["woman","Mein Sohn ist auf Reisen. Hoffentlich ruft er bald mal an."],["oldman","Wusstest du? Manche Pokémon entwickeln sich nur mit Steinen."]];
@@ -12216,7 +12285,7 @@ for(const id in M){const m=M[id];if(m.tiles!==KANTO_TILES.house||m.world||m.outs
 const TOWN={
   viridian:{mc:"mart:green",mv:0,greet:"Willkommen im Markt von Vertania! Frisch aus dem Grünen.",sp:"antidote",shop:["youngster","Ich spare auf Superbälle. Mein Taschengeld reicht nur für Pokébälle ..."],vis:["oldman","Früher war Vertania ein Dorf. Heute kommen Trainer aus ganz Kanto hierher."]},
   pewter:{mc:"mart:gold",mv:1,greet:"Willkommen in Marmoria! Steinhart günstige Preise!",sp:"potion",shop:["hiker","Für den Mondberg braucht man Fluchtseile und Tränke. Glaub mir."],vis:["camper","Rocko trainiert jeden Morgen im Museum. Sagen die Leute."]},
-  cerulean:{mc:"mart:teal",mv:2,greet:"Hallo! Willkommen im Markt von Azuria – frisch wie Quellwasser!",sp:"paralyze-heal",shop:["lass","Gegen Misty helfen Paralyse-Heiler. Ihr Sterndu ist fies!"],vis:["swimmerF","Die Arena hat ein echtes Schwimmbecken. Ich trainiere da jeden Tag."]},
+  cerulean:{mc:"mart:teal",mv:2,greet:"Hallo! Willkommen im Markt von Azuria – frisch wie Quellwasser!",sp:"paralyze-heal",shop:["lass","Gegen Misty helfen Paralyse-Heiler. Ihr Sterndu ist fies!"],vis:["lass","Die Arena hat ein echtes Schwimmbecken. Ich trainiere da jeden Tag."]},
   vermilion:{mc:"mart:navy",mv:0,greet:"Ahoi! Willkommen im Hafenmarkt von Orania.",sp:"super-potion",shop:["sailor","Seefahrer kaufen immer Tränke im Dutzend. Man weiß nie, was im Meer wartet."],vis:["sailor","Die M.S. Anne legt nur einmal im Jahr hier an!"]},
   lavender:{mc:"mart:purple",mv:1,greet:"Willkommen ... im Markt von Lavandia. Leise, bitte.",sp:"revive",shop:["channeler","Beleber sind hier sehr gefragt ... frag nicht, warum."],vis:["channeler","Im Pokémon-Turm spukt es. Ohne Silph Scope siehst du nichts."]},
   fuchsia:{mc:"mart:pink",mv:2,greet:"Willkommen in Fuchsania! Safari-Ausrüstung gibt es nebenan.",sp:"ultra-ball",shop:["woman","Hyperbälle fangen fast alles. Ideal für die Safari-Zone!"],vis:["man","Koga ist ein echter Ninja. Seine Arena hat unsichtbare Wände!"]},
@@ -12259,11 +12328,223 @@ const GW={gym_pewter:"gym:rock",gym_cerulean:"gym:water",gym_vermilion:"gym:elec
 for(const id in GW)if(M[id])M[id].wall=GW[id];
 // Azuria: Schwimmer schwimmen im Becken (vorher halbe Figuren auf dem Steg)
 if(M.gym_cerulean){for(const n of M.gym_cerulean.npcs){if(n.ch==="swimmer"){n.x=2;n.y=7;n.dir="right";}if(n.ch==="swimmerF"){n.x=9;n.y=6;n.dir="left";}}}
+// Schwimmer-Figuren sind nur Kopf + Wasser: an Land stehen sie jetzt als normale Figuren
+for(const id in M){const m=M[id];if(!m.npcs||!m.tiles)continue;for(const n of m.npcs){if(!/^swimmer/.test(n.ch||""))continue;const c=(m.tiles[n.y]||"")[n.x];if(c!=="~")n.ch=n.ch==="swimmerF"?"lass":"camper";}}
+})();
+
+/* ===== regions/kanto_zzz_postgame.js ===== */
+/* ================================ Kanto: Post-Game & Original-Features v0.28 ================================
+   - Nach dem Champ: Level-Cap 100, Arenaleiter-Revanche (6 Pokémon, Lv 62–68, je eine Mega), Kampfturm in der Pokémon-Liga
+   - Kampffahnder (Pokémon-Center Orania): besiegte Trainer der Karte wollen eine Revanche – mit stärkeren Teams
+   - Pokémon-Pension (Route 5): bis zu 2 Pokémon abgeben, sie sammeln E.-Punkte pro Schritt; passende Paare legen Eier
+   - Spielhalle Prismania: Münzkorb, Münzen kaufen, Spielautomaten, Preis-Ecke mit Münzen (Pokémon + TMs wie in Feuerrot)
+   - Angeln: Angel (Orania), Profiangel (Fuchsania), Superangel (Route 12) – vor Wasser A drücken */
+(function(){const K=REGIONS.kanto,M=K.maps;const beat=id=>!!G.save.def[id];const champ=()=>flag("champion");
+const H=s=>{let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
+const R=(seed)=>{let h=H(seed)||1;return()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return((h>>>0)%100000)/100000;};};
+
+/* ---------- Items ---------- */
+Object.assign(ITEMS,{"vs-seeker":{cat:"key",n:"Kampffahnder",d:"Zeigt, welche besiegten Trainer auf dieser Karte eine Revanche wollen. Lädt sich in 100 Schritten wieder auf."},
+  "old-rod":{cat:"key",n:"Angel",d:"Eine alte Angel. Vor Wasser benutzen, um Pokémon zu angeln."},
+  "good-rod":{cat:"key",n:"Profiangel",d:"Eine gute Angel. Fängt mehr verschiedene Pokémon."},
+  "super-rod":{cat:"key",n:"Superangel",d:"Die beste Angel. Hier beißen auch seltene und starke Pokémon."},
+  "coin-case":{cat:"key",n:"Münzkorb",d:"Bewahrt bis zu 9.999 Münzen für die Spielhalle auf."}});
+
+/* ---------- Level-Cap nach dem Champ ---------- */
+{const _lc=levelCap;levelCap=function(){return champ()?100:_lc();};}
+
+/* ---------- Level-Cap gilt auch für wilde Pokémon, Fänge und Geschenke ---------- */
+{const _sb=startBattle;startBattle=function(cfg){if(cfg&&cfg.type==="wild"&&G.save&&!(typeof DUEL!=="undefined"&&DUEL)){const cap=levelCap();
+    for(const m of cfg.foes||[])if(m.lv>cap){setLevel(m,cap);m.hp=maxHp(m);}}return _sb.apply(this,arguments);};}
+{const _ap=addToParty;addToParty=function(m){try{const cap=levelCap();if(m&&m.lv>cap)setLevel(m,cap);}catch(e){}return _ap(m);};}
+
+/* ---------- Revanche-System (Arenaleiter + Kampffahnder) ---------- */
+function evolveTo(sp,lv){let s=sp,g=0;while(g++<3){const e=(SPECIES[s].ev||[]).find(x=>x[0]==="lv"&&lv>=x[1]);if(!e)break;s=e[2];}return s;}
+const GYM_RE={brock:[[141,63],[139,63],[76,65],[112,65],[95,66],[142,68,{item:"aerodactylite"}]],misty:[[121,64],[131,64],[73,65],[91,65],[62,66],[130,68,{item:"gyaradosite"}]],
+  surge:[[101,64],[82,64],[135,65],[125,66],[26,68]],erika:[[71,64],[45,64],[103,65],[114,65],[47,64],[3,68,{item:"venusaurite"}]],
+  koga:[[110,64],[89,64],[49,65],[42,65],[24,64],[94,68,{item:"gengarite"}]],sabrina:[[122,64],[97,64],[124,65],[103,65],[80,66],[65,68,{item:"alakazite"}]],
+  blaine:[[78,64],[38,64],[59,65],[126,65],[136,66],[6,68,{item:"charizardite-x"}]],giovanni:[[111,64],[51,64],[105,65],[34,66],[31,66],[115,68,{item:"kangaskhanite"}]]};
+async function rematch(n,team,o={}){const tr=n.d.tr;const t2=Object.assign({},tr,{id:tr.id+"_re"+(o.k||""),team,boss:!!tr.boss,prize:o.prize||tr.prize,intro:o.intro||"Revanche! Diesmal halte ich mich nicht zurück!",
+    lose:o.lose||"Du bist wirklich stark ...",onWin:null,after:tr.after});
+  if(!partyAlive()){await say("Deine Pokémon sind erschöpft! Heile sie zuerst.");return;}
+  await say(t2.intro);const res=await startTrainerBattle(t2,n.d.ch);if(res==="win"){if(t2.lose)await say(t2.lose);if(o.onWin)await o.onWin();}return res;}
+{const _tt=talkTo;talkTo=async function(n){const tr=n.d&&n.d.tr;
+  if(tr&&beat(tr.id)&&!n.moving){
+    // Arenaleiter nach dem Champ
+    if(GYM_RE[tr.id]&&champ()){if(n.d.dir!=="fixed"&&!n.d.fixed)n.dir=OPP[PL.dir];
+      if(await yesNo(`${tr.name}: Du bist jetzt Champ? Dann zeig mir, was du drauf hast – Revanche mit voller Stärke?`)){await rematch(n,GYM_RE[tr.id],{k:"gym",prize:9000,intro:`${tr.name}: Keine Gnade diesmal!`,lose:`${tr.name}: Unglaublich. Du bist wirklich der Champ.`});}
+      else await say(tr.after||"...");return;}
+    // Kampffahnder
+    const vs=G.save.vs||{};if(vs[tr.id]){if(n.d.dir!=="fixed"&&!n.d.fixed)n.dir=OPP[PL.dir];const tier=Math.min(5,(G.save.vsTier||{})[tr.id]||1);
+      const base=typeof tr.team==="function"?tr.team():tr.team;const add=4*tier+Math.max(0,G.save.badges.length*2-6);
+      const team=base.map(([sp,lv,o])=>{const L=Math.min(100,lv+add);return[evolveTo(sp,L),L,o?Object.assign({},o,{moves:undefined}):undefined];});
+      const res=await rematch(n,team,{k:"vs"+tier,intro:"Ich habe trainiert! Revanche!",lose:"Du bist immer noch stärker ..."});
+      if(res==="win"){delete vs[tr.id];G.save.vsTier=G.save.vsTier||{};G.save.vsTier[tr.id]=tier+1;}return;}}
+  return _tt(n);};}
+
+/* ---------- Kampffahnder ---------- */
+async function useVsSeeker(){const s=G.save;const left=100-((s.steps||0)-(s.vsAt==null?-999:s.vsAt));
+  if(s.vsAt!=null&&left>0){await say(`Der Kampffahnder lädt noch auf ... (${left} Schritte)`);return;}
+  const L=activeNpcs().filter(n=>n.d.tr&&beat(n.d.tr.id)&&!GYM_RE[n.d.tr.id]&&!n.d.tr.boss&&!/^rival|^e4_/.test(n.d.tr.id)&&Math.abs(n.x-PL.x)<=12&&Math.abs(n.y-PL.y)<=9);
+  sfx("select");s.vsAt=s.steps||0;
+  if(!L.length){await say("Der Kampffahnder piept ... aber hier will niemand eine Revanche.");return;}
+  s.vs=s.vs||{};const pick=L.filter(()=>lrnd()<.7);if(!pick.length)pick.push(L[0]);for(const n of pick)s.vs[n.d.tr.id]=1;
+  for(const n of pick.slice(0,4))await showEmote(n,22);
+  await say(`${pick.length} Trainer ${pick.length>1?"wollen":"will"} eine Revanche! Sprich sie an.`);}
+
+/* ---------- Angeln ---------- */
+const SEA_MAPS=/^(route19|route20|route21|cinnabar|vermilion|pallet|seafoam|route12|route13)/;
+function fishTable(rod,map){const sea=SEA_MAPS.test(map.id)||map.sea;const b=(G.save.badges||[]).length;
+  if(rod==="old-rod")return{list:[[129,5,10,100]]};
+  if(rod==="good-rod")return{list:sea?[[129,10,20,30],[72,12,22,35],[116,12,22,20],[98,12,22,15]]:[[129,10,20,30],[118,12,22,40],[60,12,22,30]]};
+  const lo=15+b*3,hi=lo+10;const own=((map.encWater&&(map.encWater.list||map.encWater))||[]).map(x=>x[0]).filter(sp=>sp!==72);
+  const pool=sea?[[73,lo,hi,15],[90,lo,hi,15],[98,lo,hi,15],[99,lo+5,hi+5,8],[116,lo,hi,15],[117,lo+5,hi+5,8],[120,lo,hi,12],[130,lo+5,hi+5,6]]:[[119,lo,hi,20],[61,lo,hi,15],[54,lo,hi,15],[79,lo,hi,15],[55,lo+5,hi+5,8],[147,lo,hi,7],[130,lo+5,hi+5,6]];
+  for(const sp of own)if(!pool.some(p=>p[0]===sp))pool.push([sp,lo,hi,10]);return{list:pool};}
+async function goFish(rod){const[dx,dy]=DIRS[PL.dir];const t=tileAt(PL.x+dx,PL.y+dy);if(!t||t.c!=="~"){await say("Hier ist kein Wasser zum Angeln.");return;}
+  await say(`${G.save.name} wirft die ${itemName(rod)} aus ...`);let bite=false;for(let i=0;i<3;i++){await wait(20);}
+  bite=lrnd()<(rod==="old-rod"?.75:rod==="good-rod"?.7:.65);
+  if(!bite){await say("Nichts beißt an ...");return;}sfx("surprise");await say("Oh! Da hat etwas angebissen!");
+  await wildEncounter(t.m,fishTable(rod,t.m));}
+const RODS=["super-rod","good-rod","old-rod"];
+{const _ia=interact;interact=async function(){const[dx,dy]=DIRS[PL.dir];const t=tileAt(PL.x+dx,PL.y+dy);
+  if(t&&t.c==="~"&&!PL.surf&&!npcAt(PL.x+dx,PL.y+dy)){const rods=RODS.filter(k=>bagCount(k));
+    if(rods.length){const opts=[...rods.map(k=>itemName(k).toUpperCase())];if(typeof canHM==="function"&&canHM("surf"))opts.push("SURFER");opts.push("NICHTS");
+      const c=await ask("Das Wasser ist tiefblau. Was möchtest du tun?",opts);if(c<rods.length){await goFish(rods[c]);return;}if(opts[c]!=="SURFER")return;}}
+  return _ia();};}
+
+/* ---------- Spielhalle: Münzen, Automaten, Preis-Ecke ---------- */
+const coins=()=>G.save.coins||0;const addCoins=n=>{G.save.coins=Math.max(0,Math.min(9999,coins()+n));};
+if(M.gamecorner){
+  M.gamecorner.npcs.push({x:6,y:4,ch:"clerk",dir:"down",move:"still",run:async()=>{
+    if(!bagCount("coin-case")){await say("Willkommen in der Spielhalle! Ohne Münzkorb kannst du hier nicht spielen – hier, nimm den!");await K.giveItem("coin-case");}
+    const c=await ask(`Münzen: ${coins()}. 50 Münzen kosten 1.000 ₽.`,["50 MÜNZEN","500 MÜNZEN","NEIN DANKE"]);
+    const n=c===0?50:c===1?500:0;if(!n)return;const pr=n*20;if(G.save.money<pr){await say("Du hast nicht genug Geld.");return;}
+    G.save.money-=pr;addCoins(n);sfx("item");await say(`Du hast jetzt ${coins()} Münzen. Viel Glück!`);}});
+  const pc=(M.gamecorner.npcs||[]).find(n=>n.x===12&&n.y===8);
+  const PRIZES=[["mon",63,"Abra",180],["mon",35,"Piepi",500],["mon",147,"Dratini",2800],["mon",123,"Sichlor",5500],["mon",127,"Pinsir",5500],["mon",137,"Porygon",9999],
+    ["tm","tm13",null,4000],["tm","tm23",null,3500],["tm","tm24",null,4000],["tm","tm30",null,4500],["tm","tm35",null,4000]];
+  const prizeRun=async()=>{if(!bagCount("coin-case")){await say("Ohne Münzkorb gibt es hier nichts. Frag an der Theke nach!");return;}
+    while(true){const k=await listPicker(`Münzen: ${coins()}`,PRIZES.map((p,i)=>({id:String(i+1),label:p[0]==="mon"?`${p[2]} (Lv. ${p[1]===137?26:p[1]===147?18:p[1]===63?9:p[1]===35?8:25})`:itemName(p[1]),right:p[3]+" M"})),{right:"PREIS-ECKE"});
+      if(!k)return;const p=PRIZES[+k-1];if(coins()<p[3]){await say("Dafür reichen deine Münzen nicht.");continue;}
+      if(!(await yesNo(`${p[0]==="mon"?p[2]:itemName(p[1])} für ${p[3]} Münzen?`)))continue;addCoins(-p[3]);
+      if(p[0]==="tm"){await K.giveItem(p[1]);}else{const lv=p[1]===137?26:p[1]===147?18:p[1]===63?9:p[1]===35?8:25;const m=makeMon(p[1],lv,{met:"Spielhalle"});const w=addToParty(m);markCaught(p[1]);sfx("caught");
+        await say(`${G.save.name} erhält ${p[2]}!${w==="box"?" Es wurde in die Box geschickt.":""}`);}}};
+  if(pc)pc.run=prizeRun;else M.gamecorner.npcs.push({x:12,y:8,ch:"clerk",dir:"left",move:"still",run:prizeRun});}
+// Automat: 3 Walzen, Einsatz 3, mit A nacheinander stoppen
+const SLOT_SYM=["7","BAR","P","K","C"];const SLOT_PAY={"7":300,"BAR":100,"P":15,"K":8,"C":4};
+function slotMachine(){return new Promise(res=>{let st=0,rs=[0,0,0],sp=[0,0,0],t=0,win=0,msg="A: 3 Münzen setzen · B: aufhören";
+  const strip=[0,2,4,1,3,4,2,0,4,3,2,4,1,3,4,2];
+  const sc={opaque:true,update(){t++;for(let i=0;i<3;i++)if(st>i||st===0){}
+      if(st>=1&&st<=3)for(let i=st-1;i<3;i++)sp[i]=(sp[i]+.34)%strip.length;
+      if(Input.hit("b")&&(st===0||st===4)){sfx("back");pop(sc);res();return;}
+      if(Input.hit("a")){
+        if(st===0||st===4){if(coins()<3){msg="Zu wenig Münzen!";sfx("deny");return;}addCoins(-3);st=1;win=0;msg="A: Walze stoppen";sfx("select");return;}
+        // Walze stoppen (mit leichter Hilfe bei 1/8: gleiches Symbol wie die erste)
+        const i=st-1;let pos=Math.round(sp[i])%strip.length;if(i>0&&lrnd()<.12){const want=strip[rs[0]];const j=strip.findIndex((v,k)=>v===want&&Math.abs(k-pos)<4);if(j>=0)pos=j;}
+        rs[i]=pos;sp[i]=pos;sfx("move");st++;
+        if(st===4){const a=strip[rs[0]],b=strip[rs[1]],c=strip[rs[2]];let pay=0;
+          if(a===b&&b===c)pay=SLOT_PAY[SLOT_SYM[a]];else if(SLOT_SYM[a]==="C")pay=2;
+          win=pay;if(pay){addCoins(pay);sfx(pay>=100?"caught":"item");msg=`Gewonnen: ${pay} Münzen! A: nochmal · B: aufhören`;}else msg="Leider nichts. A: nochmal · B: aufhören";}}},
+    draw(){obBg();obHeader("SPIELAUTOMAT",`Münzen: ${coins()}`);const X=60,Y=40,W=200,Hh=92;fancyWin(X,Y,W,Hh);
+      for(let i=0;i<3;i++){const rx=X+14+i*60,ry=Y+14;ctx.fillStyle="#fffaf0";ctx.fillRect(rx,ry,54,64);ctx.save();ctx.beginPath();ctx.rect(rx,ry,54,64);ctx.clip();
+        const p=sp[i];for(let k=-1;k<=1;k++){const idx=((Math.floor(p)+k)%strip.length+strip.length)%strip.length,off=(p%1)*22;const y=ry+32+(k)*22-off;const s=SLOT_SYM[strip[idx]];
+          const col={"7":"#e83a3a","BAR":"#2a2a40","P":"#e8b020","K":"#e86a2a","C":"#c83a6a"}[s];prT(s==="P"?"⚡":s==="K"?"◆":s==="C"?"●":s,rx+27,y-8,{size:s==="BAR"?14:18,align:"center",c:col,sh:"transparent"});}
+        ctx.restore();ctx.strokeStyle=st===i+1?"#ffd860":"#8a7a6a";ctx.lineWidth=2;ctx.strokeRect(rx,ry,54,64);}
+      ctx.fillStyle="rgba(232,90,58,.5)";ctx.fillRect(X+10,Y+45,W-20,2);
+      prT("7 7 7 = 300 · BAR = 100 · ⚡ = 15 · ◆ = 8 · ● = 4 (ein ● links = 2)",PRW/2,Y+Hh+6,{size:10,align:"center",c:OB.dim,sh:"transparent"});
+      obFoot(msg,"");prEnd();}};push(sc);});}
+{const _ia2=interact;interact=async function(){const[dx,dy]=DIRS[PL.dir];const t=tileAt(PL.x+dx,PL.y+dy);
+  if(t&&t.c==="a"&&t.m.id==="gamecorner"){if(!bagCount("coin-case")){await say("Ein Spielautomat. Ohne Münzkorb kannst du nicht spielen – frag an der Theke.");return;}await slotMachine();return;}
+  return _ia2();};}
+
+/* ---------- Angeln: Angeln verschenken ---------- */
+{const add=(map,npc)=>{if(M[map]){M[map].npcs=M[map].npcs||[];M[map].npcs.push(npc);}};
+  const fh=M.fishing_house;if(fh&&fh.npcs&&fh.npcs[0]){const n=fh.npcs[0],old=n.run;n.run=async()=>{if(!bagCount("old-rod")){await say("Angler: Hey, du! Angeln ist das Größte. Hier, nimm meine alte Angel!");await K.giveItem("old-rod");await say("Angler: Stell dich vor Wasser und drück A. Dann einfach Geduld haben!");return;}if(old)return old();};}
+  for(const id in M){if(!/^fuchsia_h\d$/.test(id))continue;const m=M[id];if(m.npcs&&m.npcs[0]){m.npcs[0]=Object.assign({},m.npcs[0],{ch:"fisher",text:undefined,run:async()=>{
+      if(!bagCount("good-rod")){await say("Bruder des Anglers: Mein Bruder hat dir eine Angel gegeben? Pah! Mit der hier beißen viel mehr!");await K.giveItem("good-rod");}else await say("Mit der Profiangel fängst du Goldini, Quapsel und mehr.");}});break;}}
+  const r12=Object.keys(M).find(id=>/^route12_h\d$|^fishing_house2$/.test(id));
+  const sr=async()=>{if(!bagCount("super-rod")){await say("Angler-Meister: Du hast schon zwei Angeln? Dann bist du bereit für die Superangel!");await K.giveItem("super-rod");}else await say("Mit der Superangel beißen auch Garados und Dratini an.");};
+  if(r12&&M[r12].npcs&&M[r12].npcs[0])M[r12].npcs[0]=Object.assign({},M[r12].npcs[0],{ch:"fisher",text:undefined,run:sr});
+  else if(M.route12)add("route12",{x:Math.min(13,(M.route12.tiles||[""])[0].length-2),y:2,ch:"fisher",dir:"down",move:"look",run:sr});}
+
+/* ---------- Kampffahnder verschenken (Center Orania) ---------- */
+{const id=Object.keys(M).find(k=>k==="center_vermilion");if(id)M[id].npcs.push({x:10,y:5,ch:"woman",move:"look",run:async()=>{
+  if(!bagCount("vs-seeker")){await say("Kennst du den Kampffahnder? Damit findest du Trainer, die eine Revanche wollen. Ich schenke ihn dir!");await K.giveItem("vs-seeker");await say("Benutz ihn im Beutel unter BASIS-ITEMS. Er lädt sich in 100 Schritten wieder auf.");}
+  else await say("Trainer werden bei jeder Revanche stärker. Mal sehen, wie weit du kommst!");}});}
+
+/* ---------- Pokémon-Pension ---------- */
+const lineRoot=sp=>{let x=sp,g=0;while(typeof PREV!=="undefined"&&PREV[x]&&g++<4)x=PREV[x];return x;};
+const NO_EGG=new Set([144,145,146,150,151,132]);
+function dcCompat(a,b){if(!a||!b)return false;const A=a.megaFrom||a.sp,Bs=b.megaFrom||b.sp;if(NO_EGG.has(A)&&A!==132&&Bs!==132)return false;
+  if(A===132&&Bs===132)return false;if(A===132||Bs===132)return!NO_EGG.has(A===132?Bs:A);
+  return lineRoot(A)===lineRoot(Bs)&&a.gender&&b.gender&&a.gender!==b.gender;}
+async function daycare(){const d=G.save.dc||(G.save.dc={mons:[],egg:false,eggAt:0});
+  const steps=()=>G.save.steps||0;
+  if(d.egg){if(await yesNo("Pensionsleiter: Ach! Eure Pokémon hatten ein Ei bei sich. Möchtest du es mitnehmen?")){giveEgg(d);d.egg=false;}else await say("Gut, ich behalte es noch.");}
+  const c=await ask(`Pensionsleiter: Willkommen in der Pension! ${d.mons.length}/2 Pokémon sind bei uns.`,["ABGEBEN","ABHOLEN","TSCHÜSS"]);
+  if(c===0){if(d.mons.length>=2){await say("Mehr als zwei Pokémon kann ich nicht aufnehmen.");return;}if(G.save.party.length<=1){await say("Dann hättest du ja kein Pokémon mehr bei dir!");return;}
+    const i=await partyMenu({mode:"pick",title:"Welches Pokémon abgeben?"});if(i==null||i<0)return;const m=G.save.party.splice(i,1)[0];d.mons.push({m,at:steps(),lv0:m.lv});
+    await say(`Gut, ich passe auf ${monName(m)} auf.${d.mons.length===2?(dcCompat(d.mons[0].m,d.mons[1].m)?" Die beiden verstehen sich prächtig!":" Die beiden scheinen sich nicht besonders zu mögen."):""}`);return;}
+  if(c===1){if(!d.mons.length){await say("Bei uns ist gerade kein Pokémon von dir.");return;}if(G.save.party.length>=6){await say("Dein Team ist voll.");return;}
+    const L=d.mons.map((e,k)=>({id:String(k+1),label:monName(e.m),right:`Lv ${dcLevel(e)}`}));const k=await listPicker("ABHOLEN",L,{right:"PENSION"});if(!k)return;
+    const e=d.mons[+k-1];const lv=dcLevel(e),fee=100+100*(lv-e.lv0);if(G.save.money<fee){await say(`Das macht ${fee} ₽ – so viel hast du nicht.`);return;}
+    if(!(await yesNo(`${monName(e.m)} ist jetzt Lv. ${lv}. Das macht ${fee} ₽. Abholen?`)))return;G.save.money-=fee;
+    const m=e.m;const from=m.lv;m.exp+=Math.max(0,steps()-e.at);if(lv>from){setLevel(m,lv);for(let l=from+1;l<=lv;l++)for(const id of movesAt(m.sp,l))if(m.moves.length<4&&!m.moves.some(x=>x.id===id))m.moves.push(newMoveSlot(id));}
+    healMon(m);G.save.party.push(m);d.mons.splice(+k-1,1);sfx("item");await say(`${G.save.name} holt ${monName(m)} ab.`);}}
+function dcLevel(e){let lv=e.m.lv;const exp=e.m.exp+Math.max(0,(G.save.steps||0)-e.at),cap=levelCap();while(lv<Math.min(cap,100)&&expAt(e.m.megaFrom||e.m.sp,lv+1)<=exp)lv++;return lv;}
+function giveEgg(d){const[a,b]=[d.mons[0].m,d.mons[1].m];const mom=(a.sp===132?b:b.sp===132?a:(a.gender==="f"?a:b));const sp=lineRoot(mom.megaFrom||mom.sp);
+  const iv=[0,0,0,0,0,0].map(()=>rint(0,31));const par=[a,b];const idx=[0,1,2,3,4,5].sort(()=>lrnd()-.5).slice(0,3);for(const i of idx)iv[i]=par[rint(0,1)].iv[i];
+  G.save.eggs=G.save.eggs||[];G.save.eggs.push({sp,iv,nat:rint(0,24),shiny:chance(shinyRate()),steps:Math.round(900+(SPECIES[sp].b.reduce((x,y)=>x+y,0)-300)*3)});
+  sfx("item");say(`${G.save.name} erhält ein Ei!`);}
+// Schritte: Pension-Ei entstehen lassen + Eier ausbrüten
+{const _os=onStep;onStep=function(){_os();try{const s=G.save;if(!s)return;
+    const d=s.dc;if(d&&d.mons&&d.mons.length===2&&!d.egg&&(s.steps%128===0)&&dcCompat(d.mons[0].m,d.mons[1].m)&&lrnd()<.5){d.egg=true;}
+    if(s.eggs&&s.eggs.length&&!W.lock&&Scenes[Scenes.length-1]===WorldScene){const e=s.eggs[0];e.steps--;if(e.steps===300)script(()=>say("Etwas bewegt sich im Ei ..."));
+      if(e.steps<=0){s.eggs.shift();script(()=>hatchEgg(e));}}}catch(e){console.warn("Ei",e);}};}
+async function hatchEgg(e){sfx("surprise");await say("Oh? Das Ei ...");
+  await run({t:0,opaque:true,update(){this.t++;if(this.t>110)this.done();},draw(){const t=this.t;ctx.fillStyle="#0e0a1c";ctx.fillRect(0,0,SW,SH);const cx=SW/2,cy=SH/2+6;
+    const sh=t<70?Math.sin(t*(.2+t/200))*Math.min(4,t/15):0;ctx.save();ctx.translate(cx+sh,cy);if(t<80){ctx.fillStyle="#f6f0e0";ctx.beginPath();ctx.ellipse(0,0,14,18,0,0,7);ctx.fill();ctx.fillStyle="#7ac06a";ctx.beginPath();ctx.arc(-5,-4,3,0,7);ctx.arc(6,5,3.5,0,7);ctx.fill();
+      if(t>45){ctx.strokeStyle="#5a4a3a";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-10,-2);ctx.lineTo(-4,-6);ctx.lineTo(1,-1);ctx.lineTo(7,-6);ctx.lineTo(11,-1);ctx.stroke();}}
+    ctx.restore();if(t>=78){const k=Math.min(1,(t-78)/12);if(t<92){ctx.fillStyle=`rgba(255,255,255,${1-Math.abs(t-85)/7})`;ctx.fillRect(0,0,SW,SH);}if(t>84)drawAnim(e.sp,cx,cy+20,{shiny:e.shiny,s:k});}}});
+  const m=makeMon(e.sp,5,{iv:e.iv,nat:e.nat,shiny:e.shiny,met:"aus einem Ei"});m.ot=G.save.name;const w=addToParty(m);markCaught(e.sp);Music.jingle&&Music.jingle("caught");
+  await say(`Aus dem Ei ist ${SPECIES[e.sp].n} geschlüpft!${e.shiny?" Es ist schillernd!":""}${w==="box"?" Es wurde in die Box geschickt.":""}`);}
+if(M.daycare&&M.daycare.npcs&&M.daycare.npcs[0]){M.daycare.npcs[0]=Object.assign({},M.daycare.npcs[0],{text:undefined,run:daycare});}
+
+/* ---------- Kampfturm (Pokémon-Liga, nach dem Champ) ---------- */
+const TOWER_CLS=[["Ass-Trainer","cooltrainer"],["Ass-Trainerin","cooltrainerF"],["Gentleman","gentleman"],["Schönheit","beauty"],["Wissenschaftler","scientist"],["Medium","channeler"],["Kämpfer","blackbelt"],["Vogelfänger","bird"],["Pokémaniac","maniac"],["Ninjajunge","juggler"]];
+const TOWER_NAMES=["Lukas","Mara","Jonas","Selin","Theo","Ida","Ben","Lea","Finn","Nora","Elias","Mia","Paul","Lina","Noah","Emma"];
+const TOWER_POOL=(()=>{const L=[];for(let i=1;i<=MAXDEX;i++){const S=SPECIES[i];if(!S||S.lg||NO_EGG.has(i))continue;const bst=S.b.reduce((a,b)=>a+b,0);if(bst>=420&&!(S.ev||[]).some(e=>e[0]==="lv"&&e[1]<=50))L.push(i);}return L;})();
+async function battleTower(){const s=G.save;s.tower=s.tower||{best:0,cur:0};
+  const c=await ask(`Kampfturm: 3 Pokémon, alle auf Lv. 50, 7 Kämpfe am Stück. Rekord: ${s.tower.best} Siege.`,["HERAUSFORDERN","REGELN","NICHT JETZT"]);
+  if(c===1){await say("Du wählst 3 Pokémon aus deinem Team. Alle kämpfen auf Lv. 50 und werden vor jedem Kampf geheilt.");await say("Eine Niederlage beendet die Serie – dein Team bleibt dabei unverändert. Alle 7 Siege gibt es Belohnungen!");return;}
+  if(c!==0)return;if(s.party.length<3){await say("Du brauchst mindestens 3 Pokémon.");return;}
+  const sel=[];while(sel.length<3){const i=await partyMenu({mode:"pick",title:`Pokémon ${sel.length+1}/3 für den Kampfturm?`});if(i==null||i<0){if(!sel.length)return;sel.pop();continue;}if(sel.includes(i)){await say("Das hast du schon gewählt.");continue;}sel.push(i);}
+  const orig=s.party,mode=s.mode;const team=sel.map(i=>{const m=JSON.parse(JSON.stringify(orig[i]));m.uid=++UID;if(m.megaFrom){m.sp=m.megaFrom;delete m.megaFrom;}setLevel(m,50);healMon(m);return m;});
+  TOWER={orig,mode};s.party=team;s.mode="classic";let wins=0;
+  try{while(true){const n=s.tower.cur+1,rng=R(s.seed+":tower:"+n+":"+Date.now());const pick=()=>TOWER_POOL[Math.floor(rng()*TOWER_POOL.length)];
+      const foes=[];while(foes.length<3){const sp=pick();if(!foes.includes(sp))foes.push(sp);}
+      const cls=TOWER_CLS[Math.floor(rng()*TOWER_CLS.length)],nm=TOWER_NAMES[Math.floor(rng()*TOWER_NAMES.length)];const boss=n%7===0;
+      s.party.forEach(healMon);await say(`Kampf ${((n-1)%7)+1} von 7${boss?" – der Turm-Boss!":""}: ${cls[0]} ${nm} fordert dich heraus!`);
+      const tr={id:"tower_"+n,name:boss?"Turm-Boss":nm,cls:boss?"Kampfturm":cls[0],ch:cls[1],boss,prize:0,team:foes.map(sp=>[sp,50,boss&&sp===foes[2]&&MEGA_STONES?{item:Object.keys(MEGA_STONES).find(k=>MEGA_STONES[k].base===sp)||undefined}:{}]),bg:"gym"};
+      const res=await startBattle({type:"trainer",foes:tr.team.map(([sp,lv,o])=>makeMon(sp,lv,Object.assign({iv:[31,31,31,31,31,31],shiny:false,ev:evSpread(sp,lv)},o))),tr,ch:tr.ch,bg:"gym",noLose:true,noExp:true});
+      if(res!=="win"){await say(`Die Serie endet nach ${s.tower.cur} Siegen.`);s.tower.cur=0;break;}
+      s.tower.cur++;wins++;s.tower.best=Math.max(s.tower.best,s.tower.cur);
+      if(s.tower.cur%7===0){addItem("rare-candy",3);if(typeof META!=="undefined"){META.sp+=25;LS.set("saga_meta",META);}sfx("caught");await say(`7 Siege in Folge! Belohnung: 3 Sonderbonbons und 25 Obsidian-Splitter. Rekord: ${s.tower.best}.`);}
+      if(!(await yesNo(`${s.tower.cur} Siege in Folge. Weiterkämpfen?`))){await say("Deine Serie wird gespeichert. Komm bald wieder!");break;}}}
+  finally{s.party=TOWER.orig;s.mode=TOWER.mode;TOWER=null;s.party.forEach(healMon);}}
+let TOWER=null;
+// Speichern während des Turms: immer mit dem echten Team
+{const _sg=saveGame;saveGame=function(){if(TOWER&&G.save){const p=G.save.party,md=G.save.mode;G.save.party=TOWER.orig;G.save.mode=TOWER.mode;try{_sg();}finally{G.save.party=p;G.save.mode=md;}return;}_sg();};}
+if(M.league_lobby){M.league_lobby.npcs=M.league_lobby.npcs||[];M.league_lobby.npcs.push({x:2,y:4,ch:"cooltrainerF",dir:"right",move:"still",run:async()=>{
+  if(!champ()){await say("Der Kampfturm ist nur für den Champ von Kanto geöffnet.");return;}await battleTower();}});}
+// Basis-Items im Beutel benutzen
+{const _u=useItemField;useItemField=async function(k){if(k==="vs-seeker")return useVsSeeker();if(RODS.includes(k))return goFish(k);
+  if(k==="coin-case"){await say(`Im Münzkorb sind ${coins()} Münzen.`);return;}return _u(k);};}
 })();
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.27";
+const VERSION="0.28";
 function newSave(o){
   const R=REGIONS[o.region||"kanto"];
   return{v:1,mapv:2,region:o.region||"kanto",name:o.name,gender:o.gender,rival:"Blau",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
