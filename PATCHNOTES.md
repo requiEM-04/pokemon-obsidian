@@ -2,6 +2,24 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.28 (31.10.2026)
+- Post-Game: Nach dem Champ steigt das Level-Cap auf 100. Alle Arenaleiter wollen eine Revanche mit 6 Pokémon auf Lv. 62–68 (mit Megas).
+- Kampfturm in der Pokémon-Liga (nach dem Champ): 3 Pokémon auf Lv. 50, 7 Kämpfe am Stück, Rekord wird gespeichert. Alle 7 Siege gibt es 3 Sonderbonbons und 25 Obsidian-Splitter.
+- Kampffahnder (Geschenk im Pokémon-Center Orania): Besiegte Trainer in der Nähe wollen eine Revanche – mit jedem Mal stärker. Lädt sich in 100 Schritten auf.
+- Pokémon-Pension: Gib bis zu 2 Pokémon ab, sie sammeln pro Schritt E.-Punkte. Passende Paare (gleiche Entwicklungsreihe, verschiedenes Geschlecht – oder mit Ditto) legen Eier, die beim Laufen schlüpfen.
+- Spielhalle Prismania: Münzkorb und Münzen an der Theke, spielbare Automaten und die Preis-Ecke mit Münzen (Abra, Piepi, Dratini, Sichlor, Pinsir, Porygon und TMs).
+- Angeln: Angel (Anglerhaus Orania), Profiangel (Fuchsania) und Superangel (Route 12). Vor Wasser A drücken oder im Beutel benutzen.
+- Level-Cap gilt jetzt auch für wilde Pokémon, Fänge und Geschenke – nichts kommt mehr über dem Cap ins Team.
+- Ausgänge sind besser zu erkennen: Pfeil und Lichtfleck auf Türmatten, Höhlen-Ausgängen, Treppen und Leitern in deiner Nähe.
+- Alle Gespräche überarbeitet: keine veralteten Tipps mehr (z. B. zur zweiten Schwester), dafür passende Hinweise je Ort – z. B. in der Digda-Höhle, wohin sie führt.
+- Kampf-Hintergründe in allen Innenräumen (Arenen, Gebäude, Pokémon-Turm …) jetzt gemalt wie in den Höhlen – keine schwarze Leere und keine Wandkanten mehr.
+- Kampfanzeige feiner: KP-Balken mit Verlauf und rotem Nachzieh-Balken bei Schaden, eigene EP-Leiste, Team-Leiste des Trainers zeigt nur echte Pokémon.
+- Team-Bildschirm schöner: kompaktere Karten (alle 6 passen jetzt aufs Bild), Typ-Farbe, Typen, EP-Leiste und Item-Symbol. Im Kampf steht das aktive Pokémon immer links im großen Feld, Schrift dort besser lesbar.
+- VM02 Fliegen: Das Mädchen mit der VM wohnt jetzt im Haus direkt links neben dem Pokémon-Center in Orania City (vorher war das Haus nicht erreichbar). Zusätzlich gibt es sie wie in Feuerrot im Haus auf Route 16.
+- Schwebende Pokémon wie Goldini versinken nicht mehr in der Plattform.
+- Figuren gefixt: Schwimmer an Land (z. B. im Center Azuria, Route 19) waren nur ein Kopf – jetzt normale Figuren.
+- Attacken-Info im Kampf: C gedrückt halten zeigt die Beschreibung unten in der Leiste (wie PokéRogue). Die Werte-Übersicht liegt jetzt auf Start/MENÜ.
+
 ## v0.27 (31.10.2026)
 - Pokédex neu: Filter mit C (Alle, Gefangen, Fehlend, Schillernd und jeder Typ) und Schillernd-Ansicht mit R wie in Pokémon GO.
 - Schillernde Pokémon werden pro Form gezählt – auch Entwicklungen und Megas. Was du schon im Team oder in der Box hast, wird rückwirkend eingetragen (★ in der Liste).
@@ -18,7 +36,7 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Leveln ist langsamer, ungefähr wie in Feuerrot: E.-Punkte werden unter den Kämpfern geteilt, Zuschauer bekommen nur mit EP-Teiler etwas. Den EP-Teiler gibt es im Kaufhaus Prismania.
 - Kampf-Hintergründe: Hinter dem Gegner bleibt die Sicht frei – keine einzelnen Bäume, Zäune oder Felsen mehr mitten im Bild.
 - Pokémon-Sprites stehen in Menüs jetzt mittig (vorher teils zu weit links). Die Nummer in der Pokémon-Info überdeckt das Sprite nicht mehr.
-- Neu im Kampf: Mit C (oder Start/MENÜ) im Kampfmenü siehst du die Werte beider Pokémon – eigene Werte, Statuswert-Stufen, Typen, Fähigkeit, Item, Wetter und Effekte.
+- Neu im Kampf: Mit Start/MENÜ im Kampfmenü siehst du die Werte beider Pokémon – eigene Werte, Statuswert-Stufen, Typen, Fähigkeit, Item, Wetter und Effekte.
 - TMs im Beutel zeigen jetzt Typ, Klasse, Stärke, Genauigkeit, AP, die Beschreibung und wer im Team sie lernen kann (✓ kann, ● kennt sie schon, ✗ nicht).
 - Schaufler, Fliegen, Taucher, Sprungfeder und Phantomkraft funktionieren wie im Original: Das Pokémon gräbt sich ein bzw. verschwindet und kann in der Zeit kaum getroffen werden (Erdbeben trifft Eingegrabene doppelt, Donner Fliegende). Solarstrahl & Co. haben eigene Texte.
 - Menüs feiner gestaltet: neue Kopfleiste, abgeschrägte Karten, deutlichere Auswahl. Die Werte-Balken zeigen jetzt den Basiswert (vorher sahen sie bei niedrigem Level fast leer aus).
