@@ -2632,9 +2632,8 @@ async function wildEncounter(map,encOverride){
   const m=makeMon(sp,lv,{mgm:false});
   await startBattle({type:"wild",foes:[m],bg:encOverride?"water":(map.bg||"grass"),area:map.id});
 }
-function randomSpecies(sp,area){ // Randomizer (skaliert nach Basiswerten, fest je Gebiet + Seed)
-  const bst=s=>SPECIES[s].b.reduce((a,b)=>a+b,0);const target=bst(sp);
-  const pool=[];for(const i of DEX)if(!SPECIES[i].lg&&Math.abs(bst(i)-target)<=60)pool.push(i);
+function randomSpecies(sp,area,sameType){ // Randomizer v0.31: komplett zufällig (alle Einall-Pokémon), fest je Gebiet/Trainer + Seed; Legenden nur gegen Legenden
+  const lg=!!SPECIES[sp].lg;const pool=DEX.filter(i=>!!SPECIES[i].lg===lg&&i!==sp);
   const r=seeded(G.save.seed^strHash(area+":"+sp));return pool.length?pool[Math.floor(r()*pool.length)]:sp;
 }
 // EV-Verteilung für Trainer (Hardcore): stärkerer Angriffswert + Initiative, Rest KP; skaliert mit Level
@@ -2644,8 +2643,9 @@ async function startTrainerBattle(tr,ch){
   const easy=G.save.diff==="easy";
   // v0.28: Trainer-Pokémon sind passend zu ihrem Level entwickelt (kein Raupy auf Lv. 22 mehr)
   const evo=(sp,L)=>{let x=sp,g=0;while(g++<3){const e=(SPECIES[x].ev||[]).find(q=>q[0]==="lv"&&L>=q[1]&&SPECIES[q[2]]&&q[2]<=MAXDEX);if(!e)break;x=e[2];}return x;};
-  const team=(typeof tr.team==="function"?tr.team():tr.team).map(([sp0,lv,o={}])=>{
-    const L=Math.max(2,lv-(easy&&tr.boss?2:0));const sp=tr.duel?sp0:evo(sp0,L);
+  const rnd=G.save.rand&&!tr.duel;   // Randomizer: alle Trainer- und Arenapokémon zufällig
+  const team=(typeof tr.team==="function"?tr.team():tr.team).map(([sp0,lv,o={}],ix)=>{
+    const L=Math.max(2,lv-(easy&&tr.boss?2:0));if(rnd)sp0=randomSpecies(sp0,"tr:"+(tr.id||tr.name)+":"+ix);const sp=tr.duel?sp0:evo(sp0,L);
     return makeMon(sp,L,Object.assign({iv:tr.boss?[31,31,31,31,31,31]:easy?[15,15,15,15,15,15]:[25,25,25,25,25,25],shiny:false,ev:o.ev||(easy?null:evSpread(sp,L))},o));});
   return startBattle({type:"trainer",foes:team,tr,ch:tr.ch||ch,bg:tr.bg||curMap().bg||"grass"});
 }
@@ -7673,7 +7673,10 @@ const PATCH=[
     "Level-Kurve überarbeitet: Trainer und wilde Pokémon auf den Routen steigen gleichmäßig auf den nächsten Arenaleiter zu (z. B. Route 5, Route 6, Kühlhaus, Route 8 und Siegesstraße stärker).",
     "Keine Bäume mehr „auf dem Wasser“: Am Kartenrand geht das Meer bzw. der Fluss jetzt weiter (Avenitia, Stratos City, Marea City, Brücken).",
     "Übergänge zwischen den Gebieten mit Holz-Torbogen bzw. Wegweiser, auf dem das Ziel steht.",
-    "Orion City: Im Kampf heißt der Arenaleiter jetzt nur noch Benny, Maik oder Colin – je nachdem, wer gegen dich antritt."]},
+    "Orion City: Im Kampf heißt der Arenaleiter jetzt nur noch Benny, Maik oder Colin – je nachdem, wer gegen dich antritt.",
+    "Neue Karte von Einall: gezeichnetes Festland mit Küste, Bucht, Flüssen und Seen, Wäldern, Bergen, Wüste, Wegen, Brücken, Höhlen und Türmen. Dein Standort wird jetzt auch auf Routen genau angezeigt.",
+    "Story: Die Starterwahl findet jetzt wie im Original im Labor von Prof. Esche statt – drei Pokébälle auf dem Tisch, danach die ersten Kämpfe gegen Bell und Cheren.",
+    "Randomizer komplett im Soul-Link-Stil: zufällige Starter, alle wilden Pokémon, alle Trainer, Arenaleiter, Top Vier, Rivalen, Geschenk- und Legenden-Begegnungen, Fähigkeiten und alle gefundenen Items (auch versteckte). Alles fest je Spielstand."]},
   {v:"0.30",d:"31.10.2026",items:[
     "Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!",
     "Alle Spielstände und Konten wurden zurückgesetzt. Jeder startet neu in Avenitia.",
@@ -8845,39 +8848,127 @@ function summary(list,start){
 }
 
 /* ===== kmap.js ===== */
-/* ================================ KARTE (Menü): ganz Einall aus den Außenkarten + Fliegen ================================ */
-// Die Übersicht wird einmal aus allen Außenkarten gerendert (1 Pixel = 1 Feld). Jede Zone hat eigene Koordinaten –
-// die Region legt in zoneOff fest, wo die Zone auf der Übersicht liegt.
-const KMAP={cv:null,box:null};
-function kmapPos(m){
-  const o=(REG().zoneOff||{})[m.zone||"west"]||[0,0];return[m.world[0]+o[0],m.world[1]+o[1]];}
+/* ================================ KARTE (Menü): Einall als gemalte Übersichtskarte + Fliegen ================================
+   v0.31: statt zusammengesetzter Karten-Inseln eine gezeichnete Regionskarte wie in Schwarz/Weiß:
+   Festland mit Küste, Bucht und Flüssen, Wälder, Berge, Wüste, Routen als Wege, Brücken, Städte als Häuserblöcke.
+   Alle Koordinaten in einer 400×360-Fläche (KGEO). Die Spielerposition wird auf Routen entlang des Weges interpoliert. */
+const KMAP={cv:null};
+const KW=400,KH=360;
+const KGEO={
+  // Orte (Mittelpunkt) – Städte groß, Orte klein
+  towns:{nuvema:[345,322,7],accumula:[345,262,8],striaton:[312,214,9],nacrene:[244,232,9],castelia:[158,276,12],nimbasa:[165,192,11],
+    driftveil:[78,206,10],mistralton:[64,118,9],icirrus:[130,66,9],opelucid:[230,72,10],league:[252,22,9]},
+  // Routen: Punkte von der linken/unteren Kartenseite zur rechten/oberen (wie im Spiel), Brücken extra markiert
+  routes:{route1:[[345,322],[345,262]],route2:[[345,262],[336,236],[312,214]],route3:[[244,232],[270,224],[312,214]],
+    route4:[[158,276],[163,236],[165,192]],route5:[[116,200],[165,192]],route6:[[78,206],[74,160],[64,118]],
+    route7:[[64,118],[86,98],[108,86],[130,66]],route8:[[130,66],[160,80],[176,78]],route9:[[230,72],[262,82],[284,78]],
+    route10:[[284,78],[290,58],[278,36],[252,22]],
+    skyarrow:[[218,272],[176,274]],drawbridge:[[78,206],[116,200]],tubeline:[[176,78],[230,72]],pinwheelR:[[244,232],[236,258],[218,272]]},
+  bridges:{skyarrow:1,drawbridge:1,tubeline:1},
+  // Orte ohne eigene Route: Höhlen, Wälder, Türme
+  spots:{dreamyard:[334,196,"ruin"],wellspring:[282,242,"cave"],pinwheel:[236,258,"forest"],desert:[136,226,"desert"],relic1:[124,236,"ruin"],relic2:[124,236,"ruin"],
+    coldstorage:[70,228,"house"],chargestone:[92,148,"cave"],celestial1:[44,100,"tower"],celestial2:[44,100,"tower"],celestial3:[44,100,"tower"],
+    twist1:[104,72,"cave"],dragonout:[132,38,"tower"],dragonspiral1:[132,38,"tower"],dragonspiral2:[132,38,"tower"],victory:[290,46,"cave"],
+    giantchasm:[340,60,"cave"],nscastle:[252,22,"tower"]}
+};
+// Festland (im Uhrzeigersinn), Bucht und Flüsse
+const K_LAND=[[24,40],[70,18],[150,10],[230,6],[300,8],[360,22],[388,60],[384,130],[376,190],[390,250],[380,312],[356,342],[318,346],[290,330],[262,308],
+  [240,300],[226,292],[214,300],[204,352],[150,352],[120,326],[92,300],[60,280],[40,248],[30,212],[16,170],[14,110]];
+const K_BAY=[[186,360],[184,300],[178,262],[186,244],[202,246],[214,262],[220,300],[232,360]];
+const K_RIVERS=[{p:[[104,120],[106,170],[100,204],[104,250],[112,300],[118,360]],w:9},{p:[[196,0],[200,40],[204,76],[214,108],[226,130]],w:8},{p:[[300,140],[296,170],[300,190]],w:4}];
+const K_LAKES=[[228,132,12],[300,196,7],[360,150,9],[60,60,8]];
+const K_AREAS=[{k:"desert",p:[[112,206],[150,206],[156,250],[110,252]]},{k:"mount",p:[[86,52],[124,40],[150,52],[148,90],[100,96]]},
+  {k:"mount",p:[[262,10],[310,14],[318,50],[290,60],[262,44]]},{k:"forest",p:[[206,244],[248,244],[256,276],[226,288],[210,276]]},
+  {k:"snow",p:[[100,30],[170,26],[176,92],[110,104],[90,70]]},{k:"forest",p:[[316,180],[364,176],[372,214],[330,222]]},{k:"forest",p:[[30,110],[60,96],[80,138],[44,150]]}];
+
+function kIn(p,x,y){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){const[xi,yi]=p[i],[xj,yj]=p[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;}return c;}
+function kSegD(x,y,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;let t=((x-a[0])*dx+(y-a[1])*dy)/L;t=Math.max(0,Math.min(1,t));const px=a[0]+t*dx,py=a[1]+t*dy;return Math.hypot(x-px,y-py);}
+function kLineD(x,y,P){let d=1e9;for(let i=0;i+1<P.length;i++)d=Math.min(d,kSegD(x,y,P[i],P[i+1]));return d;}
+function kNoise(x,y,s){return vnz(x/s,y/s);}
 function kmapCanvas(){
   if(KMAP.cv)return KMAP.cv;
-  const maps=Object.keys(REG().maps).map(id=>{try{const m=mapById(id);return m.world?m:null;}catch(e){return null;}}).filter(Boolean);
-  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const m of maps){const[p,q]=kmapPos(m);x0=Math.min(x0,p);y0=Math.min(y0,q);x1=Math.max(x1,p+m.w);y1=Math.max(y1,q+m.h);}
-  x0-=6;y0-=6;x1+=6;y1+=6;const W=x1-x0,H=y1-y0;
-  const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
-  g.fillStyle="#3a78c8";g.fillRect(0,0,W,H);                                   // Meer
-  const id=g.getImageData(0,0,W,H),d=id.data;
-  const COL={".":[112,192,88],",":[70,150,64],":":[222,198,140],";":[232,214,160],"T":[40,104,52],"b":[56,128,60],"~":[72,136,216],"v":[150,180,90],"f":[200,200,190],
-    "F":[160,200,100],"s":[150,110,60],"m":[150,120,84],"r":[140,140,130],"=":[180,140,90],"x":[60,120,60]};
-  const put=(X,Y,col)=>{const i=(Y*W+X)*4;d[i]=col[0];d[i+1]=col[1];d[i+2]=col[2];d[i+3]=255;};
-  for(const m of maps){const[px,py]=kmapPos(m);
-    for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){const ch=m.g[y][x];put(px-x0+x,py-y0+y,COL[ch]||COL["."]);}
-    for(const b of m.bld||[]){const col=b.k==="center"?[232,80,64]:b.k==="mart"?[72,120,216]:b.k==="gym"?[200,170,90]:b.k==="deco"?[176,168,150]:[214,200,176];
-      for(let y=0;y<b.B.h;y++)for(let x=0;x<b.B.w;x++)put(px-x0+b.x+x,py-y0+b.y+y,col);}}
+  const c=document.createElement("canvas");c.width=KW;c.height=KH;const g=c.getContext("2d");
+  // 1) Land/Wasser-Maske mit natürlicher Küste
+  const land=new Uint8Array(KW*KH);
+  for(let y=0;y<KH;y++)for(let x=0;x<KW;x++){const jx=(kNoise(x,y,9)-.5)*10+(kNoise(x+50,y,3)-.5)*3,jy=(kNoise(x,y+80,9)-.5)*10;
+    let L=kIn(K_LAND,x+jx,y+jy);if(L&&kIn(K_BAY,x+jx*.6,y+jy*.6))L=false;
+    if(L)for(const r of K_RIVERS)if(kLineD(x+jx*.3,y+jy*.3,r.p)<r.w*.5){L=false;break;}
+    if(L)for(const[lx,ly,lr]of K_LAKES)if(Math.hypot(x-lx+jx*.3,y-ly+jy*.3)<lr){L=false;break;}
+    land[y*KW+x]=L?1:0;}
+  // Abstand zum Wasser / zum Land (für Strand und Flachwasser)
+  const near=(x,y,r,v)=>{for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dy*dy>r*r)continue;const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=KW||Y>=KH)continue;if(land[Y*KW+X]===v)return true;}return false;};
+  const area=(x,y)=>{for(const a of K_AREAS)if(kIn(a.p,x+(kNoise(x,y,7)-.5)*8,y+(kNoise(x+9,y,7)-.5)*8))return a.k;return null;};
+  const id=g.createImageData(KW,KH),d=id.data;const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const C={deep:hex("#24508e"),sea:hex("#2e66b0"),shal:hex("#4a8ad0"),foam:hex("#d8f0ff"),sand:hex("#ead79c"),sand2:hex("#d8c07e"),g1:hex("#6cb55a"),g2:hex("#5ea64f"),g3:hex("#7cc468"),
+    des:hex("#e6cd8c"),des2:hex("#d6b874"),mnt:hex("#9a8c74"),mnt2:hex("#857760"),snow:hex("#cfe0e4"),snow2:hex("#b8cdd4"),for1:hex("#3f8a44"),for2:hex("#357a3a")};
+  for(let y=0;y<KH;y++)for(let x=0;x<KW;x++){const i=(y*KW+x)*4,n=kNoise(x,y,5),n2=kNoise(x+30,y+7,2);let col;
+    if(!land[y*KW+x]){const coast=near(x,y,2,1),sh=coast||near(x,y,7,1);
+      col=coast&&near(x,y,1,1)?C.foam:sh?C.shal:(kNoise(x,y,14)>.55?C.sea:C.deep);
+      if(!sh&&((x*3+y*7)%23===0)&&n2>.6)col=C.shal;}   // Wellen
+    else{const beach=near(x,y,2,0);const a=area(x,y);
+      if(beach)col=n2>.5?C.sand:C.sand2;
+      else if(a==="desert")col=n>.55?C.des:C.des2;
+      else if(a==="mount")col=n>.5?C.mnt:C.mnt2;
+      else if(a==="snow")col=n>.5?C.snow:C.snow2;
+      else if(a==="forest")col=n>.5?C.for1:C.for2;
+      else col=n<.33?C.g2:n>.7?C.g3:C.g1;}
+    d[i]=col[0];d[i+1]=col[1];d[i+2]=col[2];d[i+3]=255;}
   g.putImageData(id,0,0);
-  // Städte leicht hervorheben
-  g.strokeStyle="rgba(255,250,220,.55)";g.lineWidth=1;for(const m of maps)if(m.town){const[px,py]=kmapPos(m);g.strokeRect(px-x0+.5,py-y0+.5,m.w-1,m.h-1);}
-  KMAP.cv=c;KMAP.box=[x0,y0,W,H];return c;}
+  // dunkle Küstenlinie (1 px) für Kontur
+  g.fillStyle="rgba(20,40,70,.55)";for(let y=1;y<KH-1;y++)for(let x=1;x<KW-1;x++)if(land[y*KW+x]&&(!land[y*KW+x+1]||!land[y*KW+x-1]||!land[(y+1)*KW+x]))g.fillRect(x,y,1,1);
+  // 2) Deko: Bäume in Wäldern, Berge mit Gipfeln, Kakteen in der Wüste
+  const R=(()=>{let s=7;return()=>(s=(s*16807)%2147483647)/2147483647;})();
+  const tree=(x,y,dk)=>{g.fillStyle="rgba(0,0,0,.25)";g.fillRect(x-2,y+2,5,2);g.fillStyle=dk?"#24602c":"#2e7434";g.fillRect(x-2,y-2,5,4);g.fillRect(x-1,y-3,3,6);g.fillStyle=dk?"#3a8a40":"#4a9c4c";g.fillRect(x-1,y-2,2,2);};
+  const mount=(x,y,s,snow)=>{g.fillStyle="#6a5a46";g.beginPath();g.moveTo(x-s,y+s*.6);g.lineTo(x,y-s);g.lineTo(x+s,y+s*.6);g.fill();g.fillStyle="#8a7a62";g.beginPath();g.moveTo(x-s,y+s*.6);g.lineTo(x,y-s);g.lineTo(x-s*.1,y+s*.6);g.fill();
+    g.fillStyle=snow?"#f4fbff":"#d8d0c0";g.beginPath();g.moveTo(x-s*.33,y-s*.33);g.lineTo(x,y-s);g.lineTo(x+s*.33,y-s*.33);g.lineTo(x+s*.1,y-s*.2);g.lineTo(x-s*.1,y-s*.3);g.fill();};
+  const free=(x,y,m)=>{for(const k in KGEO.towns){const[t1,t2,r]=KGEO.towns[k];if(Math.hypot(x-t1,y-t2)<r+m)return false;}for(const k in KGEO.routes)if(kLineD(x,y,KGEO.routes[k])<m)return false;return true;};
+  for(let k=0;k<2600;k++){const x=Math.floor(R()*KW),y=Math.floor(R()*KH);if(!land[y*KW+x]||near(x,y,3,0))continue;const a=area(x,y);
+    if(a==="forest"&&free(x,y,5))tree(x,y,R()<.5);
+    else if((a==="mount"||a==="snow")&&R()<.35&&free(x,y,8))mount(x,y,5+R()*4,a==="snow"||y<40);
+    else if(!a&&R()<.09&&free(x,y,6)){if(kNoise(x,y,30)>.55)tree(x,y,false);else{g.fillStyle="#58a04a";g.fillRect(x-1,y,3,1);g.fillRect(x,y-1,1,1);}}
+    else if(a==="desert"&&R()<.08&&free(x,y,5)){g.fillStyle="#4a8a3a";g.fillRect(x,y-3,1,4);g.fillRect(x-1,y-2,1,1);g.fillRect(x+1,y-1,1,1);}}
+  // 3) Wege und Brücken
+  const path=(P,w,col,edge)=>{g.lineCap="round";g.lineJoin="round";g.beginPath();g.moveTo(P[0][0],P[0][1]);for(const p of P.slice(1))g.lineTo(p[0],p[1]);
+    if(edge){g.strokeStyle=edge;g.lineWidth=w+2;g.stroke();}g.strokeStyle=col;g.lineWidth=w;g.stroke();};
+  for(const k in KGEO.routes){const P=KGEO.routes[k];if(KGEO.bridges[k])continue;path(P,4,"#efdcaa","#8a6a3a");}
+  for(const k in KGEO.routes){const P=KGEO.routes[k];if(!KGEO.bridges[k])continue;
+    path(P,5,"#a8743c","#4a2c14");g.strokeStyle="rgba(60,30,10,.6)";g.lineWidth=1;   // Planken
+    for(let i=0;i+1<P.length;i++){const[a,b]=[P[i],P[i+1]];const L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.floor(L/3);for(let j=1;j<n;j++){const t=j/n,x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;const nx=-(b[1]-a[1])/L*2.5,ny=(b[0]-a[0])/L*2.5;g.beginPath();g.moveTo(x-nx,y-ny);g.lineTo(x+nx,y+ny);g.stroke();}}}
+  // 4) Sonderorte
+  for(const k in KGEO.spots){const[x,y,t]=KGEO.spots[k];if(KMAP["_s"+x+y])continue;KMAP["_s"+x+y]=1;
+    if(t==="cave"){g.fillStyle="#5a4a38";g.beginPath();g.ellipse(x,y,6,4.5,0,Math.PI,0);g.fill();g.fillRect(x-6,y,12,2);g.fillStyle="#1a120c";g.beginPath();g.ellipse(x,y+1,2.6,3,0,Math.PI,0);g.fill();}
+    else if(t==="tower"){g.fillStyle="#2a1e38";g.fillRect(x-4,y-9,8,12);g.fillStyle="#7a5aa8";g.fillRect(x-3,y-8,6,10);g.fillStyle="#b89ae0";g.fillRect(x-3,y-8,2,10);g.fillStyle="#2a1e38";g.beginPath();g.moveTo(x-5,y-8);g.lineTo(x,y-14);g.lineTo(x+5,y-8);g.fill();}
+    else if(t==="ruin"){g.fillStyle="#7a6a5a";for(const[dx,h]of[[-4,6],[-1,9],[2,5],[5,7]])g.fillRect(x+dx,y-h+2,2,h);g.fillStyle="#a89880";g.fillRect(x-5,y+2,12,2);}
+    else if(t==="house"){g.fillStyle="#4a5a7a";g.fillRect(x-5,y-3,10,6);g.fillStyle="#8aa0c0";g.fillRect(x-5,y-4,10,2);}}
+  // 5) Städte als Häuserblöcke
+  for(const k in KGEO.towns){const[x,y,r]=KGEO.towns[k];const s=Math.round(r*1.1);
+    g.fillStyle="rgba(0,0,0,.3)";g.fillRect(x-s+1,y-s+2,s*2,s*2);g.fillStyle="#d8ccb0";g.fillRect(x-s,y-s,s*2,s*2);g.fillStyle="#efe4c8";g.fillRect(x-s,y-s,s*2,1);
+    const RC=["#c8503c","#3c6ac8","#d89a3c","#5a8a4a","#8a5aa8"],rr=(()=>{let q=(x*31+y*17)%997||1;return()=>(q=(q*16807)%2147483647)/2147483647;})();
+    const n=Math.max(3,Math.round(r/2.6));for(let i=0;i<n*n;i++){if(rr()<.25)continue;const bx=x-s+2+(i%n)*((s*2-3)/n),by=y-s+2+Math.floor(i/n)*((s*2-3)/n),bw=Math.max(2,(s*2-3)/n-1);
+      g.fillStyle=RC[Math.floor(rr()*RC.length)];g.fillRect(Math.round(bx),Math.round(by),Math.round(bw),Math.max(1,Math.round(bw*.45)));g.fillStyle="#f4f0e4";g.fillRect(Math.round(bx),Math.round(by+bw*.45),Math.round(bw),Math.max(1,Math.round(bw*.55)));}
+    g.strokeStyle="#4a3a28";g.lineWidth=1;g.strokeRect(x-s+.5,y-s+.5,s*2-1,s*2-1);}
+  // Kompass unten links
+  {const cx=30,cy=KH-34;g.fillStyle="rgba(240,232,210,.9)";g.beginPath();g.arc(cx,cy,13,0,7);g.fill();g.strokeStyle="#5a4630";g.lineWidth=1.5;g.stroke();
+    g.fillStyle="#c83a2a";g.beginPath();g.moveTo(cx,cy-11);g.lineTo(cx+3.5,cy);g.lineTo(cx-3.5,cy);g.fill();g.fillStyle="#3a3a4a";g.beginPath();g.moveTo(cx,cy+11);g.lineTo(cx+3.5,cy);g.lineTo(cx-3.5,cy);g.fill();
+    g.fillStyle="#3a2a18";g.font="bold 8px sans-serif";g.textAlign="center";g.fillText("N",cx,cy-14.5);}
+  // Rahmen-Vignette
+  const vg=g.createRadialGradient(KW/2,KH/2,KH*.35,KW/2,KH/2,KH*.75);vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,"rgba(0,0,30,.35)");g.fillStyle=vg;g.fillRect(0,0,KW,KH);
+  KMAP.cv=c;return c;}
+// Spielerposition: Stadt = Mittelpunkt, Route = Punkt entlang des Weges, Höhle/Turm = Sonderort, Gebäude = Ort, zu dem man zurückkehrt
+function kAlong(P,f){let L=0;const seg=[];for(let i=0;i+1<P.length;i++){const l=Math.hypot(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]);seg.push(l);L+=l;}let t=f*L;
+  for(let i=0;i<seg.length;i++){if(t<=seg[i]||i===seg.length-1){const k=seg[i]?Math.min(1,t/seg[i]):0;return[P[i][0]+(P[i+1][0]-P[i][0])*k,P[i][1]+(P[i+1][1]-P[i][1])*k];}t-=seg[i];}return P[0];}
+function kmapHere(){const cur=curMap();const geo=(id,lx,ly,w,h)=>{if(KGEO.towns[id])return KGEO.towns[id].slice(0,2);if(KGEO.spots[id])return KGEO.spots[id].slice(0,2);
+    const P=KGEO.routes[id];if(P){const f=w>=h?lx/Math.max(1,w-1):1-ly/Math.max(1,h-1);return kAlong(P,Math.max(0,Math.min(1,f)));}return null;};
+  if(cur.world||KGEO.spots[cur.id]){const t=tileAt(PL.x,PL.y),m=t?t.m:cur;const r=geo(m.id,t?t.x:0,t?t.y:0,m.w,m.h);if(r)return r;}
+  if(G.save.ret){try{const r=mapById(G.save.ret.map);const p=geo(r.id,G.save.ret.x,G.save.ret.y,r.w,r.h);if(p)return p;}catch(e){}}
+  const tw=(REG().towns||[]).find(t=>t.map===cur.id);return tw&&KGEO.towns[tw.map]?KGEO.towns[tw.map].slice(0,2):null;}
 function visitedTown(id){return!!(G.save.flags&&G.save.flags["v_"+id]);}
 function canFly(){return typeof canHM==="function"&&canHM("fly");}
+function kTownXY(t){const p=KGEO.towns[t.map]||KGEO.towns[t.id];return p?p.slice(0,2):null;}
 async function openTownMap(){
-  const cv=kmapCanvas(),[x0,y0,W,H]=KMAP.box;
+  const cv=kmapCanvas();
   const towns=(REG().towns||[]).slice();
-  const cur=curMap();let here=null;
-  if(cur.world){const[px,py]=kmapPos(cur);here=[px+(PL.x-cur.ox),py+(PL.y-cur.oy)];}
-  else if(G.save.ret){try{const r=mapById(G.save.ret.map);if(r.world){const[px,py]=kmapPos(r);here=[px+G.save.ret.x,py+G.save.ret.y];}}catch(e){}}
+  const cur=curMap();const here=kmapHere();
   let i=Math.max(0,towns.findIndex(t=>t.map===(cur.world?cur.id:G.save.ret&&G.save.ret.map)));
   const fly=canFly();
   const res=await run({opaque:true,t:0,
@@ -8889,16 +8980,18 @@ async function openTownMap(){
       ctx.fillStyle="#120e1c";ctx.fillRect(0,0,SW,SH);prBegin();
       // Kartenfenster links
       const mw=206,mh=PRH-12,mx=4,my=6;fancyWin(mx,my,mw,mh);
-      const s=Math.min((mw-14)/W,(mh-14)/H),dw=W*s,dh=H*s,ox=mx+(mw-dw)/2,oy=my+(mh-dh)/2;
+      const s=Math.min((mw-12)/KW,(mh-12)/KH),dw=KW*s,dh=KH*s,ox=mx+(mw-dw)/2,oy=my+(mh-dh)/2;
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.globalAlpha=k;ctx.drawImage(cv,ox,oy,dw,dh);ctx.globalAlpha=1;ctx.imageSmoothingEnabled=false;
-      ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.strokeRect(ox-.5,oy-.5,dw+1,dh+1);
-      const P=(wx,wy)=>[ox+(wx-x0)*s,oy+(wy-y0)*s];
-      // Städte-Marker
-      towns.forEach((t,j)=>{let m;try{m=mapById(t.map);}catch(e){return;}const[px,py]=kmapPos(m);const[cx,cy]=P(px+m.w/2,py+m.h/2);const v=visitedTown(t.id),sel=j===i;
-        const r=sel?4.5+Math.sin(FRAME/5):3;ctx.fillStyle=sel?"#ffd040":v?"#ff6a4a":"#8a8090";ctx.strokeStyle="#1a1020";ctx.lineWidth=1.2;
+      ctx.strokeStyle="#1a1020";ctx.lineWidth=1.5;ctx.strokeRect(ox-.5,oy-.5,dw+1,dh+1);
+      const P=(x,y)=>[ox+x*s,oy+y*s];
+      // Städte-Marker: besucht = rot, unbesucht = grau, Auswahl = gold + Name
+      towns.forEach((t,j)=>{const q=kTownXY(t);if(!q)return;const[cx,cy]=P(q[0],q[1]);const v=visitedTown(t.id),sel=j===i;
+        const r=sel?3.6+Math.sin(FRAME/5)*.8:2.4;ctx.fillStyle=sel?"#ffd040":v?"#ff5a3a":"#8a8090";ctx.strokeStyle="#1a1020";ctx.lineWidth=1;
         ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();ctx.stroke();});
-      // Spieler
-      if(here&&Math.floor(FRAME/16)%2===0){const[hx,hy]=P(here[0],here[1]);ctx.fillStyle="#ffffff";ctx.fillRect(hx-2.5,hy-2.5,5,5);ctx.fillStyle="#e83830";ctx.fillRect(hx-1.5,hy-1.5,3,3);}
+      {const t=towns[i],q=t&&kTownXY(t);if(q){const[cx,cy]=P(q[0],q[1]);const w=Math.min(110,t.n.length*5.6+10),bx=Math.max(ox+2,Math.min(ox+dw-w-2,cx-w/2)),by=cy>oy+18?cy-17:cy+7;
+        ctx.fillStyle="rgba(18,12,28,.88)";ctx.fillRect(bx,by,w,11);ctx.strokeStyle="#ffd040";ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,w-1,10);prT(t.n,bx+w/2,by,{size:9,align:"center",c:"#fff",sh:"transparent"});}}
+      // Spieler (blinkt)
+      if(here&&Math.floor(FRAME/16)%2===0){const[hx,hy]=P(here[0],here[1]);ctx.fillStyle="#ffffff";ctx.beginPath();ctx.arc(hx,hy,3.4,0,7);ctx.fill();ctx.fillStyle="#2a7aff";ctx.beginPath();ctx.arc(hx,hy,2.2,0,7);ctx.fill();}
       // Liste rechts
       const lx=mx+mw+4,lw=PRW-lx-4;fancyWin(lx,my,lw,mh);prT("EINALL",lx+lw/2,my+6,{align:"center",c:"#ffd890"});
       const RH=14,first=Math.max(0,Math.min(i-6,towns.length-12));
@@ -8906,7 +8999,7 @@ async function openTownMap(){
         if(sel){ctx.fillStyle="rgba(232,90,58,.4)";ctx.fillRect(lx+5,y,lw-10,RH-1);ctx.fillStyle="#ff7a50";ctx.fillRect(lx+5,y,2,RH-1);}
         prT(t.n,lx+10,y+1,{size:12,c:v?(sel?"#ffffff":"#e8e0f0"):"#8a8098"});});
       // Fußzeile
-      const t=towns[i],v=visitedTown(t.id);const info=fly?(v?"A: Hierher fliegen":"Noch nicht besucht"):(bagCount("hm02")?"Fliegen braucht den Düsenorden.":"Du bist hier: "+(cur.world?cur.name:(G.save.ret?mapById(G.save.ret.map).name:cur.name)));
+      const t=towns[i],v=visitedTown(t.id);const info=fly?(v?"A: Hierher fliegen":"Noch nicht besucht"):(bagCount("hm02")?"Fliegen braucht den Düsenorden.":"Du bist hier: "+(cur.world?(tileAt(PL.x,PL.y)||{m:cur}).m.name:(G.save.ret?mapById(G.save.ret.map).name:cur.name)));
       prT(info,lx+lw/2,my+mh-16,{size:11,align:"center",c:"#d8d0e8"});}});
   if(res){const t=res;if(!(await yesNo(`Nach ${t.n} fliegen?`)))return;
     sfx("select");await say(`${monName(hmUser("fly")||G.save.party[0])} setzt Fliegen ein!`);
@@ -9660,10 +9753,10 @@ Object.assign(HM,{cut:{item:"hm01",badge:"Trio",n:"Zerschneider"},fly:{item:"hm0
 
 /* ---------- Hilfsfunktionen ---------- */
 async function giveItem(it,n=1){addItem(it,n);sfx("item");Music.jingle&&Music.jingle("caught");await say(`{P} erhält ${n>1?n+"× ":""}${itemName(it)}!`);}
-async function staticMon(sp,lv,flagId,intro,o={}){if(intro)await say(intro);
+async function staticMon(sp,lv,flagId,intro,o={}){if(G.save.rand&&!o.keep)sp=randomSpecies(sp,"static:"+flagId);if(intro)await say(intro);
   const m=makeMon(sp,lv,Object.assign({mgm:false},o.mon||{}));const res=await startBattle({type:"wild",foes:[m],bg:curMap().bg||"grass",area:curMap().id,legend:true});
   if(res==="caught"||res==="win"){setFlag(flagId);}if(res==="win"&&o.again){delete G.save.flags[flagId];}return res;}
-async function giftMon(sp,lv,flagId,text,o={}){const m=makeMon(sp,lv,Object.assign({met:curMap().name},o));const w=addToParty(m);markCaught(sp);setFlag(flagId);Music.jingle("caught");
+async function giftMon(sp,lv,flagId,text,o={}){if(G.save.rand)sp=randomSpecies(sp,"gift:"+flagId);const m=makeMon(sp,lv,Object.assign({met:curMap().name},o));const w=addToParty(m);markCaught(sp);setFlag(flagId);Music.jingle("caught");
   await say(text||`{P} erhält ${SPECIES[sp].n}!`);if(w==="box")await say(`${SPECIES[sp].n} wurde in die Box geschickt.`);return m;}
 async function gymWin(badgeName,leader,text,gift){
   if(!badge(badgeName))G.save.badges.push(badgeName);
@@ -10186,17 +10279,28 @@ const ver=()=>U.ver();
 
 /* ---------- Starter & Rivalen ---------- */
 const STARTERS=[495,498,501];
-function myStarter(){for(const s of STARTERS)if(flag("starter_"+s))return s;return 495;}
+// v0.31: Randomizer – drei zufällige Starter (Grundform mit Entwicklungen, ähnliche Stärke, verschiedene Typen), fest je Spielstand
+function randStarters(){const sd=G.save&&G.save.seed||1;if(G.save._rs&&G.save._rs.seed===sd)return G.save._rs.l;
+  const bst=x=>SPECIES[x].b.reduce((a,b)=>a+b,0),prev=x=>typeof PREV!=="undefined"&&PREV[x];
+  const evos=x=>(SPECIES[x].ev||[]).filter(e=>SPECIES[e[2]]&&e[2]<=MAXDEX);
+  let pool=DEX.filter(x=>!SPECIES[x].lg&&!prev(x)&&evos(x).length&&bst(x)>=250&&bst(x)<=360&&!STARTERS.includes(x));
+  const r=seeded(sd^0x5eed);const out=[],types=new Set();
+  for(let g=0;g<400&&out.length<3&&pool.length;g++){const x=pool[Math.floor(r()*pool.length)];const t=SPECIES[x].t[0];if(out.includes(x)||(types.has(t)&&g<300))continue;out.push(x);types.add(t);}
+  while(out.length<3)out.push(STARTERS[out.length]);G.save._rs={seed:sd,l:out};return out;}
+function starters(){return G.save&&G.save.rand?randStarters():STARTERS;}
+const baseOf=s=>{const L=starters(),i=L.indexOf(s);if(i>=0)return STARTERS[i];for(let k=0;k<3;k++){let x=L[k],g=0;while(g++<3){if(x===s)return STARTERS[k];const e=(SPECIES[x].ev||[])[0];if(!e)break;x=e[2];}}return s;};
+U.starters=starters;U.baseOf=baseOf;
+function myStarter(){const L=starters();for(const s of L)if(flag("starter_"+s))return s;for(const s of STARTERS)if(flag("starter_"+s))return s;return L[0];}
 // Cheren nimmt den Starter mit Typvorteil, Bell den unterlegenen
-const strong=s=>({495:498,498:501,501:495})[s],weak=s=>({495:501,498:495,501:498})[s];
-const stage=(s,lv)=>lv>=36?s+2:lv>=17?s+1:s;
+const strong=s=>{const L=starters(),i=L.indexOf(s);return i>=0?L[(i+1)%3]:({495:498,498:501,501:495})[s];},weak=s=>{const L=starters(),i=L.indexOf(s);return i>=0?L[(i+2)%3]:({495:501,498:495,501:498})[s];};
+const stage=(s,lv)=>{if(STARTERS.includes(s))return lv>=36?s+2:lv>=17?s+1:s;let x=s,g=0;while(g++<3){const e=(SPECIES[x].ev||[]).find(q=>q[0]==="lv"&&lv>=q[1]&&SPECIES[q[2]]&&q[2]<=MAXDEX)||(lv>=36&&g<3?(SPECIES[x].ev||[]).find(q=>SPECIES[q[2]]&&q[2]<=MAXDEX):null);if(!e)break;x=e[2];}return x;};
 U.myStarter=myStarter;U.cherenStarter=()=>strong(myStarter());U.bellStarter=()=>weak(myStarter());
 U.stage=stage;
 
 /* ---------- Labor (Prof. Esche) ---------- */
 async function pickStarter(sp){
   if(G.save.party.length&&!(G.save.bonus&&G.save.bonus.two&&!flag("starter2"))){await say("Das ist ein Pokémon von Prof. Esche.");return;}
-  if(typeof starterStage==="function"&&IV.ok){const pick=await starterStage(STARTERS,STARTERS.indexOf(sp));if(pick==null)return;sp=pick;}
+  if(typeof starterStage==="function"&&IV.ok){const L=starters();const pick=await starterStage(L,Math.max(0,L.indexOf(sp)));if(pick==null)return;sp=pick;}
   else if(!(await yesNo(`${SPECIES[sp].n} (${SPECIES[sp].t.map(t=>TYPE_N[t]).join("/")}). Nimmst du dieses Pokémon?`)))return;
   const S=SPECIES[sp],second=G.save.party.length>0,lv=G.save.bonus&&G.save.bonus.lv7?7:5;
   const m=makeMon(sp,lv,{met:"Avenitia"});addToParty(m);markCaught(sp);setFlag("starter_"+sp);setFlag("dex");if(second)setFlag("starter2");
@@ -10204,15 +10308,16 @@ async function pickStarter(sp){
   if(await yesNo(`Möchtest du ${S.n} einen Spitznamen geben?`)){const n=await nameEntry(`Spitzname für ${S.n}?`,S.n);if(n!==S.n)m.nick=n;}
   return m;}
 U.pickStarter=pickStarter;
-const ball=(x,y,sp)=>({x,y,ch:"ball",sprite:"ball",fixed:1,move:"still",show:()=>!story()&&!flag("starter_"+sp),run:async()=>{const m=await pickStarter(sp);
+const ball=(x,y,k)=>({x,y,ch:"ball",sprite:"ball",fixed:1,move:"still",show:()=>!flag("starter_"+starters()[k])&&!(story()&&flag("st_box")),run:async()=>{const m=await pickStarter(starters()[k]);
+  if(m&&story()){if(typeof U.labStory==="function")await U.labStory(m);return;}
   if(m&&!flag("free_kit")){setFlag("free_kit");addItem("poke-ball",5+(G.save.bonus&&G.save.bonus.balls?5:0));addItem("potion",3);addItem("town-map");setFlag("st_dex");
     await say("Prof. Esche: Dazu bekommst du einen Pokédex, eine Karte und ein paar Pokébälle. Einall gehört dir!");
     if(G.save.bonus&&G.save.bonus.two)await say("Run-Bonus: Du darfst dir noch ein zweites Pokémon aussuchen!");}}});
 M.lab={name:"LABOR VON PROF. ESCHE",tiles:T.lab,floor:"lab",wall:"lab",entry:[5,11],music:"town",bg:"indoor",
-  exitCheck:async()=>{if(!G.save.party.length&&!story()){await say("Prof. Esche: Warte! Such dir zuerst ein Pokémon vom Tisch aus.");return false;}return true;},
+  exitCheck:async()=>{if(!G.save.party.length||(story()&&!flag("st_box"))){await say("Prof. Esche: Warte! Such dir zuerst ein Pokémon vom Tisch aus.");return false;}return true;},
   onEnter:async()=>{if(!story()&&!flag("intro")){setFlag("intro");await say("Prof. Esche: Willkommen in Einall, {P}! Ich bin Prof. Esche. Such dir eines der drei Pokémon auf dem Tisch aus!");}},
   npcs:[{x:6,y:3,ch:"esche",dir:"down",move:"still",id:"esche_lab",text:()=>G.save.party.length?"Prof. Esche: Einall ist riesig. Fang so viele Pokémon wie du kannst – der Pokédex speichert alles!":"Prof. Esche: Na los, such dir eins aus!"},
-    ball(6,5,495),ball(7,5,498),ball(8,5,501),
+    ball(6,5,0),ball(7,5,1),ball(8,5,2),
     {x:10,y:9,ch:"sci",move:"look",text:"Prof. Esche erforscht, woher Pokémon stammen. Ihr Vater ist auch Forscher – er reist gern durch die Wüste."}]};
 
 /* ---------- Arenen ---------- */
@@ -10226,7 +10331,7 @@ const LEADER=(id,name,ch,team,o)=>({x:o.x,y:o.y,ch,dir:"down",move:"still",tr:tr
 
 // 1 · Orion City – Restaurant der drei Brüder
 const TRIO={495:["chili","Maik",513,"Feuer"],498:["cress","Colin",515,"Wasser"],501:["cilan","Benny",511,"Pflanze"]};
-const trioOf=()=>TRIO[myStarter()]||TRIO[495];
+const trioOf=()=>TRIO[baseOf(myStarter())]||TRIO[495];
 U.trioOf=trioOf;
 gym("gym_striaton",{name:"ARENA ORION CITY",wall:"gym:trio",theme:["trio","#c8402e"],floor:"wood",
   tiles:["WWWWWWWWWWWWWW","WWWWwwWWwwWWWW","i____________i","______________","_tt___tt___tt_","_hh___hh___hh_","______________","______________","_tt___tt___tt_","_hh___hh___hh_","______________","i____________i","______DD______"],
@@ -10244,7 +10349,7 @@ for(const n of M.gym_striaton.npcs.slice(0,3)){const L={chili:["Maik",513],cress
     lose:`${L[0]}: Ein köstlicher Kampf! Der Triorden gehört dir.`,after:"Die drei Brüder: Kommt bald wieder! Wir servieren auch Revanchen.",
     onWin:gymWinner("Trio",L[0],"Mit dem Triorden hören dir Pokémon bis Lv. "+U.caps[1]+" aufs Wort – und Zerschneider kannst du jetzt außerhalb von Kämpfen nutzen.",[["rare-candy",2]])});}
 // Affen-Geschenk vor der Arena (wie im Original: Gegenstück zum eigenen Starter)
-M.gym_striaton.npcs.push({x:11,y:11,ch:"girl",dir:"left",move:"look",run:async()=>{const g={495:515,498:511,501:513}[myStarter()];
+M.gym_striaton.npcs.push({x:11,y:11,ch:"girl",dir:"left",move:"look",run:async()=>{const g={495:515,498:511,501:513}[baseOf(myStarter())];
   if(!flag("monkey_gift")){await say(`Mädchen: Die Brüder kämpfen mit Typvorteil gegen dich. Das ist unfair! Nimm mein ${SPECIES[g].n} – das passt perfekt gegen sie!`);
     await U.giftMon(g,10,"monkey_gift",`{P} erhält ${SPECIES[g].n}!`);}else await say("Mädchen: Viel Glück in der Arena!");}});
 
@@ -10420,7 +10525,7 @@ async function scene(fn){W.scene=true;try{await fn();}catch(e){console.error("Sz
 function shakeFx(n=10){if(typeof shake!=="undefined")shake=n;}
 // Story-Kampf: Niederlage ist erlaubt (Team wird danach geheilt), Sieg wird gespeichert
 async function storyBattle(t,o={}){const easy=G.save.diff==="easy";
-  const team=(typeof t.team==="function"?t.team():t.team).map(([sp,lv,x={}])=>{const L=Math.max(2,lv-(easy&&t.boss?2:0));
+  const team=(typeof t.team==="function"?t.team():t.team).map(([sp,lv,x={}],ix)=>{const L=Math.max(2,lv-(easy&&t.boss?2:0));if(G.save.rand&&!SPECIES[sp].lg&&!U.starters().includes(sp))sp=randomSpecies(sp,"st:"+t.id+":"+ix);
     return makeMon(sp,L,Object.assign({iv:t.boss?[31,31,31,31,31,31]:easy?[15,15,15,15,15,15]:[25,25,25,25,25,25],shiny:false,ev:easy?null:evSpread(sp,L)},x));});
   if(!partyAlive())healParty();
   const res=await startBattle({type:"trainer",foes:team,tr:t,ch:t.ch,bg:t.bg||curMap().bg||"grass",noLose:o.noLose!==false});
@@ -10439,15 +10544,15 @@ const T_={
   bell1:()=>[[bS(),5]],cheren1:()=>[[chS(),5]],
   n1:()=>[[509,7]],
   bell2:()=>[[506,6],[bS(),8]],
-  cheren2:()=>[[504,12],[MONKEY[chS()],12],[chS(),14]],
-  bell3:()=>[[517,18],[MONKEY[bS()],18],[st(bS(),20),20]],
-  cheren3:()=>[[505,19],[510,19],[MONKEY[chS()],19],[st(chS(),21),21]],
+  cheren2:()=>[[504,12],[MONKEY[U.baseOf(chS())],12],[chS(),14]],
+  bell3:()=>[[517,18],[MONKEY[U.baseOf(bS())],18],[st(bS(),20),20]],
+  cheren3:()=>[[505,19],[510,19],[MONKEY[U.baseOf(chS())],19],[st(chS(),21),21]],
   n2:()=>[[551,22],[554,22],[559,22],[561,22]],
-  bell4:()=>[[518,26],[MONKEY[bS()]+1,26],[587,26],[st(bS(),28),28]],
+  bell4:()=>[[518,26],[MONKEY[U.baseOf(bS())]+1,26],[587,26],[st(bS(),28),28]],
   n3:()=>[[525,28],[595,28],[597,28],[599,28]],
-  cheren4:()=>[[505,31],[510,31],[MONKEY[chS()]+1,31],[st(chS(),33),33]],
-  bell5:()=>[[518,42],[MONKEY[bS()]+1,42],[587,42],[573,42],[st(bS(),44),44]],
-  cheren5:()=>[[505,43],[510,43],[MONKEY[chS()]+1,43],[626,43],[st(chS(),45),45]],
+  cheren4:()=>[[505,31],[510,31],[MONKEY[U.baseOf(chS())]+1,31],[st(chS(),33),33]],
+  bell5:()=>[[518,42],[MONKEY[U.baseOf(bS())]+1,42],[587,42],[573,42],[st(bS(),44),44]],
+  cheren5:()=>[[505,43],[510,43],[MONKEY[U.baseOf(chS())]+1,43],[626,43],[st(chS(),45),45]],
   nfin:()=>[[nDragon(),52],[571,50],[565,50],[584,50],[567,50],[601,50]],
   gcis:()=>[[563,52],[626,52],[537,52],[625,52],[604,52],[635,54]],
 };
@@ -10456,41 +10561,40 @@ const CHEREN=(k,intro,o={})=>tr("st_"+k,"Cheren","Rivale","cheren",T_[k],Object.
 const N_TR=(k,intro,o={})=>tr("st_"+k,"N","???","n",T_[k],Object.assign({boss:true,prize:0,intro},o));
 
 /* ==================================== PROLOG: AVENITIA ==================================== */
-// Zuhause: Bell & Cheren mit dem Geschenk von Prof. Esche
-const box=npc("home","box",[4,3],{ch:"ball",sprite:"ball",fixed:1,show:()=>story()&&!flag("st_box"),run:()=>scene(openBox)});
-npc("home","bell",[6,5],{ch:"bell",dir:"left",show:()=>story()&&!flag("st_box"),text:"Bell: Das Paket ist von Prof. Esche! Mach schon auf, mach schon auf!"});
-npc("home","cheren",[2,6],{ch:"cheren",dir:"right",show:()=>story()&&!flag("st_box"),text:"Cheren: Ruhig, Bell. Lass {P} das Paket öffnen – es wurde schließlich hierher geliefert."});
+// Zuhause: Mama weckt dich – Prof. Esche wartet im Labor (v0.31: Starterwahl wie im Original im Labor)
 onEnter("home",async()=>{if(!story()||flag("st_intro"))return;setFlag("st_intro");await scene(async()=>{
-  await say("Mama: {P}, wach auf! Heute ist der große Tag – Prof. Esche hat ein Paket für dich, Bell und Cheren geschickt.");
-  face("bell","left");await emote("bell");
-  await say("Bell: Hallo {P}! Endlich! Ich hab die ganze Nacht nicht geschlafen!");
+  await say("Mama: {P}, wach auf! Heute ist der große Tag!");
+  await say("Mama: Prof. Esche hat angerufen. Sie wartet mit Bell und Cheren im Labor – ihr bekommt heute eure ersten Pokémon!");
+  await say("Mama: Das Labor ist gleich unten in der Stadt, das große Gebäude rechts. Los, lauf schon!");});});
+// Labor: Begrüßung, drei Pokébälle auf dem Tisch
+onEnter("lab",async()=>{if(!story()||flag("st_box")||flag("st_lab0"))return;setFlag("st_lab0");await scene(async()=>{
+  await say("Prof. Esche: Da bist du ja, {P}! Bell und Cheren sind schon ganz ungeduldig.");
+  await say("Bell: Endlich! Ich hab die ganze Nacht nicht geschlafen!");
   await say("Cheren: Guten Morgen. Bell ist seit sechs Uhr hier. Ich seit sechs Uhr eins.");
-  await say("Bell: Das Paket steht auf dem Tisch. Mach es auf! Bitte!");});});
-async function openBox(){
-  await say("Ein Paket von Prof. Esche. Darin liegen drei Pokébälle – und ein Brief.");
-  await say("„Liebe Drei, ich schenke euch je ein Pokémon. Lernt Einall kennen – und lernt dabei euch selbst kennen. Eure Prof. Esche“");
-  await say("Darunter liegt etwas Kleines, Schwarzes ... ein glasartiger Splitter.");
-  const m=await U.pickStarter(495);if(!m)return;
+  await say("Prof. Esche: Ich bin Prof. Esche. Ich erforsche, woher Pokémon kommen. Auf dem Tisch liegen drei Pokébälle – in jedem wartet ein Pokémon.");
+  await say("Prof. Esche: {P}, du darfst als Erstes wählen. Geh zum Tisch und sieh sie dir an!");});});
+U.labStory=async function(m){await scene(async()=>{
   const b=bS(),c=chS();
   face("bell","up");await say(`Bell: Dann nehme ich ${dn(b)}! Guck mal, wie süß es guckt!`);
   face("cheren","up");await say(`Cheren: Dann bleibt für mich ${dn(c)}. Passt gut – damit habe ich einen Typvorteil gegen dich, {P}.`);
   await say("Bell: Hey! Lass uns kämpfen! Unser allererster Pokémon-Kampf!");
-  await say("Cheren: Hier drinnen? Bell, das ist eine schlechte Id–");
+  await say("Prof. Esche: Hier im Labor? ... Na gut, ein kleiner Probekampf. Ich passe auf!");
   facePl("bell");await storyBattle(BELL("bell1","Bell: Los geht's! Ich hab heimlich geübt – mit Kissen!",{bg:"indoor"}),{loseText:"Bell: Juhu, ich hab gewonnen! ... Oh, dein Pokémon ist ganz müde. Tut mir leid!"});
-  await say("Mama: Was ist denn hier los?! ... Ach, ihr habt eure ersten Pokémon? Dann verzeih ich euch das Chaos. Ich heile sie schnell!");healParty();sfx("heal");
+  await say("Prof. Esche: Wunderbar! Ich heile eure Pokémon schnell.");healParty();sfx("heal");
   facePl("cheren");await say("Cheren: Jetzt ich. Ich will wissen, wie stark mein Pokémon wirklich ist.");
   await storyBattle(CHEREN("cheren1","Cheren: Zeig mir, was du kannst.",{bg:"indoor"}));
-  healParty();sfx("heal");
-  await say("Mama: So, jetzt ist Schluss mit Kämpfen im Haus! Geht zu Prof. Esche und bedankt euch.");
-  await say("Cheren: Ihr Labor ist gleich unten in der Stadt. Wir treffen uns dort.");
-  await say("Bell: Ich muss noch meiner Mama Bescheid sagen ... Bis gleich!");
-  setFlag("st_box");addItem("obsidian");addItem("potion",2);
-  await say("Du steckst den schwarzen Splitter ein. Er ist seltsam warm ...");
-  if(typeof autoSave==="function")autoSave();}
+  healParty();sfx("heal");setFlag("st_box");addItem("potion",2);
+  await say("Prof. Esche: Pokémon und Trainer, die sich kennenlernen – genau so soll es sein! Und ich habe eine Bitte an euch drei.");
+  await say("Prof. Esche: Nehmt diese Pokédexe mit auf eure Reise durch Einall. Jedes Pokémon, das ihr trefft, wird darin festgehalten.");
+  setFlag("dex");addItem("town-map");sfx("item");Music.jingle("caught");await say("{P} erhält einen Pokédex und eine Karte von Einall!");
+  await say("Prof. Esche: Und noch etwas ... Dieser schwarze Splitter. Mein Vater hat ihn in der Wüste gefunden. Er wird warm, wenn alte Legenden in der Nähe sind.");
+  addItem("obsidian");sfx("item");await say("{P} erhält den Obsidian-Splitter! Er ist seltsam warm ...");
+  await say("Prof. Esche: Kommt mit auf Route 1 – ich zeige euch, wie man Pokémon fängt!");
+  setFlag("st_dex");if(typeof autoSave==="function")autoSave();});};
 
 // Labor: Pokédex
-npc("lab","bell",[4,5],{ch:"bell",dir:"up",show:()=>story()&&flag("st_box")&&!flag("st_dex"),text:"Bell: Prof. Esche ist sooo cool!"});
-npc("lab","cheren",[8,5],{ch:"cheren",dir:"up",show:()=>story()&&flag("st_box")&&!flag("st_dex"),text:"Cheren: Hör zu, was sie sagt. Es ist wichtig."});
+npc("lab","bell",[4,6],{ch:"bell",dir:"up",show:()=>story()&&!flag("st_dex"),text:"Bell: Prof. Esche ist sooo cool!"});
+npc("lab","cheren",[10,6],{ch:"cheren",dir:"up",show:()=>story()&&!flag("st_dex"),text:"Cheren: Hör zu, was sie sagt. Es ist wichtig."});
 onEnter("lab",async()=>{if(!story()||!flag("st_box")||flag("st_dex"))return;await scene(async()=>{
   await say("Prof. Esche: Da seid ihr ja! Und ihr habt schon gekämpft, sehe ich. Pokémon und Trainer, die sich kennenlernen – wunderbar!");
   await say("Prof. Esche: Ich bin Prof. Esche. Ich erforsche, woher Pokémon kommen. Und ich habe eine Bitte an euch drei.");
@@ -11014,7 +11118,7 @@ function hiddenAt(m,x,y){return(m.hidden||[]).find(h=>h.x===x&&h.y===y&&!flag(h.
 U.hiddenAt=hiddenAt;
 {const _i=interact;interact=async function(){
   if(G.save){const[dx,dy]=DIRS[PL.dir];const x=PL.x+dx,y=PL.y+dy;const t=tileAt(x,y);
-    if(t&&!npcAt(x,y)){const h=hiddenAt(t.m,t.x,t.y);if(h){setFlag(h.flag);addItem(h.item,1);sfx("item");await say(`Da lag etwas versteckt! {P} hat ${itemName(h.item)} gefunden!`);return;}}}
+    if(t&&!npcAt(x,y)){const h=hiddenAt(t.m,t.x,t.y);if(h){const it=REGIONS.unova.randItem?REGIONS.unova.randItem(h.flag,h.item):h.item;setFlag(h.flag);addItem(it,1);sfx("item");await say(`Da lag etwas versteckt! {P} hat ${itemName(it)} gefunden!`);return;}}}
   return _i.apply(this,arguments);};}
 
 /* ---------- Itemradar ---------- */
@@ -11128,6 +11232,18 @@ for(const id in ADJ){const m=M[id];if(!m)continue;const[dt,dw]=ADJ[id];
     if(Array.isArray(t.team))t.team=t.team.map(r=>{const c=r.slice();c[1]=Math.min(100,c[1]+dt);return c;});
     else if(typeof t.team==="function"){const f=t.team;t.team=()=>f().map(r=>{const c=r.slice();c[1]=Math.min(100,c[1]+dt);return c;});}}
   if(dw)for(const e of[m.enc,m.encWater,m.encSand]){if(!e||!e.list||doneEnc.has(e))continue;doneEnc.add(e);e.list=e.list.map(r=>{const c=r.slice();c[1]+=dw;c[2]+=dw;return c;});}}
+})();
+
+/* ---------- Randomizer komplett (v0.31, Soul-Link-Stil): Fähigkeiten und gefundene Items zufällig ---------- */
+(function(){
+const ABL=Object.keys(ABIL).filter(k=>!["wonder-guard","illusion","imposter","zen-mode","multitype","forecast","flower-gift","stance-change"].includes(ABIL[k][0]));
+// Fähigkeit je Art fest zufällig (alle Pokémon derselben Art haben dieselbe Zufallsfähigkeit)
+const _mk=makeMon;makeMon=function(sp,lv,o={}){const m=_mk.apply(this,arguments);try{if(G.save&&G.save.rand&&m&&!o.keepAb){const r=seeded((G.save.seed^0xab1)+sp*7919);m.ab=isNaN(+ABL[0])?ABL[Math.floor(r()*ABL.length)]:+ABL[Math.floor(r()*ABL.length)];}}catch(e){}return m;};
+// gefundene Items (Pokébälle am Boden + versteckte Items) zufällig
+const POOL=()=>Object.keys(ITEMS).filter(k=>{const it=ITEMS[k];return it&&it.cat!=="key"&&!it.mega&&k!=="vial"&&k!=="master-ball"&&(ITEM_IDX[k]!=null||it.cat==="tm");});
+REGIONS.unova.randItem=(key,orig)=>{if(!G.save||!G.save.rand)return orig;const P=POOL();if(!P.length)return orig;const r=seeded(G.save.seed^strHash("item:"+key));return P[Math.floor(r()*P.length)];};
+const _ev=evolve;evolve=function(m,to){const ab=m.ab;const r=_ev.apply(this,arguments);if(G.save&&G.save.rand){const rr=seeded((G.save.seed^0xab1)+to*7919);m.ab=isNaN(+ABL[0])?ABL[Math.floor(rr()*ABL.length)]:+ABL[Math.floor(rr()*ABL.length)];}return r;};
+const _pi=pickItem;pickItem=async function(n){if(G.save&&G.save.rand){const it=REGIONS.unova.randItem(n.id||String(n.x)+","+n.y,n.d.item);setFlag(n.id);addItem(it,1);sfx("item");await say(`{P} hat ${itemName(it)} gefunden!`);return;}return _pi.apply(this,arguments);};
 })();
 
 /* ===== main.js ===== */
@@ -11334,7 +11450,7 @@ function settingsPick(){
     const rows=[["Spielart",()=>s.story?"STORY":"FREI",()=>s.story=!s.story,()=>s.story?"Story: Die ganze Geschichte von Einall – Team Plasma, N, Bell und Cheren, die Legende der zwei Drachen. Mit Zwischensequenzen und eigener Erweiterung.":"Frei: Keine Story-Szenen und keine Sperren durch die Handlung – nur Arenen, Liga und freie Erkundung, wie bisher."],
       ["Edition",()=>s.ver==="w"?"WEISS":"SCHWARZ",()=>s.ver=s.ver==="w"?"b":"w",()=>s.ver==="w"?"Weiß: Zekrom ist dein Drache, dazu die Weiß-Pokémon (z. B. Lilminip, Monozyto, Geronimatz).":"Schwarz: Reshiram ist dein Drache, dazu die Schwarz-Pokémon (z. B. Waumboll, Mollimorba, Skallyk)."],["Schwierigkeit",()=>s.diff==="easy"?"Leicht":"Normal",()=>s.diff=s.diff==="easy"?"normal":"easy",()=>s.diff==="easy"?"Leicht: Bosse 2 Level schwächer, Gegner nutzen seltener Megas.":"Normal = Hardcore wie Emerald Azure: schlaue KI, EV-trainierte Trainer, Kampfstil Folge, Schlafklausel."],
       ["Min. Grinding",()=>s.mgm?"An":"Aus",()=>s.mgm=!s.mgm,()=>s.mgm?"Alle eigenen Pokémon haben perfekte IVs, keine EVs.":"Zufällige IVs, EVs durch Kämpfe."],
-      ["Randomizer",()=>s.rand?"An":"Aus",()=>s.rand=!s.rand,()=>s.rand?"Wilde Pokémon werden zufällig getauscht (ähnliche Stärke).":"Originale Begegnungen."],
+      ["Randomizer",()=>s.rand?"An":"Aus",()=>s.rand=!s.rand,()=>s.rand?"Alles zufällig wie im Soul-Link: Starter, wilde Pokémon, Trainer, Arenen, Rivalen, Geschenke, Fähigkeiten und gefundene Items.":"Originale Begegnungen."],
       ["Team-EP",()=>s.expAll?"An":"Aus",()=>s.expAll=!s.expAll,()=>s.expAll?"Team-EP an: Alle Pokémon im Team bekommen E.-Punkte, wer nicht gekämpft hat die Hälfte (wie der moderne EP-Teiler).":"Team-EP aus: Nur wer kämpft bekommt E.-Punkte, aufgeteilt wie in Feuerrot. Zuschauer nur mit EP-Teiler."]];
     const N=rows.length+2; // 0 = Modus-Karten, 1..3 = Regeln, 4 = Los
     const sc={opaque:true,t:0,update(){this.t++;
