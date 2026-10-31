@@ -1272,7 +1272,8 @@ function fmt(s){const sv=G.save||{};return String(s).replace(/\{P\}/g,sv.name||"
 const TEXT_SPEED=[1,2,4,999];
 // Typewriter-Textbox. style: "text" (Overworld) oder "battle"
 class TextBox{
-  constructor(text,o={}){this.lines=o.style==="battle"?(typeof battleWrap==="function"?battleWrap(fmt(text)):wrap(fmt(text),224,10)):(typeof prWrap==="function"?prWrap(fmt(text),286,16):wrap(fmt(text),212,12));this.page=0;this.chars=0;this.o=o;this.t=0;}
+  constructor(text,o={}){if(o.style!=="battle"){const t0=fmt(text),mm=t0.match(/^([^:„"“\n]{1,24}?)\s?:\s+([\s\S]+)$/);if(mm&&!/[!?…,]/.test(mm[1])){this.spk=mm[1].trim();text=mm[2];}}
+    this.lines=o.style==="battle"?(typeof battleWrap==="function"?battleWrap(fmt(text)):wrap(fmt(text),224,10)):(typeof prWrap==="function"?prWrap(fmt(text),286,16):wrap(fmt(text),212,12));this.page=0;this.chars=0;this.o=o;this.t=0;}
   get pageLines(){return this.lines.slice(this.page*2,this.page*2+2);}
   get pageLen(){return this.pageLines.join("").length;}
   get last(){return(this.page+1)*2>=this.lines.length;}
@@ -1289,7 +1290,10 @@ class TextBox{
     const bt=this.o.style==="battle";
     if(bt&&typeof drawBattleText==="function"){prBegin();drawBattleText(this);prEnd();return;}
     if(!bt&&typeof fancyWin==="function"){if(typeof W!=="undefined")W.popup=null;const k=Math.min(1,(this.t0=(this.t0||0)+1)/6);
-      prBegin();const y=PRH-60+(1-k)*8;ctx.globalAlpha=k;fancyWin(6,y,PRW-12,54);
+      prBegin();const y=PRH-60+(1-k)*8;ctx.globalAlpha=k;
+      if(this.spk){const me=this.spk===((G.save&&G.save.name)||"#");const w=Math.min(160,this.spk.length*7.4+22);ctx.fillStyle="rgba(10,6,20,.6)";ctx.fillRect(16,y-13,w+2,15);
+        ctx.fillStyle=me?"#2a5ac8":"#c8502e";ctx.fillRect(14,y-15,w,15);ctx.fillStyle=me?"#5a8aff":"#ff7a50";ctx.fillRect(14,y-15,w,2);prT(this.spk,14+w/2,y-14,{size:12,align:"center",c:"#fff"});}
+      fancyWin(6,y,PRW-12,54);
       let n=Math.floor(this.chars);this.pageLines.forEach((ln,i)=>{const s=ln.slice(0,Math.max(0,n));n-=ln.length;prT(s,18,y+10+i*19,{size:16});});
       if(this.chars>=this.pageLen&&(this.o.auto==null||!this.last)){const b=Math.floor(FRAME/14)%2;ctx.fillStyle="#ff7a50";ctx.beginPath();ctx.moveTo(PRW-26,y+40+b);ctx.lineTo(PRW-16,y+40+b);ctx.lineTo(PRW-21,y+46+b);ctx.fill();}
       ctx.globalAlpha=1;prEnd();return;}
@@ -7677,7 +7681,8 @@ const PATCH=[
     "Neue Karte von Einall: gezeichnetes Festland mit Küste, Bucht, Flüssen und Seen, Wäldern, Bergen, Wüste, Wegen, Brücken, Höhlen und Türmen. Dein Standort wird jetzt auch auf Routen genau angezeigt.",
     "Story: Die Starterwahl findet jetzt wie im Original im Labor von Prof. Esche statt – drei Pokébälle auf dem Tisch, danach die ersten Kämpfe gegen Bell und Cheren.",
     "Randomizer komplett im Soul-Link-Stil: komplett zufällige Starter (jede Entwicklungsstufe, auch Legenden), alle wilden Pokémon, alle Trainer, Arenaleiter, Top Vier, Rivalen, Geschenk- und Legenden-Begegnungen (Legenden können überall auftauchen), Fähigkeiten und alle gefundenen Items (auch versteckte). Alles fest je Spielstand.",
-    "Story: Die ersten Kämpfe gegen Bell, Cheren und N sind fairer – die Rivalen haben bis zum 2. Orden normale Werte statt Profi-Werten."]},
+    "Story: Die ersten Kämpfe gegen Bell, Cheren und N sind fair wie im Original – vor dem 1. Orden haben die Rivalen Anfänger-Werte, bis zum 2. Orden normale Werte.",
+    "Gespräche: Über dem Textfenster steht jetzt ein Namensschild, wer gerade spricht (dein eigener Name in Blau)."]},
   {v:"0.30",d:"31.10.2026",items:[
     "Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!",
     "Alle Spielstände und Konten wurden zurückgesetzt. Jeder startet neu in Avenitia.",
@@ -10527,7 +10532,7 @@ function shakeFx(n=10){if(typeof shake!=="undefined")shake=n;}
 // Story-Kampf: Niederlage ist erlaubt (Team wird danach geheilt), Sieg wird gespeichert
 async function storyBattle(t,o={}){const easy=G.save.diff==="easy";
   const team=(typeof t.team==="function"?t.team():t.team).map(([sp,lv,x={}],ix)=>{const L=Math.max(2,lv-(easy&&t.boss?2:0));if(G.save.rand&&!U.starters().includes(sp)&&!(typeof nDragon==="function"&&sp===nDragon()))sp=randomSpecies(sp,"st:"+t.id+":"+ix);
-    const nb=(G.save.badges||[]).length,iv=easy?12:nb<2?10:t.boss&&nb>=4?31:t.boss?22:18;return makeMon(sp,L,Object.assign({iv:[iv,iv,iv,iv,iv,iv],shiny:false,ev:easy||nb<2?null:evSpread(sp,L)},x));});   // v0.31: frühe Story-Kämpfe fair (keine Profi-Werte vor dem 2. Orden)
+    const nb=(G.save.badges||[]).length,iv=nb<1?0:easy?12:nb<2?8:t.boss&&nb>=4?31:t.boss?22:18;return makeMon(sp,L,Object.assign({iv:[iv,iv,iv,iv,iv,iv],shiny:false,ev:easy||nb<2?null:evSpread(sp,L)},x));});   // v0.31: frühe Story-Kämpfe fair (keine Profi-Werte vor dem 2. Orden)
   if(!partyAlive())healParty();
   const res=await startBattle({type:"trainer",foes:team,tr:t,ch:t.ch,bg:t.bg||curMap().bg||"grass",noLose:o.noLose!==false});
   if(res==="win")G.save.def[t.id]=1;
