@@ -19,6 +19,9 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Keine Bäume mehr „auf dem Wasser“: Am Kartenrand geht das Meer bzw. der Fluss jetzt weiter (Avenitia, Stratos City, Marea City, Brücken).
 - Übergänge zwischen den Gebieten mit Holz-Torbogen bzw. Wegweiser, auf dem das Ziel steht.
 - Orion City: Im Kampf heißt der Arenaleiter jetzt nur noch Benny, Maik oder Colin – je nachdem, wer gegen dich antritt.
+- Neue Karte von Einall: gezeichnetes Festland mit Küste, Bucht, Flüssen und Seen, Wäldern, Bergen, Wüste, Wegen, Brücken, Höhlen und Türmen. Dein Standort wird jetzt auch auf Routen genau angezeigt.
+- Story: Die Starterwahl findet jetzt wie im Original im Labor von Prof. Esche statt – drei Pokébälle auf dem Tisch, danach die ersten Kämpfe gegen Bell und Cheren.
+- Randomizer komplett im Soul-Link-Stil: zufällige Starter, alle wilden Pokémon, alle Trainer, Arenaleiter, Top Vier, Rivalen, Geschenk- und Legenden-Begegnungen, Fähigkeiten und alle gefundenen Items (auch versteckte). Alles fest je Spielstand.
 
 ## v0.30 (31.10.2026)
 - Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!
