@@ -24,6 +24,8 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Randomizer komplett im Soul-Link-Stil: komplett zufällige Starter (jede Entwicklungsstufe, auch Legenden), alle wilden Pokémon, alle Trainer, Arenaleiter, Top Vier, Rivalen, Geschenk- und Legenden-Begegnungen (Legenden können überall auftauchen), Fähigkeiten und alle gefundenen Items (auch versteckte). Alles fest je Spielstand.
 - Story: Die ersten Kämpfe gegen Bell, Cheren und N sind fair wie im Original – vor dem 1. Orden haben die Rivalen Anfänger-Werte, bis zum 2. Orden normale Werte.
 - Gespräche: Über dem Textfenster steht jetzt ein Namensschild, wer gerade spricht (dein eigener Name in Blau).
+- Städte lebendiger: Vorgärten mit Zaun, Blumenbeete an den Hauswänden, Hecken an den Wegen und Bäume auf den Wiesen – ohne Wege zu verbauen.
+- Kampf: Nach einem Ballwurf steht der Cursor wieder auf dem Ball/Beutel statt auf „Kampf“ – so wirft man schnell den nächsten Ball.
 
 ## v0.30 (31.10.2026)
 - Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!
