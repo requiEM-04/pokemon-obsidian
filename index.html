@@ -835,6 +835,9 @@ function gFloor(g,ox,oy,wx,wy,kind){
 function gFloorX(g,ox,oy,wx,wy,kind){
   if(kind==="ice")pxfill(g,ox,oy,16,16,(x,y)=>{const X=wx*16+x,Y=wy*16+y;const n=nz(X,Y,23),m=vnz(X/9,Y/9);if(n<.05)return "#7a92b4";if(n>.965)return "#ffffff";return m<.42?"#a8c0dc":m<.7?"#b8cee6":"#c8dcf0";});
   else if(kind==="cave")pxfill(g,ox,oy,16,16,(x,y)=>{const X=wx*16+x,Y=wy*16+y;const n=nz(X,Y,21),m=vnz(X/9,Y/9);if(n<.05)return "#6a5848";if(n>.96)return "#c8b49a";return m<.42?"#8e7a64":m<.7?"#9c876e":"#a8927a";});
+  else if(kind==="crystal")pxfill(g,ox,oy,16,16,(x,y)=>{const X=wx*16+x,Y=wy*16+y;const n=nz(X,Y,25),m=vnz(X/9,Y/9);if(n<.05)return "#2a2650";if(n>.975)return "#c8e0ff";if(n>.955)return "#7ad8ff";return m<.42?"#4a4878":m<.7?"#55548a":"#605f98";});
+  else if(kind==="sandcave")pxfill(g,ox,oy,16,16,(x,y)=>{const X=wx*16+x,Y=wy*16+y;const n=nz(X,Y,27),m=vnz(X/7,Y/7);if(n<.05)return "#a07c4c";if(n>.96)return "#f4e0b0";return m<.42?"#d0ac74":m<.7?"#dab680":"#e2c08c";});
+  else if(kind==="stonecave")pxfill(g,ox,oy,16,16,(x,y)=>{const X=wx*16+x,Y=wy*16+y;if((X%16===0)||(Y%16===0&&((X>>4)+(Y>>4))%2===0))return "#5a5a64";const n=nz(X,Y,29),m=vnz(X/8,Y/8);if(n<.05)return "#5e5e68";if(n>.965)return "#b4b4c0";return m<.42?"#80808c":m<.7?"#8a8a96":"#9494a0";});
   else if(kind==="metal")pxfill(g,ox,oy,16,16,(x,y)=>{if(x===0||y===0)return "#5a6474";if(x===15||y===15)return "#3a4250";const d=(x+y)%6===0&&x>2&&y>2&&x<13&&y<13;return d?"#7c8696":"#6c7686";});
   else if(kind==="ship")pxfill(g,ox,oy,16,16,(x,y)=>{const X=wx*16+x;if(y%8===7)return "#8a5a34";if((X+Math.floor((wy*16+y)/8)*11)%32===0)return "#8a5a34";const n=nz(X,wy*16+y,4);return n<.2?"#b47a48":"#c48a54";});
   else if(kind==="tower")pxfill(g,ox,oy,16,16,(x,y)=>{if(x===0||y===0)return "#4a3a5a";const ch=((x>>3)+(y>>3))%2;const n=nz(wx*16+x,wy*16+y,5);return ch?(n<.1?"#6a5a7c":"#7a6a8c"):(n<.1?"#5e4e70":"#6e5e80");});
@@ -1379,7 +1382,7 @@ function nameEntry(title,def,max=10){
 /* ================================ OVERWORLD: Karten, Bewegung, NPCs, Trainer, Warps ================================ */
 const REGIONS={};
 function folIdx(sp){return Math.max(0,(sp|0)-(typeof DEXLO!=="undefined"?DEXLO:1));}
-const SOLID=new Set(["T","~","f","s","r","m","b","W"," ","t","B","V","P","K","p","C","c","H","M","G","k","L","n","X","Y","w","g","a","N","O"]);
+const SOLID=new Set(["T","~","f","s","r","m","b","W"," ","t","B","V","P","K","p","C","c","H","M","G","k","L","n","X","Y","w","g","a","N","O","e","i"]);
 const W={lock:0,npcs:{},popup:null,emote:null,fol:null,bumpT:0,flash:0};
 const PL={x:0,y:0,dir:"down",moving:false,prog:0,tx:0,ty:0,sp:1,alt:0,jump:0,turnT:0,wasMoving:false,bump:0};
 function REG(){return REGIONS[(G.save&&G.save.region)||"unova"]||REGIONS.unova;}
@@ -1891,6 +1894,12 @@ function init3D(){
     atlasAdd("caveSide2",caveWall(["#261e16","#3e3024","#4c3c2e","#5a4838","#6e5a46","#8a7458"]));
     atlasAdd("iceFront",caveWall(["#3a4a68","#5a7090","#7890b4","#98b0d0","#c0d6ee","#e8f4ff"]));
     atlasAdd("iceSide",caveWall(["#2e3c58","#4a5e7e","#62789c","#7e96ba","#a0b8d8","#c8dcf0"]));
+    atlasAdd("crystalFront",caveWall(["#1c1838","#2c2858","#3c3a78","#4e4e96","#6a6cba","#9ab0f0"]));
+    atlasAdd("crystalSide",caveWall(["#16122c","#242048","#322e62","#40407e","#5658a0","#7c90d4"]));
+    atlasAdd("stoneFront",caveWall(["#2a2a30","#3e3e46","#52525c","#686874","#82828e","#a4a4b0"]));
+    atlasAdd("stoneSide",caveWall(["#222228","#34343c","#46464e","#5a5a64","#70707c","#90909c"]));
+    atlasAdd("sandFront",caveWall(["#5a4024","#7a5a34","#9a7646","#b8925a","#d0ac72","#ecd29a"]));
+    atlasAdd("sandSide",caveWall(["#4a341c","#6a4c2a","#866440","#a07c50","#b89466","#d4b884"]));
     atlasAdd("caveTop",mk(16,16,(g)=>pxfill(g,0,0,16,16,(x,y)=>{const n=nz(x,y,41);return n<.2?"#4a3c30":n>.9?"#7a6650":"#5c4c3c";})));
     atlasAdd("caveFront",mk(16,16,(g)=>pxfill(g,0,0,16,16,(x,y)=>{const b=(y+((x>>2)%2)*3)%7;const n=nz(x,y,43);return y<1?"#7a6650":b===0?"#3e3228":n<.2?"#6a5642":n>.9?"#9a8268":"#7e6a54";})));
     atlasAdd("cliffFront",mk(16,16,(g)=>pxfill(g,0,0,16,16,(x,y)=>{const b=(y+((x>>2)%2)*2)%6;const n=nz(x,y,5);return y<1?"#4a8a38":b===0?"#8a6a40":n<.2?"#a88454":n>.9?"#e0c08c":"#c4a06a";})));
@@ -1950,7 +1959,7 @@ function groundCanvas(m){
       const nb=f=>({u:at(x,y-1)!==null&&!f(at(x,y-1)),d:at(x,y+1)!==null&&!f(at(x,y+1)),l:at(x-1,y)!==null&&!f(at(x-1,y)),r:at(x+1,y)!==null&&!f(at(x+1,y))});
       const blk=m.blk.has(x+","+y)||m.doors[x+","+y];
       if(out&&m.cave){ // Höhle: Felsboden, Wasser, Leitern/Löcher
-        const cf=(G,X,Y)=>gFloorX(G,X,Y,wx,wy,m.ice?"ice":"cave");
+        const cf=(G,X,Y)=>gFloorX(G,X,Y,wx,wy,caveKind(m));
         if(c==="~")gWater(g,ox,oy,wx,wy,nb(t=>t==="~"));else if(c==="l")gLadder(g,ox,oy,cf);else if(c==="o")gHole(g,ox,oy,cf);else if(c==="=")gBridge(g,ox,oy,wx,wy,at(x,y-1)==="="||at(x,y+1)==="=");
         else if(c==="Z"){cf(g,ox,oy);g.fillStyle="#3a3036";g.fillRect(ox+2,oy+2,12,12);g.fillStyle="#6a5a60";g.fillRect(ox+3,oy+3,10,10);g.fillStyle="#2a2228";g.fillRect(ox+4,oy+4,8,8);
           g.fillStyle="#c84838";g.beginPath();g.arc(ox+8,oy+8,3,0,7);g.fill();g.fillStyle="#f08070";g.fillRect(ox+7,oy+6,2,1);}
@@ -2033,7 +2042,9 @@ function finishGB(gb,gs,objs,fade){
     const sm=sg.mesh(new THREE.MeshBasicMaterial({map:V3.atex,transparent:true,depthWrite:false,opacity:.28,vertexColors:true}));sm.renderOrder=2;objs.add(sm);}
 }
 // FRLG-Berge: Kuppen als eine Fläche je Karte mit durchgehender Felstextur (keine sichtbaren Kachelkanten)
-function rockOpts(m){return m.cave?{h:1.7,pal:m.ice?[0x6a84a8,0x7c96ba,0x8eaacc,0xa2bede,0xd8e8f8,0x4a6488,0xf0f8ff,0x3a5070]:[0x3e3024,0x4a3a2c,0x564434,0x62503e,0x7a6250,0x2a2018,0x86705a,0x221a12]}:{};}
+const CAVE_PAL={stone:[0x3e3e46,0x4a4a54,0x56565f,0x62626c,0x7a7a86,0x2a2a30,0x92929e,0x1e1e24],crystal:[0x2c2858,0x3c3a78,0x4a4a8e,0x5a5ca4,0x7a84c8,0x1c1838,0x9ab0f0,0x141030],sand:[0x7a5a34,0x8e6a3e,0xa07a4a,0xb08a56,0xc8a46c,0x5a4024,0xe0c08a,0x4a341c]};
+function caveKind(m){return m.ice?"ice":m.caveStyle==="crystal"?"crystal":m.caveStyle==="sand"?"sandcave":m.caveStyle==="stone"?"stonecave":"cave";}
+function rockOpts(m){if(m.cave&&!m.ice&&CAVE_PAL[m.caveStyle])return{h:1.7,pal:CAVE_PAL[m.caveStyle]};return m.cave?{h:1.7,pal:m.ice?[0x6a84a8,0x7c96ba,0x8eaacc,0xa2bede,0xd8e8f8,0x4a6488,0xf0f8ff,0x3a5070]:[0x3e3024,0x4a3a2c,0x564434,0x62503e,0x7a6250,0x2a2018,0x86705a,0x221a12]}:{};}
 // Bergstufen: je weiter ein Feld vom Rand des Felsmassivs weg ist, desto höher (0..2) -> Berge lesen sich als Massiv statt als flache Wege
 const ROCK_STEP=.55;
 function rockLvl(m){if(m._rl)return m._rl;const W=m.w,H=m.h,D=new Int16Array(W*H).fill(99),q=[];
@@ -2108,7 +2119,7 @@ function buildMapObjects(m,gb,treeSet,gs,kit,keep){gs=gs||gb;
         gb.bill(X+.5+dx,Z+.95+dz,0,1.7,TREE_H*.82,treeKey(X,Z),treeCol(X,Z));(gb.shadows=gb.shadows||[]).push([X+.6+dx,Z+.9,1.6,.6,1]);}
       else if(c==="b"&&(m.world||m.outside)&&!m.cave){gb.bill(X+.5,Z+.9,0,1.1,1.3,treeKey(X,Z),treeCol(X,Z));(gb.shadows=gb.shadows||[]).push([X+.6,Z+.75,1.2,.5,1]);} // statt runder Büsche: kleine Bäume wie im Wald
       else if(c==="b"){gs.bill(X+.5,Z+.88,0,1.12,1,"bush");(gb.shadows=gb.shadows||[]).push([X+.6,Z+.82,1.2,.45,1]);}
-      else if(c==="m"&&m.cave){const fk=m.ice?"iceFront":"caveFront2",sk=m.ice?"iceSide":"caveSide2";if(at(x,y+1)!=="m")gb.vert(X,X+1,Z+1,0,1.7,fk,.9);if(at(x-1,y)!=="m")gb.side(X,Z,Z+1,0,1.7,sk,.62);if(at(x+1,y)!=="m")gb.side(X+1,Z,Z+1,0,1.7,sk,.62);}
+      else if(c==="m"&&m.cave){const fk=m.ice?"iceFront":m.caveStyle==="crystal"?"crystalFront":m.caveStyle==="sand"?"sandFront":m.caveStyle==="stone"?"stoneFront":"caveFront2",sk=m.ice?"iceSide":m.caveStyle==="crystal"?"crystalSide":m.caveStyle==="sand"?"sandSide":m.caveStyle==="stone"?"stoneSide":"caveSide2";if(at(x,y+1)!=="m")gb.vert(X,X+1,Z+1,0,1.7,fk,.9);if(at(x-1,y)!=="m")gb.side(X,Z,Z+1,0,1.7,sk,.62);if(at(x+1,y)!=="m")gb.side(X+1,Z,Z+1,0,1.7,sk,.62);}
       else if(c==="m"&&m.frlg){const RH=rockH(m),top=RH(x,y),hb=(h)=>h<0?top:h;
         const hD=hb(RH(x,y+1)),hL=hb(RH(x-1,y)),hR=hb(RH(x+1,y));
         if(hD<top)gb.vert(X,X+1,Z+1,hD,top,"rockFront",hD===0?.86:.8);if(hL<top)gb.side(X,Z,Z+1,hL,top,"rockSide",.66);if(hR<top)gb.side(X+1,Z,Z+1,hR,top,"rockSide",.66);}
@@ -2620,7 +2631,7 @@ async function startTrainerBattle(tr,ch){
 async function startBattle(cfg){
   B={type:cfg.type,tr:cfg.tr,trCh:cfg.ch,foes:cfg.foes,bg:cfg.bg,area:cfg.area,act:[null,null],hpD:[0,0],expD:0,text:null,menu:null,fx:[],
     vis:{0:{on:false,clip:64,white:0,blink:0,dx:0,scale:1,alpha:1},1:{on:false,clip:64,white:0,blink:0,dx:0,scale:1,alpha:1},trMe:{on:false,x:0},trFoe:{on:false,x:0},ball:null,boxes:[false,false]},
-    part:new Set(),screens:[{},{}],turn:0,runs:0,used:{},result:null,money:0,lvUps:new Set(),moneyBonus:0,noExp:!!cfg.noExp,noRun:!!cfg.noRun};
+    part:new Set(),screens:[{},{}],turn:0,runs:0,used:{},result:null,money:0,lvUps:new Set(),moneyBonus:0,noExp:!!cfg.noExp,noRun:!!cfg.noRun,legend:!!cfg.legend};
   const prevMus=Music.cur;Music.play(cfg.type==="wild"?"wild":cfg.tr.boss?"boss":"trainer");
   bvInit();if(BV.ok)bvSetBg(cfg.bg);PFX.length=0;BV.idle=false;
   await Promise.all([animData(cfg.foes[0].sp,false,cfg.foes[0].shiny).p,animData(G.save.party.find(alive).sp,true,G.save.party.find(alive).shiny).p]);
@@ -2665,7 +2676,7 @@ async function battleMain(){
   await trainerOut(0);await sendOut(0,B.act[0].m,true);
   B.part.add(B.act[0].m.uid);
   for(const b of duelHostFirst([B.act[0],B.act[1]])){rngOwn(b);await switchInAbility(b);}
-  if(B.type==="wild"&&nuzRules())await runAreaCheck();
+  if(B.type==="wild"&&nuzRules()&&!(B.legend&&B.noRun))await runAreaCheck();   // Pflicht-Legende der Story (Burg) ist immer fangbar
   while(true){
     B.turn++;
     const r=await playerTurn();
@@ -4633,7 +4644,7 @@ function bvWorldStage(kind){
     BV.bg.add(root);
     // Untergrund außerhalb der Karten
     const tod=battleTod(),seaZ=maps.some(mm=>mm.sea)||(curMap().g[PL.y-curMap().oy]||"")[PL.x-curMap().ox]==="~";
-    const ft=texOf(mk(64,64,(g)=>{for(let y=0;y<4;y++)for(let x=0;x<4;x++){if(cave)gFloorX(g,x*16,y*16,x,y,m.ice?"ice":"cave");else if(indoor)g.fillStyle="#000",g.fillRect(x*16,y*16,16,16);else if(seaZ)gWater(g,x*16,y*16,x,y,{});else if(m.kind==="desert")gSand(g,x*16,y*16,x,y);else if(m.world)gGrass(g,x*16,y*16,x,y);else gDarkGrass(g,x*16,y*16,x,y);}}),{rep:1});ft.repeat.set(40,40);
+    const ft=texOf(mk(64,64,(g)=>{for(let y=0;y<4;y++)for(let x=0;x<4;x++){if(cave)gFloorX(g,x*16,y*16,x,y,typeof caveKind==="function"?caveKind(m):m.ice?"ice":"cave");else if(indoor)g.fillStyle="#000",g.fillRect(x*16,y*16,16,16);else if(seaZ)gWater(g,x*16,y*16,x,y,{});else if(m.kind==="desert")gSand(g,x*16,y*16,x,y);else if(m.world)gGrass(g,x*16,y*16,x,y);else gDarkGrass(g,x*16,y*16,x,y);}}),{rep:1});ft.repeat.set(40,40);
     const fl=new THREE.Mesh(new THREE.PlaneGeometry(320,320),new THREE.MeshBasicMaterial({map:ft}));fl.rotation.x=-Math.PI/2;fl.position.set(0,-.04,-60);BV.bg.add(fl);
     // Himmel
     const st=texOf(stageSkyTex(tod,cave,indoor));st.wrapS=THREE.RepeatWrapping;st.repeat.x=3;
@@ -6856,7 +6867,7 @@ function obPCDraw(C,pages){
   if(C.hold){const src=C.hold.area==="team"?G.save.party:G.save.box,hm=src[C.hold.idx];if(hm){let hx,hy;if(C.area==="team"){hx=60;hy=44+C.i*19-12;}else if(C.area==="box"){hx=bx+6+(C.i%6)*cw+cw/2;hy=by+23+Math.floor(C.i/6)*ch-10;}else{hx=bx+bw/2;hy=by+2;}
     obSW(()=>{ctx.globalAlpha=.9;drawIcon(hm.sp,Math.round(PX(hx)-20),Math.round(PX(hy)-22+Math.sin(FRAME/6)*1.5),1);ctx.globalAlpha=1;});}}
   const info=cur?`${monName(cur)} · Lv.${cur.lv}${cur.shiny?" · ★":""} · ${(SPECIES[cur.sp].t||[]).map(t=>TYPE_N?TYPE_N[t]:t).join("/")}`:C.area==="head"?"Box wechseln":"leerer Platz";
-  obFoot(C.hold?`Ablegen: ${monName((C.hold.area==="team"?G.save.party:G.save.box)[C.hold.idx]||{sp:1})} – A hier ablegen / tauschen, B abbrechen`:info,C.hold?"":"A: Aktion · C: nächste Box · B: zurück");prEnd();}
+  obFoot(C.hold?`Ablegen: ${monName((C.hold.area==="team"?G.save.party:G.save.box)[C.hold.idx]||{sp:495})} – A hier ablegen / tauschen, B abbrechen`:info,C.hold?"":"A: Aktion · C: nächste Box · B: zurück");prEnd();}
 
 /* ---------- Listen (Markt, Attacken lernen, Wesen …) ---------- */
 function obListDraw(title,right,items,i,off,vis,info){
@@ -7625,6 +7636,15 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.31",d:"31.10.2026",items:[
+    "Hotfix: Das Spiel blieb beim Start eines neuen Spiels hängen (Begrüßung). Behoben.",
+    "Versteckte Items: Auf Routen, in Städten und Höhlen liegen jetzt unsichtbare Items. Davor stellen und A drücken!",
+    "Neues Schlüssel-Item: Itemradar (von der Forscherin in Orion City). Zeigt die Richtung zum nächsten versteckten Item.",
+    "Mehr Bewohner mit eigenen Texten in allen Städten und auf einigen Routen.",
+    "Elektrolithhöhle mit blauen Kristallwänden, Alter Palast aus Sandstein, Drachenstiege aus grauem Stein.",
+    "Kerzenleuchter in N's Schloss. Pflanzen und Leuchter in Gebäuden sind jetzt fest (man läuft nicht mehr hindurch).",
+    "Arena-TMs: In Weiß überreicht Lilia die TM, in Orion City der richtige Bruder.",
+    "Nuzlocke/Run: Der Story-Drache in N's Schloss ist immer fangbar."]},
   {v:"0.30",d:"31.10.2026",items:[
     "Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!",
     "Alle Spielstände und Konten wurden zurückgesetzt. Jeder startet neu in Avenitia.",
@@ -8127,7 +8147,7 @@ function titleFill(sty,x,w){const t=FRAME;const g=ctx.createLinearGradient(x,0,x
 function titleDraw(text,sty,x,y,size=12,align="left"){if(!text)return;const w=prW(text,size);const x0=align==="center"?x-w/2:align==="right"?x-w:x;
   prT(text,x,y,{size,align,c:titleFill(sty,x0,w),sh:sty==="neon"?"#7a1060":"rgba(0,0,0,.65)"});}
 // Standard-Karte, wenn noch nichts gewählt ist: Erstes Pokémon im Team des letzten Spielstands
-function cardDefault(){const sv=typeof onTeamSource==="function"?onTeamSource():null;const m=sv&&sv.party&&sv.party[0];return{fav:m?m.sp:25,sh:!!(m&&m.shiny),lv:m?m.lv||m.level||5:5,bg:"obsidian"};}
+function cardDefault(){const sv=typeof onTeamSource==="function"?onTeamSource():null;const m=sv&&sv.party&&sv.party[0];return{fav:m?m.sp:495,sh:!!(m&&m.shiny),lv:m?m.lv||m.level||5:5,bg:"obsidian"};}
 function cardMine(){const c=(ON.board&&ON.board.card)||LS.get(cardKey(),null);return Object.assign(cardDefault(),c||{});}
 function cardKey(){return((typeof accNs==="function"&&accNs())||"saga")+"_card";}
 // info: {name,title,tstyle,elo,wins,losses,badges,dex}
@@ -9240,7 +9260,7 @@ async function ngSendOut(sp){
 function starterStage(list,start){return new Promise(res=>{const st=NGStage;const prevMode=st.mode;
   st.enter&&st.enter();st.mode="starter";st.list=list;st.avail=list.map(sp=>!flag("starter_"+sp));st.sel=Math.max(0,start||0);st.selT=0;st.mon=null;st.ball=null;
   if(IV.ok){IV.ng.c={p:[0,2.6,9.6],l:[0,1.1,0]};}
-  const DESC={1:"Pflanzen-Pokémon. Robust und gutmütig – ein sicherer Start gegen die ersten Arenen.",4:"Feuer-Pokémon. Kraftvoll und schnell, braucht aber Geschick gegen Fels und Wasser.",7:"Wasser-Pokémon. Ausgeglichen und zäh – stark gegen Fels und Feuer."};
+  const DESC={495:"Pflanzen-Pokémon. Flink und clever – ein eleganter Start mit starken Pflanzen-Attacken.",498:"Feuer-Pokémon. Kraftvoll und mutig – später auch ein starker Kämpfer.",501:"Wasser-Pokémon. Ausgeglichen und zäh – mit seiner Muschel kämpft es wie ein Ritter."};
   let busy=false;const sc={opaque:true,update(){if(busy)return;st.selT++;
       if(Input.nav("left")){st.sel=(st.sel+list.length-1)%list.length;st.selT=0;sfx("move");if(st.avail[st.sel])sfx("ballOpen");}
       if(Input.nav("right")){st.sel=(st.sel+1)%list.length;st.selT=0;sfx("move");if(st.avail[st.sel])sfx("ballOpen");}
@@ -9634,8 +9654,8 @@ const T=U.T={
   home:["WWwwWWKwwW","WWWWWWKWWW","QE__V___Bq","________B_","__tt______","__tt___S_S","p______hh_","____D_____"],
   house:["WWwwWWwwWW","WWWWWWWWWW","_K_____nn_","__________","____tt____","__________","_p________","____D_____"],
   lab:["KKKKWwwWKKKK","KKKKWWWWKKKK","LL________LL","LL__________","____________","______ttt___","____________","KK________KK","KK________KK","____________","_p________p_","_____DD_____"],
-  center:["WWWWWWWWWWWWWWWW","WWWWWWWWWWWWWWWW","i___uH_H_u__QPPi","____CCCCCC______","x______________x","___________cccc_","_SS_RRRRRR______","_tt_RRRRRR___i__","i______________A","_______DD_______"],
-  mart:["WWWWWWWWWW","WWWWWWWWWW","Q_c__uu__i","__c_MM_MM_","X_c_______","__c_MM_MM_","x_________","____DD____"],
+  center:["WWWWWWWWWWWWWWWW","WWWWWWWWWWWWWWWW","i___uH_H_u__QPPi","____CCCCCC______","e______________e","___________cccc_","_SS_RRRRRR______","_tt_RRRRRR___i__","i______________A","_______DD_______"],
+  mart:["WWWWWWWWWW","WWWWWWWWWW","Q_c__uu__i","__c_MM_MM_","X_c_______","__c_MM_MM_","e_________","____DD____"],
   lobby:["WWWWWWWWWWWW","WWWWWWwWWWWW","i__________i","____________","_SS______SS_","_tt______tt_","____________","p__________p","_____DD_____"],
   hall:["WWWWWWWWWWWWWW","WWWWwwWWwwWWWW","i____________i","______________","__X________X__","______________","______________","__X________X__","______________","i____________i","______DD______"],
 };
@@ -10124,6 +10144,9 @@ U.house("court","KLEINE HALLE",[{x:5,y:3,ch:"sport",dir:"down",move:"look",text:
 U.house("subway","KAMPFMETRO",[{x:5,y:3,ch:"ingo",dir:"down",move:"still",text:"Willkommen in der Kampfmetro! Die Züge fahren erst, wenn du den Blitzorden hast."}],{floor:"metal",wall:"mart:navy"});
 })();
 
+// v0.31: eigene Höhlen-Optik (Elektrolithhöhle: blaue Kristalle, Alter Palast: Sandstein)
+{const M=REGIONS.unova.maps;if(M.chargestone)M.chargestone.caveStyle="crystal";for(const k of["relic1","relic2"])if(M[k])M[k].caveStyle="sand";}
+
 /* ===== regions/unova_cz_gyms.js ===== */
 /* ================================ EINALL – Labor, Arenen, Pokémon-Liga v0.30 ================================
    Acht Arenen nach dem Vorbild von Schwarz/Weiß (Restaurant, Bibliothek, Honigwaben, Achterbahn, Mine, Hangar, Eisrutsche, Drachenbrücken),
@@ -10291,7 +10314,7 @@ for(const n of M.gym_opelucid.npcs.slice(0,2)){const ly=n.ch==="lysander",N=ly?"
     onWin:gymWinner("Legenden",N,"Mit dem Legendenorden hören dir alle Pokémon bis Lv. "+U.caps[8]+" aufs Wort. Jetzt steht dir die Pokémon-Liga offen!",[["rare-candy",3]])});}
 
 /* ---------- Pokémon-Liga ---------- */
-M.league_lobby={name:"POKéMON-LIGA",tiles:["WWWWWWWWWWWWWWWW","WWWWWWWWWWWWWWWW","i___uH_H_u_____U","____CCCCCC______","x______________x","___________cccc_","_SS______________".slice(0,16),"_tt_____________","i______________A","_______DD_______"],
+M.league_lobby={name:"POKéMON-LIGA",tiles:["WWWWWWWWWWWWWWWW","WWWWWWWWWWWWWWWW","i___uH_H_u_____U","____CCCCCC______","e______________e","___________cccc_","_SS______________".slice(0,16),"_tt_____________","i______________A","_______DD_______"],
   floor:"tile",wall:"center2",entry:[8,9],music:"center",bg:"indoor",
   warps:[{x:15,y:2,to:"e4hall",tx:7,ty:11,dir:"up"}],
   npcs:[{x:6,y:2,ch:"nurse",dir:"down",move:"still",run:U.nurseHeal},{x:13,y:4,ch:"clerk",dir:"down",move:"still",run:()=>martMenu(["ultra-ball","hyper-potion","max-potion","full-restore","revive","max-revive","full-heal"].filter(k=>ITEMS[k]),{greet:"Die letzte Station vor den Top Vier. Rüste dich gut aus!"})},
@@ -10914,9 +10937,131 @@ legend("musical",[3,5],648,65,post,"Auf der leeren Bühne singt ein Pokémon ein
 legend("route8",[16,11],647,65,()=>post()&&flag("leg_638")&&flag("leg_639")&&flag("leg_640"),"Über das Moor springt ein junges Pokémon mit einem Horn aus Wasser. Keldeo will von den Musketieren lernen – und von dir!");
 })();
 
+/* ===== regions/unova_f_extra.js ===== */
+/* ================================ EINALL · EXTRAS (v0.31) ================================
+   - Versteckte Items auf Routen, in Städten und Höhlen (A vor dem Feld drücken) + Itemradar (Schlüssel-Item)
+   - mehr Bewohner mit eigenen Texten in Städten und auf Routen
+   Alle Positionen werden beim Laden aus der Karte bestimmt: nur Felder, die vom Karteneingang aus erreichbar sind. */
+(function(){
+const U=REGIONS.unova,M=U.maps;
+const story=()=>U.story();
+
+/* ---------- erreichbare Felder einer Karte ---------- */
+function inBld(m,x,y){return(m.bld||[]).some(b=>x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h);}
+function reach(mid){const m=M[mid];if(!m||!m.tiles)return null;if(m._reach)return m._reach;
+  const H=m.tiles.length,W=m.tiles[0].length,ok=(x,y)=>{const c=m.tiles[y]&&m.tiles[y][x];return !!c&&!SOLID.has(c)&&c!=="~"&&!inBld(m,x,y);};
+  const seen=new Set(),q=[];const push=(x,y)=>{const k=x+","+y;if(seen.has(k)||!ok(x,y))return;seen.add(k);q.push([x,y]);};
+  if(m.entry)push(m.entry[0],m.entry[1]);for(const w of m.warps||[])push(w.x,w.y);
+  for(const b of m.bld||[])for(const d of b.doors||[])push(b.x+d.x,b.y+d.y+1);
+  for(let x=0;x<W;x++){push(x,0);push(x,H-1);}for(let y=0;y<H;y++){push(0,y);push(W-1,y);}
+  while(q.length){const[x,y]=q.shift();push(x+1,y);push(x-1,y);push(x,y+1);push(x,y-1);}
+  m._reach=seen;return seen;}
+function taken(m,x,y){return(m.npcs||[]).some(n=>n.x===x&&n.y===y)||(m.warps||[]).some(w=>w.x===x&&w.y===y)||(m.hidden||[]).some(h=>h.x===x&&h.y===y);}
+// erreichbares, freies Feld nahe (fx,fy) als Anteil der Kartengröße; "kinds" = erlaubte Kacheln
+function spotAt(mid,fx,fy,kinds){const m=M[mid],R=reach(mid);if(!R)return null;const H=m.tiles.length,W=m.tiles[0].length;
+  const x0=Math.round(fx*(W-1)),y0=Math.round(fy*(H-1));
+  for(let r=0;r<Math.max(W,H);r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const x=x0+dx,y=y0+dy;
+    if(!R.has(x+","+y)||taken(m,x,y))continue;const c=m.tiles[y][x];if(kinds&&!kinds.includes(c))continue;
+    // nicht direkt vor Türen/Warps stellen
+    if((m.warps||[]).some(w=>Math.abs(w.x-x)+Math.abs(w.y-y)<2))continue;
+    if((m.bld||[]).some(b=>(b.doors||[]).some(d=>Math.abs(b.x+d.x-x)+Math.abs(b.y+d.y+1-y)<2)))continue;
+    return[x,y];}
+  return null;}
+U.spotAt=spotAt;U.reach=reach;
+
+/* ---------- versteckte Items ---------- */
+const TIER=[["potion","antidote","paralyze-heal","poke-ball","oran-berry","repel","awakening","burn-heal"],
+  ["super-potion","great-ball","ether","full-heal","escape-rope","pearl","super-repel","pecha-berry","heart-scale"],
+  ["hyper-potion","ultra-ball","revive","stardust","max-repel","elixir","sitrus-berry","nugget","heart-scale"],
+  ["max-potion","full-restore","max-revive","rare-candy","max-ether","nugget","stardust","lum-berry"]];
+const ORDER=Object.keys(typeof UNOVA_MAPS!=="undefined"?UNOVA_MAPS:{}).filter(id=>M[id]&&!["league","nscastle","dragonspiral2"].includes(id));
+const HID_N={town:1,route:2,desert:3,forest:2,cave:2,bridge:1,tower:1};
+ORDER.forEach((id,i)=>{const m=M[id];const kind=(UNOVA_MAPS[id]&&UNOVA_MAPS[id].kind)||"route";const n=HID_N[kind]!=null?HID_N[kind]:1;
+  const tier=TIER[Math.min(3,Math.floor(i/ORDER.length*4))].filter(k=>ITEMS[k]);if(!tier.length)return;m.hidden=m.hidden||[];
+  const kinds=m.cave?[".",";","_",","]:[".",",","F",";"];
+  for(let k=0;k<n;k++){const h=U.hash(id+"#hid"+k);const fx=((h%997)/996)*.8+.1,fy=(((h>>>10)%991)/990)*.8+.1;
+    const p=spotAt(id,fx,fy,kinds);if(!p)continue;m.hidden.push({x:p[0],y:p[1],item:tier[(h>>>4)%tier.length],flag:"hid_"+id+"_"+k});}});
+function hiddenAt(m,x,y){return(m.hidden||[]).find(h=>h.x===x&&h.y===y&&!flag(h.flag));}
+U.hiddenAt=hiddenAt;
+{const _i=interact;interact=async function(){
+  if(G.save){const[dx,dy]=DIRS[PL.dir];const x=PL.x+dx,y=PL.y+dy;const t=tileAt(x,y);
+    if(t&&!npcAt(x,y)){const h=hiddenAt(t.m,t.x,t.y);if(h){setFlag(h.flag);addItem(h.item,1);sfx("item");await say(`Da lag etwas versteckt! {P} hat ${itemName(h.item)} gefunden!`);return;}}}
+  return _i.apply(this,arguments);};}
+
+/* ---------- Itemradar ---------- */
+ITEMS["dowsing-machine"]=Object.assign(ITEMS["dowsing-machine"]||{},{cat:"key",n:"Itemradar",d:"Piept, wenn auf dieser Karte noch Items versteckt sind, und zeigt die Richtung zum nächsten."});
+async function useRadar(){const t=tileAt(PL.x,PL.y);if(!t){await say("Das Itemradar bleibt stumm.");return;}const m=t.m;
+  const L=(m.hidden||[]).filter(h=>!flag(h.flag));
+  if(!L.length){await say("Das Itemradar bleibt stumm. Hier ist nichts mehr versteckt.");return;}
+  L.sort((a,b)=>Math.abs(a.x-t.x)+Math.abs(a.y-t.y)-Math.abs(b.x-t.x)-Math.abs(b.y-t.y));const h=L[0],dx=h.x-t.x,dy=h.y-t.y,d=Math.abs(dx)+Math.abs(dy);
+  sfx("select");
+  if(d<=1){await say("Piep-piep-piep-piep! Das Itemradar schlägt voll aus – direkt neben dir! Schau dich um und drück A.");return;}
+  const ns=dy<0?"Norden":"Süden",ew=dx<0?"Westen":"Osten";
+  const dir=Math.abs(dy)>Math.abs(dx)*2?ns:Math.abs(dx)>Math.abs(dy)*2?ew:(dy<0?"Nord":"Süd")+(dx<0?"westen":"osten");
+  const near=d<=4?"ganz in der Nähe":d<=10?"nicht weit entfernt":"noch ein gutes Stück entfernt";
+  await say(`Piep ... piep ... Das Itemradar zeigt nach ${dir}. Das Item liegt ${near}.${L.length>1?` (Auf dieser Karte: noch ${L.length} versteckt)`:""}`);}
+{const _u=useItemField;useItemField=async function(k){if(k==="dowsing-machine")return useRadar();return _u(k);};}
+
+/* ---------- neue Bewohner ---------- */
+// [Karte, x-Anteil, y-Anteil, Figur, Text (oder Funktion), Bewegung]
+const FOLK=[
+  ["nuvema",.7,.35,"oldwoman","Avenitia ist klein, aber hier beginnen die großen Reisen. Das war schon immer so.","look"],
+  ["accumula",.3,.6,"woman","Das Pokémon-Center hat auch einen Markt. Praktisch, oder? Heilen und einkaufen unter einem Dach.","wander"],
+  ["accumula",.75,.3,"youngster",()=>story()&&!flag("st_n1")?"Da drüben auf dem Platz versammeln sich Leute in seltsamen Rüstungen ...":"Neulich hat hier jemand eine Rede gehalten. Sollen wir Pokémon wirklich befreien? Ich weiß nicht ...","look"],
+  ["striaton",.25,.3,"school","Die Trainerschule hier ist richtig gut! Ich lerne gerade Typen-Tabellen auswendig. Feuer schlägt Pflanze ... das kann ich schon!","wander"],
+  ["striaton",.8,.65,"waitress","Im Restaurant kämpfen drei Brüder. Wer gegen wen antritt, hängt von deinem Starter ab. Clever, oder?","look"],
+  ["striaton",.55,.85,"sci","Ich erforsche Träume! Na ja ... eigentlich die Traumbrache im Norden. Dort lebt ein Pokémon, das Träume sichtbar macht.","look"],
+  ["nacrene",.2,.5,"rocker","Die alten Lagerhallen hier sind jetzt Ateliers. Künstler aus ganz Einall wohnen in Septerna City.","wander"],
+  ["nacrene",.8,.4,"lady","Im Museum steht ein riesiges Drachenskelett. Bei Nacht sieht es fast lebendig aus ...","look"],
+  ["nacrene",.5,.8,"waiter","Im Café gibt es den besten Kaffee der Stadt. Und manchmal ein Ei für Trainer, die viel laufen!","look"],
+  ["castelia",.15,.12,"man","Stratos City ist die größte Stadt Einalls. Die Hochhäuser verstellen fast den Himmel.","wander"],
+  ["castelia",.85,.25,"gent","Am Hafen legen Schiffe aus aller Welt an. Manchmal kommen Trainer aus ganz fernen Regionen.","look"],
+  ["castelia",.4,.55,"girl","Hast du das Stratos-Eis probiert? Es gibt nur ein paar am Tag – man muss früh aufstehen!","wander"],
+  ["castelia",.85,.7,"worker","Die Gassen zwischen den Hochhäusern sind voller Leute. Aber die besten Läden findet man in den Seitenstraßen.","look"],
+  ["castelia",.1,.75,"sailor","Von hier geht's über die Himmelspfeil-Brücke nach Westen und durch Route 4 nach Norden. Pass auf, da ist Sandsturm!","look"],
+  ["nimbasa",.25,.25,"idol","Im Musical-Theater tanzen Pokémon auf der Bühne! Ich bin ein riesiger Fan.","wander"],
+  ["nimbasa",.75,.2,"sport","Im großen Stadion und in der Sporthalle wird jeden Tag trainiert. Komm mal vorbei!","look"],
+  ["nimbasa",.5,.6,"lass","Das Riesenrad hier ist super romantisch ... wenn man mit der richtigen Person fährt.","wander"],
+  ["nimbasa",.85,.8,"rich",()=>U.badge("Blitz")?"Die Kampfmetro hat geöffnet! Ingo und Emmet warten in den Zügen auf starke Trainer.":"In der U-Bahn-Station sollen bald Kampfzüge fahren. Ich bin schon gespannt!","look"],
+  ["driftveil",.3,.3,"farmer","Auf dem Markt hier gibt es alles – von Beeren bis zu seltenen Steinen.","look"],
+  ["driftveil",.7,.55,"sailor","Das Kühlhaus am Hafen ist riesig. Da lagern Waren aus ganz Einall.","wander"],
+  ["driftveil",.2,.8,"oldman","Turner, unser Arenaleiter, ist auch Bürgermeister. Ein Mann der Erde – und der Bergwerke.","look"],
+  ["mistralton",.3,.4,"pilot","Vom Flughafen starten Frachtflüge in alle Regionen. Géraldine fliegt selbst!","look"],
+  ["mistralton",.75,.6,"oldwoman","Oben auf dem Himmelsturm hängt eine Glocke. Wer sie läutet, beruhigt verirrte Seelen.","look"],
+  ["mistralton",.5,.85,"farmer","Bei uns wächst das beste Gemüse. Das liegt am Wind von den Bergen.","wander"],
+  ["icirrus",.25,.3,"oldman","Im Winter friert hier alles zu. Dann kann man über den Sumpf laufen. Im Sommer ... lieber nicht.","look"],
+  ["icirrus",.7,.45,"fighter","Sandros Dojo ist das härteste in ganz Einall. Er trainiert sogar bei Schneesturm.","look"],
+  ["icirrus",.5,.8,"woman","Im Norden liegt die Drachenstiege. Der älteste Turm Einalls. Man sagt, ein Drache schläft dort.","wander"],
+  ["opelucid",.3,.3,"man",()=>G.save&&G.save.ver==="w"?"Twindrake City ist eine Stadt der Tradition. Hier lebt man wie vor hundert Jahren – mit den Drachen.":"Twindrake City ist die Stadt der Zukunft! Alles hier ist modern und blitzblank.","look"],
+  ["opelucid",.7,.5,"oldwoman","Die Legende sagt: Ein Drache zerbrach in zwei – Wahrheit und Ideale. Und ein drittes Stück blieb leer zurück.","look"],
+  ["opelucid",.45,.85,"ace","Dahinter liegen Route 9 und Route 10. Und dann ... die Pokémon-Liga!","wander"],
+  ["route2",.5,.5,"boy","Im Gras hier gibt es Ottaro ... äh, nein, Yorkleff! Ich verwechsel die immer.","wander"],
+  ["route4",.5,.25,"worker","Hier wird gebaut. Irgendwann soll eine richtige Straße bis Rayono City führen.","look"],
+  ["route5",.4,.5,"juggler","Ich übe für meinen Auftritt in Rayono City! Hoppla ... schon wieder fallen gelassen.","look"],
+  ["route6",.6,.4,"ranger","Im Herbst färben sich die Blätter hier rot. Manche Pokémon wechseln dann auch ihre Farbe!","wander"],
+  ["route9",.5,.5,"biker","Das Einkaufszentrum Neun hat alles! Aber die Biker hier draußen sind lauter.","look"],
+  ["skyarrow",.5,.5,"man","Die Himmelspfeil-Brücke ist die längste Brücke Einalls. Bei klarem Wetter sieht man bis Stratos City.","look"],
+];
+for(const[mid,fx,fy,ch,text,move]of FOLK){const m=M[mid];if(!m)continue;const p=spotAt(mid,fx,fy,[".",":",",","F",";","_"]);if(!p)continue;
+  m.npcs.push({x:p[0],y:p[1],ch,dir:"down",move:move||"look",text,sid:"folk"});}
+
+/* ---------- Itemradar in Orion City ---------- */
+{const p=spotAt("striaton",.6,.4,[".",":"]);if(p)M.striaton.npcs.push({x:p[0],y:p[1],ch:"sci",dir:"down",move:"look",sid:"radar",
+  run:async()=>{if(!bagCount("dowsing-machine")){await say("Forscherin: Hallo! Ich teste ein neues Gerät – das Itemradar. Überall in Einall liegen Items versteckt, die man nicht sieht.");
+      await U.giveItem("dowsing-machine");await say("Forscherin: Benutz es im Beutel unter BASIS-ITEMS. Es zeigt dir die Richtung zum nächsten versteckten Item. Davor stellen und A drücken!");}
+    else{let all=0,got=0;for(const id in M)for(const h of M[id].hidden||[]){all++;if(flag(h.flag))got++;}
+      await say(`Forscherin: Wie läuft die Suche? Du hast schon ${got} von ${all} versteckten Items gefunden!`);}}});}
+})();
+
+/* ---------- N's Schloss: Kandelaber an den Wänden, Drachenstiege in grauem Stein ---------- */
+(function(){const M=REGIONS.unova.maps,m=M.nscastle;if(m&&m.tiles){const t=m.tiles.map(r=>r.split(""));
+  for(const y of[3,6,9,11])for(const x of[1,t[0].length-2])if(t[y]&&t[y][x]==="_"&&!(m.npcs||[]).some(n=>n.x===x&&n.y===y))t[y][x]="e";
+  m.tiles=t.map(r=>r.join(""));}
+  for(const k of["dragonspiral1","dragonspiral2"])if(M[k])M[k].caveStyle="stone";})();
+
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.30";
+const VERSION="0.31";
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
   return{v:1,mapv:3,region:o.region||"unova",story:o.story!==false,ver:o.ver||"b",name:o.name,gender:o.gender,rival:"Cheren",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
@@ -11069,7 +11214,7 @@ async function newGame(){
   const slot=await slotPicker("new");if(!slot)return;
   await fadeTo(1,16);push(NGStage);await fadeTo(0,20);
   const back=async()=>{await fadeTo(1,12);pop(NGStage);Music.play("title");await fadeTo(0,12);};
-  await wait(20);await ngSendOut(25);sfx("surprise");await wait(16);
+  await wait(20);await ngSendOut(572);sfx("surprise");await wait(16);
   await say("Willkommen in der Welt der Pokémon!");
   let gender,name,set;
   while(true){
