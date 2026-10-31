@@ -13,6 +13,12 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Nuzlocke/Run: Der Story-Drache in N's Schloss ist immer fangbar.
 - Hinweise bei Bäumen, Felsen und Wasser nennen jetzt die richtigen Einall-Orden (Triorden, Käferorden, Bebenorden).
 - Begrüßung beim neuen Spiel: Prof. Esches Picochilla statt Pikachu. Starter-Beschreibungen für Serpifeu, Floink und Ottaro.
+- Attacken-Beschreibungen: Bei über 60 Attacken stand fälschlich „Diese Attacke kann nicht eingesetzt werden …“. Jetzt steht überall die richtige Beschreibung.
+- Orden-Sperren wie im Original – auch im freien Modus: Wächter lassen dich erst mit dem passenden Orden weiter (Route 3: Triorden, Ewigenwald: Basisorden, Route 4: Käferorden, Route 5: Blitzorden, Route 6: Bebenorden, Route 7: Düsenorden, Route 8 und Drachenstiege: Eisbergorden, Route 9: Legendenorden).
+- Level-Kurve überarbeitet: Trainer und wilde Pokémon auf den Routen steigen gleichmäßig auf den nächsten Arenaleiter zu (z. B. Route 5, Route 6, Kühlhaus, Route 8 und Siegesstraße stärker).
+- Keine Bäume mehr „auf dem Wasser“: Am Kartenrand geht das Meer bzw. der Fluss jetzt weiter (Avenitia, Stratos City, Marea City, Brücken).
+- Übergänge zwischen den Gebieten mit Holz-Torbogen bzw. Wegweiser, auf dem das Ziel steht.
+- Orion City: Im Kampf heißt der Arenaleiter jetzt nur noch Benny, Maik oder Colin – je nachdem, wer gegen dich antritt.
 
 ## v0.30 (31.10.2026)
 - Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!
