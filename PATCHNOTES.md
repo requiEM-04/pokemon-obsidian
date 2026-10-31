@@ -2,6 +2,16 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.31 (31.10.2026)
+- Hotfix: Das Spiel blieb beim Start eines neuen Spiels hängen (Begrüßung). Behoben.
+- Versteckte Items: Auf Routen, in Städten und Höhlen liegen jetzt unsichtbare Items. Davor stellen und A drücken!
+- Neues Schlüssel-Item: Itemradar (von der Forscherin in Orion City). Zeigt die Richtung zum nächsten versteckten Item.
+- Mehr Bewohner mit eigenen Texten in allen Städten und auf einigen Routen.
+- Elektrolithhöhle mit blauen Kristallwänden, Alter Palast aus Sandstein, Drachenstiege aus grauem Stein.
+- Kerzenleuchter in N's Schloss. Pflanzen und Leuchter in Gebäuden sind jetzt fest (man läuft nicht mehr hindurch).
+- Arena-TMs: In Weiß überreicht Lilia die TM, in Orion City der richtige Bruder.
+- Nuzlocke/Run: Der Story-Drache in N's Schloss ist immer fangbar.
+
 ## v0.30 (31.10.2026)
 - Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!
 - Alle Spielstände und Konten wurden zurückgesetzt. Jeder startet neu in Avenitia.
