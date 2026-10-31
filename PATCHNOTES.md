@@ -11,6 +11,8 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Kerzenleuchter in N's Schloss. Pflanzen und Leuchter in Gebäuden sind jetzt fest (man läuft nicht mehr hindurch).
 - Arena-TMs: In Weiß überreicht Lilia die TM, in Orion City der richtige Bruder.
 - Nuzlocke/Run: Der Story-Drache in N's Schloss ist immer fangbar.
+- Hinweise bei Bäumen, Felsen und Wasser nennen jetzt die richtigen Einall-Orden (Triorden, Käferorden, Bebenorden).
+- Begrüßung beim neuen Spiel: Prof. Esches Picochilla statt Pikachu. Starter-Beschreibungen für Serpifeu, Floink und Ottaro.
 
 ## v0.30 (31.10.2026)
 - Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!
