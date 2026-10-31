@@ -2632,8 +2632,8 @@ async function wildEncounter(map,encOverride){
   const m=makeMon(sp,lv,{mgm:false});
   await startBattle({type:"wild",foes:[m],bg:encOverride?"water":(map.bg||"grass"),area:map.id});
 }
-function randomSpecies(sp,area,sameType){ // Randomizer v0.31: komplett zufällig (alle Einall-Pokémon), fest je Gebiet/Trainer + Seed; Legenden nur gegen Legenden
-  const lg=!!SPECIES[sp].lg;const pool=DEX.filter(i=>!!SPECIES[i].lg===lg&&i!==sp);
+function randomSpecies(sp,area,sameType){ // Randomizer v0.31: komplett zufällig (alle Einall-Pokémon inkl. Legenden), fest je Gebiet/Trainer + Seed
+  const pool=DEX.filter(i=>i!==sp);   // alle Einall-Pokémon inkl. Legenden
   const r=seeded(G.save.seed^strHash(area+":"+sp));return pool.length?pool[Math.floor(r()*pool.length)]:sp;
 }
 // EV-Verteilung für Trainer (Hardcore): stärkerer Angriffswert + Initiative, Rest KP; skaliert mit Level
@@ -7676,7 +7676,8 @@ const PATCH=[
     "Orion City: Im Kampf heißt der Arenaleiter jetzt nur noch Benny, Maik oder Colin – je nachdem, wer gegen dich antritt.",
     "Neue Karte von Einall: gezeichnetes Festland mit Küste, Bucht, Flüssen und Seen, Wäldern, Bergen, Wüste, Wegen, Brücken, Höhlen und Türmen. Dein Standort wird jetzt auch auf Routen genau angezeigt.",
     "Story: Die Starterwahl findet jetzt wie im Original im Labor von Prof. Esche statt – drei Pokébälle auf dem Tisch, danach die ersten Kämpfe gegen Bell und Cheren.",
-    "Randomizer komplett im Soul-Link-Stil: zufällige Starter, alle wilden Pokémon, alle Trainer, Arenaleiter, Top Vier, Rivalen, Geschenk- und Legenden-Begegnungen, Fähigkeiten und alle gefundenen Items (auch versteckte). Alles fest je Spielstand."]},
+    "Randomizer komplett im Soul-Link-Stil: komplett zufällige Starter (jede Entwicklungsstufe, auch Legenden), alle wilden Pokémon, alle Trainer, Arenaleiter, Top Vier, Rivalen, Geschenk- und Legenden-Begegnungen (Legenden können überall auftauchen), Fähigkeiten und alle gefundenen Items (auch versteckte). Alles fest je Spielstand.",
+    "Story: Die ersten Kämpfe gegen Bell, Cheren und N sind fairer – die Rivalen haben bis zum 2. Orden normale Werte statt Profi-Werten."]},
   {v:"0.30",d:"31.10.2026",items:[
     "Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!",
     "Alle Spielstände und Konten wurden zurückgesetzt. Jeder startet neu in Avenitia.",
@@ -10280,13 +10281,13 @@ const ver=()=>U.ver();
 /* ---------- Starter & Rivalen ---------- */
 const STARTERS=[495,498,501];
 // v0.31: Randomizer – drei zufällige Starter (Grundform mit Entwicklungen, ähnliche Stärke, verschiedene Typen), fest je Spielstand
-function randStarters(){const sd=G.save&&G.save.seed||1;if(G.save._rs&&G.save._rs.seed===sd)return G.save._rs.l;
+function randStarters(){const sd=G.save&&G.save.seed||1;if(G.save._rs&&G.save._rs.seed===sd&&G.save._rs.v===2)return G.save._rs.l;
   const bst=x=>SPECIES[x].b.reduce((a,b)=>a+b,0),prev=x=>typeof PREV!=="undefined"&&PREV[x];
   const evos=x=>(SPECIES[x].ev||[]).filter(e=>SPECIES[e[2]]&&e[2]<=MAXDEX);
-  let pool=DEX.filter(x=>!SPECIES[x].lg&&!prev(x)&&evos(x).length&&bst(x)>=250&&bst(x)<=360&&!STARTERS.includes(x));
+  let pool=DEX.slice();   // komplett zufällig: jede Entwicklungsstufe, auch Legenden
   const r=seeded(sd^0x5eed);const out=[],types=new Set();
   for(let g=0;g<400&&out.length<3&&pool.length;g++){const x=pool[Math.floor(r()*pool.length)];const t=SPECIES[x].t[0];if(out.includes(x)||(types.has(t)&&g<300))continue;out.push(x);types.add(t);}
-  while(out.length<3)out.push(STARTERS[out.length]);G.save._rs={seed:sd,l:out};return out;}
+  while(out.length<3)out.push(STARTERS[out.length]);G.save._rs={seed:sd,l:out,v:2};return out;}
 function starters(){return G.save&&G.save.rand?randStarters():STARTERS;}
 const baseOf=s=>{const L=starters(),i=L.indexOf(s);if(i>=0)return STARTERS[i];for(let k=0;k<3;k++){let x=L[k],g=0;while(g++<3){if(x===s)return STARTERS[k];const e=(SPECIES[x].ev||[])[0];if(!e)break;x=e[2];}}return s;};
 U.starters=starters;U.baseOf=baseOf;
@@ -10525,8 +10526,8 @@ async function scene(fn){W.scene=true;try{await fn();}catch(e){console.error("Sz
 function shakeFx(n=10){if(typeof shake!=="undefined")shake=n;}
 // Story-Kampf: Niederlage ist erlaubt (Team wird danach geheilt), Sieg wird gespeichert
 async function storyBattle(t,o={}){const easy=G.save.diff==="easy";
-  const team=(typeof t.team==="function"?t.team():t.team).map(([sp,lv,x={}],ix)=>{const L=Math.max(2,lv-(easy&&t.boss?2:0));if(G.save.rand&&!SPECIES[sp].lg&&!U.starters().includes(sp))sp=randomSpecies(sp,"st:"+t.id+":"+ix);
-    return makeMon(sp,L,Object.assign({iv:t.boss?[31,31,31,31,31,31]:easy?[15,15,15,15,15,15]:[25,25,25,25,25,25],shiny:false,ev:easy?null:evSpread(sp,L)},x));});
+  const team=(typeof t.team==="function"?t.team():t.team).map(([sp,lv,x={}],ix)=>{const L=Math.max(2,lv-(easy&&t.boss?2:0));if(G.save.rand&&!U.starters().includes(sp)&&!(typeof nDragon==="function"&&sp===nDragon()))sp=randomSpecies(sp,"st:"+t.id+":"+ix);
+    const nb=(G.save.badges||[]).length,iv=easy?12:nb<2?10:t.boss&&nb>=4?31:t.boss?22:18;return makeMon(sp,L,Object.assign({iv:[iv,iv,iv,iv,iv,iv],shiny:false,ev:easy||nb<2?null:evSpread(sp,L)},x));});   // v0.31: frühe Story-Kämpfe fair (keine Profi-Werte vor dem 2. Orden)
   if(!partyAlive())healParty();
   const res=await startBattle({type:"trainer",foes:team,tr:t,ch:t.ch,bg:t.bg||curMap().bg||"grass",noLose:o.noLose!==false});
   if(res==="win")G.save.def[t.id]=1;
