@@ -1655,22 +1655,22 @@ function updateNpcs(){
 }
 
 /* ---------- Feldattacken (wie in Let's Go: VM-Item + Orden genügen, kein Pokémon muss die Attacke kennen) ---------- */
-const HM={cut:{item:"hm01",badge:"Quelle",n:"Zerschneider"},surf:{item:"hm03",badge:"Seelen",n:"Surfer"},fly:{item:"hm02",badge:"Donner",n:"Fliegen"},
-  strength:{item:"hm04",badge:"Regenbogen",n:"Stärke"},flash:{item:"hm05",badge:"Fels",n:"Blitz"}};
+const HM={cut:{item:"hm01",badge:"Trio",n:"Zerschneider"},surf:{item:"hm03",badge:"Beben",n:"Surfer"},fly:{item:"hm02",badge:"Düsen",n:"Fliegen"},
+  strength:{item:"hm04",badge:"Käfer",n:"Stärke"},flash:{item:"hm05",badge:"Trio",n:"Blitz"}};
 function hasBadge(b){return(G.save.badges||[]).includes(b);}
 function canHM(k){const h=HM[k];return bagCount(h.item)>0&&hasBadge(h.badge);}
 // Wer die Feldattacke laut Original lernen könnte (TM/VM-Liste), führt sie aus – sonst das erste kampffähige Pokémon
 function hmUser(k){const n={cut:96,fly:97,surf:98,strength:99,waterfall:100,flash:70}[k];const can=m=>typeof tmCan==="function"&&n&&tmCan(m.megaFrom||m.sp,n);
   return G.save.party.find(m=>alive(m)&&can(m))||G.save.party.find(alive);}
 async function cutTree(n){
-  if(!canHM("cut")){await say(bagCount("hm01")?"Ein dürrer Baum. Für Zerschneider brauchst du den Quellorden aus Azuria City.":"Ein dürrer Baum. Vielleicht kann ein Pokémon ihn fällen …");return;}
+  if(!canHM("cut")){await say(bagCount("hm01")?"Ein dürrer Baum. Für Zerschneider brauchst du den Triorden aus Orion City.":"Ein dürrer Baum. Vielleicht kann ein Pokémon ihn fällen …");return;}
   if(!(await yesNo("Ein dürrer Baum. Zerschneider einsetzen?")))return;
   const u=hmUser("cut");await say(`${monName(u)} setzt Zerschneider ein!`);sfx("hit");
   W.cut=W.cut||{};W.cut[n.id]=1;
 }
 // Stärke: Felsbrocken schieben (A drücken oder dagegen laufen, sobald Stärke aktiv ist)
 async function boulderTalk(n){
-  if(!canHM("strength")){await say(bagCount("hm04")?"Ein schwerer Felsbrocken. Für Stärke brauchst du den Regenbogenorden aus Prismania City.":"Ein schwerer Felsbrocken. Ein starkes Pokémon könnte ihn vielleicht verschieben …");return;}
+  if(!canHM("strength")){await say(bagCount("hm04")?"Ein schwerer Felsbrocken. Für Stärke brauchst du den Käferorden aus Stratos City.":"Ein schwerer Felsbrocken. Ein starkes Pokémon könnte ihn vielleicht verschieben …");return;}
   if(!W.strength){if(!(await yesNo("Ein schwerer Felsbrocken. Stärke einsetzen?")))return;const u=hmUser("strength");await say(`${monName(u)} setzt Stärke ein! Felsbrocken lassen sich jetzt verschieben.`);W.strength=true;return;}
   await pushBoulder(n,PL.dir);}
 async function pushBoulder(n,dir){const[dx,dy]=DIRS[dir];const x=n.x+dx,y=n.y+dy,t=tileAt(x,y);
@@ -1680,7 +1680,7 @@ async function pushBoulder(n,dir){const[dx,dy]=DIRS[dir];const x=n.x+dx,y=n.y+dy
   const sw=(n.m.switches||[]).find(s=>n.m.ox+s.x===n.x&&n.m.oy+s.y===n.y);
   if(sw&&!flag(sw.flag)){setFlag(sw.flag);setFlag("bmoved_"+n.id);sfx("boom");shake=8;await say("Der Felsbrocken rastet auf dem Schalter ein … Irgendwo hat sich ein Felsen bewegt!");}}
 async function trySurf(nx,ny){
-  if(!canHM("surf")){await say(bagCount("hm03")?"Das Wasser ist tiefblau. Zum Surfen brauchst du den Seelenorden aus Fuchsania City.":"Das Wasser ist tiefblau …");return;}
+  if(!canHM("surf")){await say(bagCount("hm03")?"Das Wasser ist tiefblau. Zum Surfen brauchst du den Bebenorden aus Marea City.":"Das Wasser ist tiefblau …");return;}
   if(!(await yesNo("Das Wasser ist tiefblau. Surfer einsetzen?")))return;
   const u=hmUser("surf");await say(`${G.save.name} surft auf ${u?monName(u):"seinem Pokémon"}!`);
   PL.surf=true;W.fol.hidden=true;startMove(nx,ny,false);
@@ -7644,7 +7644,9 @@ const PATCH=[
     "Elektrolithhöhle mit blauen Kristallwänden, Alter Palast aus Sandstein, Drachenstiege aus grauem Stein.",
     "Kerzenleuchter in N's Schloss. Pflanzen und Leuchter in Gebäuden sind jetzt fest (man läuft nicht mehr hindurch).",
     "Arena-TMs: In Weiß überreicht Lilia die TM, in Orion City der richtige Bruder.",
-    "Nuzlocke/Run: Der Story-Drache in N's Schloss ist immer fangbar."]},
+    "Nuzlocke/Run: Der Story-Drache in N's Schloss ist immer fangbar.",
+    "Hinweise bei Bäumen, Felsen und Wasser nennen jetzt die richtigen Einall-Orden (Triorden, Käferorden, Bebenorden).",
+    "Begrüßung beim neuen Spiel: Prof. Esches Picochilla statt Pikachu. Starter-Beschreibungen für Serpifeu, Floink und Ottaro."]},
   {v:"0.30",d:"31.10.2026",items:[
     "Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!",
     "Alle Spielstände und Konten wurden zurückgesetzt. Jeder startet neu in Avenitia.",
@@ -9245,7 +9247,7 @@ const NGStage={opaque:true,mode:"intro",sel:0,mon:null,trainer:null,t:0,
 const _darkC={};function darkImg(k,im){if(_darkC[k])return _darkC[k];const c=mk(im.width,im.height,g=>{g.drawImage(im,0,0);g.globalCompositeOperation="source-atop";g.fillStyle="rgba(8,16,48,.62)";g.fillRect(0,0,im.width,im.height);});return _darkC[k]=c;}
 function ngFoot(i){if(IV.ok){const N=IV.ng;const p=N.plats[i].grp.position;return projIV(N.cam,p.x,.3+p.y,0);}return[[64,124],[120,124],[176,124]][i];}
 function ngWait(n){return new Promise(r=>{let i=0;const f=()=>{if(++i>=n)r();else requestAnimationFrame(f);};requestAnimationFrame(f);});}
-// Pokéball wird geworfen, öffnet sich, Pikachu erscheint
+// Pokéball wird geworfen, öffnet sich, Picochilla erscheint
 async function ngSendOut(sp){
   const[x,y]=ngFoot(1);const st=NGStage;st.ball={x:-10,y:40,r:0};sfx("ball");
   for(let i=0;i<=30;i++){const k=i/30;st.ball.x=lerp(-10,x,k);st.ball.y=lerp(60,y-26,k)-Math.sin(k*Math.PI)*40;st.ball.r+=.4;await nextFrame();}
@@ -11368,7 +11370,7 @@ function bootBg(){if(BOOT_BG)return BOOT_BG;return BOOT_BG=mk(SW,SH,(g,P)=>{
   // Waldkante vorne (runde Pixelkronen)
   for(let x=-4;x<SW+8;x+=7){const r=5+((x*7)%3),cy=144-((x*13)%5);for(let yy=-r;yy<=r;yy++)for(let xx=-r;xx<=r;xx++)if(xx*xx+yy*yy<=r*r){g.fillStyle=yy<-r*.4&&xx<0?"#1e3a36":"#0c1c1a";g.fillRect(x+xx,cy+yy,1,1);}}
   P(0,146,SW,SH-146,"#070e0e");
-  // Lichter von Alabastia
+  // Lichter von Avenitia
   for(const[x,y]of[[40,138],[52,140],[60,137],[176,139],[188,141]]){P(x,y,2,2,"#ffd870");P(x,y-1,2,1,"rgba(255,220,140,.4)");}
 });}
 function bootGate(){
