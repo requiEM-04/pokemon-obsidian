@@ -2,6 +2,16 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.32 (31.10.2026)
+- Neu nach der Story: Ost-Einall! Route 11 bis 16, die Dorfbrücke, Tessera (mit Mauer und alter Drachen-Legende), der Ferienort Ondula am Meer, der Schrein der Ernte und die Wunderbrücke.
+- Editionsorte wie im Original: In Schwarz die Schwarze Stadt (starke Trainer und ein Händler mit seltenen Waren), in Weiß der Weiße Wald (seltene Pokémon wie Kapuno, Milza, Ignivor, Lichtel und Zorua).
+- Zugang über Twindrake City (nach Süden) und Rayono City (nach Osten) – nach dem Champ (frei) bzw. nach dem Story-Ende.
+- Tessera und Ondula haben ein Pokémon-Center und sind Flugziele. Die Karte von Einall zeigt den Osten mit allen Routen und Brücken.
+- Demeteros erscheint jetzt am Schrein der Ernte (statt auf Route 10).
+- Ost-Einall hat eigene wilde Pokémon (Lv. 48–60), über 30 neue Trainer, Items, versteckte Items und Bewohner.
+- Jahreszeiten wie in Schwarz/Weiß: Jeden Monat wechselt die Jahreszeit (Januar Frühling, Februar Sommer, März Herbst, April Winter, …). Bäume blühen im Frühling, färben sich im Herbst rot und gold, im Winter liegt Schnee. In den Optionen (GRAFIK → Jahreszeit) auch fest einstellbar.
+- Karte: Die Ortsliste scrollt jetzt sauber (Tessera und Ondula überdecken nicht mehr die Fußzeile).
+
 ## v0.31 (31.10.2026)
 - Hotfix: Das Spiel blieb beim Start eines neuen Spiels hängen (Begrüßung). Behoben.
 - Versteckte Items: Auf Routen, in Städten und Höhlen liegen jetzt unsichtbare Items. Davor stellen und A drücken!
