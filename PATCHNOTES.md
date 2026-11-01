@@ -25,6 +25,7 @@ Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-I
 - Story: Die ersten Kämpfe gegen Bell, Cheren und N sind fair wie im Original – vor dem 1. Orden haben die Rivalen Anfänger-Werte, bis zum 2. Orden normale Werte.
 - Gespräche: Über dem Textfenster steht jetzt ein Namensschild, wer gerade spricht (dein eigener Name in Blau).
 - Städte lebendiger: Vorgärten mit Zaun, Blumenbeete an den Hauswänden, Hecken an den Wegen und Bäume auf den Wiesen – ohne Wege zu verbauen.
+- Routen natürlicher: hohes Gras mit unregelmäßigen Rändern, welliger Waldrand, Blumenwiesen, Felsen und Büsche.
 - Kampf: Nach einem Ballwurf steht der Cursor wieder auf dem Ball/Beutel statt auf „Kampf“ – so wirft man schnell den nächsten Ball.
 
 ## v0.30 (31.10.2026)
