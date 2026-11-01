@@ -7684,6 +7684,7 @@ const PATCH=[
     "Story: Die ersten Kämpfe gegen Bell, Cheren und N sind fair wie im Original – vor dem 1. Orden haben die Rivalen Anfänger-Werte, bis zum 2. Orden normale Werte.",
     "Gespräche: Über dem Textfenster steht jetzt ein Namensschild, wer gerade spricht (dein eigener Name in Blau).",
     "Städte lebendiger: Vorgärten mit Zaun, Blumenbeete an den Hauswänden, Hecken an den Wegen und Bäume auf den Wiesen – ohne Wege zu verbauen.",
+    "Routen natürlicher: hohes Gras mit unregelmäßigen Rändern, welliger Waldrand, Blumenwiesen, Felsen und Büsche.",
     "Kampf: Nach einem Ballwurf steht der Cursor wieder auf dem Ball/Beutel statt auf „Kampf“ – so wirft man schnell den nächsten Ball."]},
   {v:"0.30",d:"31.10.2026",items:[
     "Großes Update: Pokémon Obsidian ist jetzt eine Neuinterpretation von Pokémon Schwarz & Weiß. Kanto ist komplett raus – willkommen in Einall!",
@@ -11086,8 +11087,9 @@ legend("route8",[16,11],647,65,()=>post()&&flag("leg_638")&&flag("leg_639")&&fla
 (function(){
 const M=REGIONS.unova.maps,H=REGIONS.unova.hash;
 const TOWNS=Object.keys(typeof UNOVA_MAPS!=="undefined"?UNOVA_MAPS:{}).filter(id=>UNOVA_MAPS[id].kind==="town"&&M[id]);
+const ROUTES=Object.keys(typeof UNOVA_MAPS!=="undefined"?UNOVA_MAPS:{}).filter(id=>UNOVA_MAPS[id].kind==="route"&&M[id]);
 const WALK=c=>c&&!SOLID.has(c)&&c!=="~";
-function decorate(id){const m=M[id];const T=m.tiles.map(r=>r.split(""));const h=T.length,w=T[0].length;
+function decorate(id,route){const m=M[id];const T=m.tiles.map(r=>r.split(""));const h=T.length,w=T[0].length;
   const at=(x,y)=>(T[y]||[])[x];const inB=(x,y)=>(m.bld||[]).some(b=>x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h);
   const ok=(x,y)=>WALK(at(x,y))&&!inB(x,y);
   // wichtige Felder: vor Türen, Warps, Schilder, Personen, Kartenränder mit Weg
@@ -11102,6 +11104,18 @@ function decorate(id){const m=M[id];const T=m.tiles.map(r=>r.split(""));const h=
     return imp.every(([x,y,adj])=>adj?[[0,1],[0,-1],[1,0],[-1,0],[0,0]].some(([dx,dy])=>seen.has((x+dx)+","+(y+dy))):(!ok(x,y)||seen.has(x+","+y)));};
   const solid=(x,y,c)=>{if(at(x,y)!=="."||busy.has(x+","+y))return false;const o=T[y][x];T[y][x]=c;if(!reachAll()){T[y][x]=o;return false;}return true;};
   const flower=(x,y)=>{if(at(x,y)==="."&&!busy.has(x+","+y))T[y][x]="F";};
+  if(route){routeDeco();m.tiles=T.map(r=>r.join(""));return;}
+  function routeDeco(){const R=k=>H(id+":"+k)%100;
+    // hohes Gras: Ecken der Rechtecke abrunden, Ränder leicht ausfransen
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(at(x,y)!==",")continue;const n4=[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dy])=>at(x+dx,y+dy)===",").length;
+      if(n4<=2&&R("c"+x+","+y)<55)T[y][x]=".";}
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(at(x,y)!=="."||busy.has(x+","+y))continue;const n4=[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dy])=>at(x+dx,y+dy)===",").length;if(n4>=1&&R("g"+x+","+y)<18)T[y][x]=",";}
+    // Waldrand wellig: einzelne Bäume vor der Baumwand
+    for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){if(at(x,y)!==".")continue;const nT=[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dy])=>at(x+dx,y+dy)==="T").length;if(nT===1&&R("w"+x+","+y)<30)solid(x,y,"T");}
+    // Blumenwiesen und vereinzelte Felsen/Büsche
+    for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){if(at(x,y)!==".")continue;const r=R("f"+x+","+y);
+      if(r<6){for(const[dx,dy]of[[0,0],[1,0],[0,1],[1,1],[-1,0]])if(R("ff"+(x+dx)+","+(y+dy))<70)flower(x+dx,y+dy);}
+      else if(r<8){let free=true;for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++)if(at(x+xx,y+yy)===":")free=false;if(free)solid(x,y,R("rb"+x)<50?"r":"b");}}}
   // 1) Häuser: Blumen an den Seiten, Vorgarten-Zaun mit Lücke vor der Tür
   for(const b of m.bld||[]){if(b.k!=="house")continue;const dx0=(b.doors&&b.doors[0])?b.x+b.doors[0].x:-9;
     for(let y=b.y+1;y<b.y+b.h;y++){flower(b.x-1,y);flower(b.x+b.w,y);}
@@ -11115,6 +11129,7 @@ function decorate(id){const m=M[id];const T=m.tiles.map(r=>r.split(""));const h=
     if(!free||(H(id+":t"+x+","+y)%100)>=22||trees.some(([a,b])=>Math.abs(a-x)+Math.abs(b-y)<4))continue;if(solid(x,y,"T"))trees.push([x,y]);}
   m.tiles=T.map(r=>r.join(""));}
 for(const id of TOWNS){try{decorate(id);}catch(e){console.warn("Deko",id,e);}}
+for(const id of ROUTES){try{decorate(id,true);}catch(e){console.warn("Deko",id,e);}}
 })();
 
 /* ===== regions/unova_f_extra.js ===== */
