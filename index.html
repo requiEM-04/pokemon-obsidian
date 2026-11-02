@@ -6861,7 +6861,7 @@ function obOptionsDraw(TABS,tab,i){
   // Reiter
   const tw=(PRW-16)/TABS.length;TABS.forEach(([t],k)=>{const x=8+k*tw,on=k===tab,foc=on&&i===-1;const g=ctx.createLinearGradient(0,26,0,44);g.addColorStop(0,on?"#ff8a60":"#3a2e52");g.addColorStop(1,on?"#c8402a":"#241c34");
     ctx.fillStyle=g;ctx.fillRect(x+1,26,tw-2,18);if(foc){ctx.strokeStyle=`rgba(255,240,220,${.6+Math.sin(FRAME/7)*.3})`;ctx.lineWidth=1.5;ctx.strokeRect(x+1.5,26.5,tw-3,17);}prT(t,x+tw/2,28,{size:14,align:"center",c:on?"#fff":OB.dim,sh:on?"#6a1808":"#120e1c"});});
-  const rows=TABS[tab][1];fancyWin(8,48,PRW-16,PRH-48-50);const RH=15;
+  const rows=TABS[tab][1];fancyWin(8,48,PRW-16,PRH-48-50);const RH=Math.min(15,Math.floor((PRH-50-56)/(rows.length+1)));
   rows.forEach((r,k)=>{const y=53+k*RH,sel=k===i;if(sel)obSel(13,y,PRW-26,RH-1);prT(r[0],22,y+1,{size:14,c:sel?"#ffffff":OB.dim});const v=r[1]();
     if(r[4]==="bar"){const bx=PRW-128,bw=100;for(let s=0;s<10;s++){ctx.fillStyle=s<v?(sel?"#ff8a60":"#9a7ad8"):"rgba(255,255,255,.12)";ctx.fillRect(bx+s*10,y+4,8,RH-9);}prT(String(v),PRW-20,y+3,{size:12,align:"right",c:"#fff"});return;}
     const txtv=String(v),w=prW(txtv,12)+16,x=PRW-20-w;ctx.fillStyle=r[4]==="act"?(sel?"rgba(90,180,120,.9)":"rgba(60,110,90,.85)"):(sel?"rgba(255,122,80,.85)":"rgba(90,72,130,.85)");ctx.fillRect(x,y+1,w,RH-4);
@@ -7063,6 +7063,7 @@ async function openStartMenu(){
     opts.push({ic:"bag",l:"BEUTEL",f:()=>bagMenu({}),d:"Items benutzen und geben."},{ic:"map",l:"KARTE",f:openTownMap,d:canFly()?"Ganz Einall – und mit Fliegen zu besuchten Städten reisen.":"Ganz Einall auf einen Blick."},{ic:"pc",l:"PC",f:openPC,d:"Pokémon-Boxen – von überall erreichbar."},
       {ic:"card",l:"PROFIL",f:()=>profileScreen("game"),d:`${G.save.name}: Trainerpass, Kampfkarte und Erfolge.`},{ic:"save",l:"SPEICHERN",f:saveMenu,d:"Den Spielstand sichern. Das Spiel speichert auch automatisch (Kartenwechsel, nach Kämpfen, jede Minute)."},
       {ic:"opt",l:"OPTIONEN",f:optionsMenu,d:"Text, Sound, Rennen, Folge-Pokémon …"},{ic:"home",l:"ZUM TITEL",f:toTitle,d:"Speichert automatisch und geht zurück zum Titelbildschirm (dort auch Abmelden). B schließt das Menü."});
+    if(G.save.sl&&typeof U_SL_SCREEN==="function")opts.splice(Math.min(2,opts.length),0,{ic:"shard",l:"SEELENBAND",f:U_SL_SCREEN,d:"Soul-Link: Wer mit wem verbunden ist – und wer schon gefallen ist."});
     const c=await startMenuScene(opts,START_IDX);
     if(c<0||!opts[c].f)return;START_IDX=c;
     await opts[c].f();
@@ -7372,7 +7373,8 @@ function optionsMenu(){
         ["Kampfstil",()=>G.save&&G.save.diff==="normal"?"Folge (Normal)":OPT.style==="shift"?"Wechsel":"Folge",()=>{if(!G.save||G.save.diff!=="normal")OPT.style=OPT.style==="shift"?"set":"shift";},"Wechsel: Nach einem K.O. des Gegners darfst du tauschen (nur Leicht)."],
         ["Auto-Rennen",()=>onoff(OPT.autorun),()=>OPT.autorun=!OPT.autorun,"Immer rennen, Shift läuft dann langsam."],
         ["Folge-Pokémon",()=>onoff(OPT.follow),()=>OPT.follow=!OPT.follow,"Das erste Pokémon im Team läuft hinter dir her."],
-        ["Unendl. Schutz",()=>onoff(OPT.repel),()=>OPT.repel=!OPT.repel,"Keine wilden Begegnungen (praktisch zum Erkunden)."]]],
+        ["Unendl. Schutz",()=>onoff(OPT.repel),()=>OPT.repel=!OPT.repel,"Keine wilden Begegnungen (praktisch zum Erkunden)."],
+        ["Sichtbare Wilde",()=>onoff(OPT.wildvis!==false),()=>OPT.wildvis=OPT.wildvis===false,"Wilde Pokémon laufen sichtbar durchs hohe Gras – lauf hinein, um zu kämpfen. Zufallsbegegnungen gibt es weiterhin."]]],
       ["GRAFIK",[
         ["Ansicht",()=>OPT.view==="frame"?"Rahmen + Panels":"Vollbild",()=>{OPT.view=OPT.view==="frame"?"full":"frame";setTimeout(fitScreen,0);},"Vollbild oder Rahmen mit Team- und Orden-Panels am Rand."],
         ["Grafikstil",()=>OPT.look==="classic"?"Klassisch":"Y2K",()=>{OPT.look=OPT.look==="classic"?"y2k":"classic";if(typeof BV!=="undefined")BV.bgKind=null;},"Klassische Pixel-Welt oder Y2K-Look mit Neon-Kampfbühne."],
@@ -7664,6 +7666,19 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.38",d:"02.11.2026",items:[
+    "Neu: Soul-Link online – als Duo (2 Spieler) oder Trio (3 Spieler)! Titel → ONLINE → SOUL-LINK STARTEN: Story oder Frei, Randomizer oder normal, Edition wählen und den 4-stelligen Code an deine Mitspieler geben. Die treten über SOUL-LINK BEITRETEN bei.",
+    "Jeder spielt sein eigenes Nuzlocke-Spiel. Die erste Begegnung jedes Gebiets (und die Starter) sind per Seelenband verbunden: Fällt ein Pokémon oder geht ein Fang schief, fallen die verbundenen Pokémon der anderen ebenfalls.",
+    "Im Randomizer-Soul-Link bekommen alle Spieler dieselben zufälligen Pokémon (gemeinsamer Startwert) – wie bei den bekannten Soul-Link-Challenges.",
+    "Startmenü → SEELENBAND zeigt alle Gebiete mit den Pokémon jedes Spielers, wer online ist und wer schon gefallen ist. Neue Fänge der Partner erscheinen als Hinweis.",
+    "War jemand offline, gleichen sich die Spiele automatisch ab, sobald wieder alle online sind. Zum Spielen müsst ihr angemeldet sein."]},
+  {v:"0.37",d:"01.11.2026",items:[
+    "Neu: das Einall-Turnier im Großen Stadion von Rayono City (ab 8 Orden). Drei Runden gegen Arenaleiter mit vollen Teams, geheilt wird zwischen den Kämpfen. Im Finale wartet der Legenden-Leiter – nach dem Champ-Titel Lauro! Die Gegner passen sich deinem stärksten Pokémon an. Sieger bekommen seltene Items, einen Pokal für zu Hause und einen Eintrag in der Ehrentafel.",
+    "Stimmung in der Welt: Rauch steigt aus den Schornsteinen (im Herbst, Winter und abends mehr), Wolkenschatten ziehen an sonnigen Tagen über das Land und auf dem Wasser glitzert die Sonne."]},
+  {v:"0.36",d:"01.11.2026",items:[
+    "Sichtbare wilde Pokémon: Auf den Routen laufen wilde Pokémon aus der Begegnungstabelle sichtbar durchs hohe Gras. Lauf hinein, um zu kämpfen. Schillernde Pokémon funkeln schon von Weitem! Alle ~250 Schritte tauchen neue auf. Zufallsbegegnungen bleiben (abschaltbar: Optionen → SPIEL → Sichtbare Wilde).",
+    "Tagesaufgaben: In jedem Pokémon-Center hängt eine Aufgaben-Tafel mit drei Aufgaben pro Tag (Pokémon fangen, Trainer besiegen, Schritte laufen, Phänomene, Musical …). Belohnungen an der Tafel abholen. Alle drei geschafft = Bonus, jeder 7. komplette Tag bringt einen Meisterball.",
+    "Arena Orion City: Ein roter Vorhang versperrt den Weg zu den Brüdern. Der Oberkellner stellt drei Fragen – alle richtig, und der Vorhang öffnet sich."]},
   {v:"0.35",d:"01.11.2026",items:[
     "Neu: das Pokémon-Musical in Rayono City! Schmücke ein Pokémon mit Accessoires (Kopf, Gesicht, Hand) und tritt gegen drei andere auf. Jeder Auftritt hat ein Thema (Süß, Cool, Elegant, Lustig) – passende Accessoires bringen mehr Herzen vom Publikum. Siege schalten neue Accessoires frei (16 insgesamt).",
     "Neu: die Royal Einall! Am Hafen von Stratos City nimmt dich ein Matrose mit auf Rundfahrt. An Bord warten sechs Trainer, die jeden Tag neu kämpfen wollen, und der Kapitän hat ein Tagesgeschenk für alle, die sie besiegen. Mit Abendstimmung über dem Meer.",
@@ -8061,12 +8076,13 @@ async function onlineMenu(){
   let i=0;
   while(true){const team=onMyTeam();
     const c=await onMenu("ONLINE",()=>ON.sess?`${ON.sess.name} · ${ON.board?ON.board.elo:"…"} Elo`:"",
-      [["SCHNELLES DUELL","mon"],["RAUM ERSTELLEN","home"],["RAUM BEITRETEN","key"],["BESTENLISTE","trophy"],["PROFIL","card"],["ZURÜCK","back"]],
+      [["SCHNELLES DUELL","mon"],["RAUM ERSTELLEN","home"],["RAUM BEITRETEN","key"],["SOUL-LINK STARTEN","shard"],["SOUL-LINK BEITRETEN","shard"],["BESTENLISTE","trophy"],["PROFIL","card"],["ZURÜCK","back"]],
       ()=>[`Duell-Team: ${onTeamLine(team)}`,"Live-Duell: bis zu 6 Pokémon, alle auf Lv. 50"],{i,side:(x,y)=>{team.slice(0,6).forEach((m,k)=>{const cx=x+30+(k%2)*60,cy=y+20+Math.floor(k/2)*44;obCard(cx-27,cy-20,54,40,false);
         prEnd();{const i=m.sp-1,f=Math.floor(FRAME/18)%2;ctx.drawImage(IMG.icon,(i%16)*40,Math.floor(i/16)*30,40,30,Math.round(cx*PRK-16),Math.round((cy-21)*PRK)-f,32,24);}prBegin();prT(monName(m).slice(0,8),cx,cy+7,{size:10,align:"center",c:OB.dim,sh:"transparent"});});}});
-    if(c<0||c===5)return;i=c;
+    if(c<0||c===7)return;i=c;
     if(c===0)await onDuelFlow("quick");else if(c===1)await onDuelFlow("create");else if(c===2)await onDuelFlow("join");
-    else if(c===3)await onBoardScreen();else if(c===4){await accProfile();if(!ON.sess)return;}}}
+    else if(c===3||c===4){const before=G.save;await U_SL_FLOW(c===3?"create":"join");if(G.save&&G.save!==before&&G.save.sl&&Scenes.includes(WorldScene))return;}
+    else if(c===5)await onBoardScreen();else if(c===6){await accProfile();if(!ON.sess)return;}}}
 // Tab geschlossen / neu geladen: Gegner sofort informieren (sonst gewinnt er erst nach Zeitablauf)
 window.addEventListener("pagehide",()=>{try{if(DUEL&&DUEL.tr)duelSend("bye",{});}catch(e){}});
 
@@ -11685,7 +11701,7 @@ function trySpawn(){const t0=tileAt(PL.x,PL.y);if(!t0)return;const m=t0.m;
     const t=tileAt(x,y);if(!t||t.m!==m)continue;const kd=kindAt(t);if(!kd||!want.includes(kd))continue;if(npcAt(x,y))continue;
     if(kd!=="water"&&solidAt(x,y,true))continue;
     PH.cur={x,y,kind:kd,map:m.id,born:G.save.steps||0,t:0};return;}}
-async function phEncounter(ph){const t=tileAt(ph.x,ph.y);const m=t?t.m:curMap();PH.cur=null;
+async function phEncounter(ph){if(U.dailyBump)U.dailyBump("phen");const t=tileAt(ph.x,ph.y);const m=t?t.m:curMap();PH.cur=null;
   if(ph.kind==="dust"&&Math.random()<.45){sfx("item");await say("Aus der Staubwolke kullert etwas heraus!");await U.giveItem(DUST_ITEMS[Math.floor(Math.random()*DUST_ITEMS.length)]);return;}
   const enc=ph.kind==="water"?m.encWater:m.enc;if(!enc||!enc.list||!enc.list.length)return;
   const top=Math.max(...enc.list.map(e=>e[2]));const lv=Math.min(100,top+2+Math.floor(Math.random()*3));
@@ -11965,6 +11981,7 @@ async function reception(){
   const i=await partyMenu({mode:"pick",title:"Wer tritt auf?"});if(i==null||i<0)return;const mon=G.save.party[i];
   const prevMusic=Music.cur;
   const place=await musical(mon);
+  if(U.dailyBump)U.dailyBump("musical");
   if(prevMusic)Music.play(prevMusic);
   G.save.musical=G.save.musical||{shows:0,wins:0};G.save.musical.shows++;
   if(place===0){G.save.musical.wins++;const left=ALL.filter(id=>!owned().includes(id));
@@ -12027,9 +12044,390 @@ M.royal={name:"ROYAL EINALL",floor:"wood",wall:"house:blue",entry:[6,9],music:"s
     }catch(e){}};}
 })();
 
+/* ===== regions/unova_j_wild.js ===== */
+/* ================================ EINALL · SICHTBARE WILDE POKÉMON (v0.36) ================================
+   Wie in Let's Go / Karmesin & Purpur: Auf Routen laufen wilde Pokémon sichtbar durchs hohe Gras (aus der
+   Begegnungstabelle der Route). Läuft man in eines hinein, beginnt der Kampf. Schillernde Pokémon funkeln.
+   Alle ~250 Schritte tauchen neue auf. Zufallsbegegnungen bleiben wie gewohnt (abschaltbar über Schutz).
+   Die Figuren blockieren keine Wege (man läuft hindurch = Kampf). Optionen → SPIEL → „Sichtbare Wilde“. */
+(function(){
+const U=REGIONS.unova,M=U.maps;const H=U.hash;
+const CYC=250;
+const cyc=()=>Math.floor(((G.save&&G.save.steps)||0)/CYC);
+function speciesFor(n){const m=n.m,enc=m.enc;if(!enc||!enc.list||!enc.list.length)return null;const c=cyc();
+  if(n._c===c&&n._sp)return n._sp;
+  const r=seeded(((G.save&&G.save.seed)||1)^H(n.id+":"+c));const tot=enc.list.reduce((a,e)=>a+e[3],0);let x=r()*tot,e=enc.list[0];
+  for(const q of enc.list){x-=q[3];if(x<0){e=q;break;}}
+  let sp=typeof e[0]==="function"?e[0]():e[0];if(!SPECIES[sp])return null;
+  if(G.save&&G.save.rand)sp=randomSpecies(sp,m.id);
+  n._c=c;n._sp=sp;n._lv=Math.round(e[1]+(e[2]-e[1])*r());n._shiny=r()<shinyRate()*4;return sp;}
+const gone=()=>{G.save._wg=G.save._wg||{};return G.save._wg;};
+let added=0;
+for(const id in M){const m=M[id];if(!m.enc||m.cave||!(m.world||m.outside)||!Array.isArray(m.tiles))continue;
+  const T=m.tiles,h=T.length,w=T[0].length;const spots=[];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(T[y][x]!==",")continue;const n4=[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dy])=>(T[y+dy]||"")[x+dx]===",").length;if(n4<3)continue;
+    if((m.warps||[]).some(q=>Math.abs(q.x-x)+Math.abs(q.y-y)<3))continue;spots.push([x,y]);}
+  if(!spots.length)continue;
+  const want=Math.min(3,Math.max(1,Math.floor(spots.length/18)));const pick=[];
+  for(let k=0;k<spots.length&&pick.length<want;k++){const s=spots[(H(id+":w"+k)%spots.length)];if(pick.some(([a,b])=>Math.abs(a-s[0])+Math.abs(b-s[1])<6))continue;pick.push(s);}
+  m.npcs=m.npcs||[];
+  pick.forEach(([x,y],i)=>{const d={x,y,id:"wild_"+id+"_"+i,move:"wander",dir:"down",wildw:1,
+      show(){if(OPT.wildvis===false||!G.save||!G.save.party.length)return false;if(U.story()&&!flag("st_dex"))return false;const g=gone()[this.id];return g==null||g!==cyc();}};
+    Object.defineProperty(d,"mon",{get(){const n=(W.npcs[id]||[]).find(q=>q.d===d);return n?speciesFor(n):null;},enumerable:true});
+    m.npcs.push(d);added++;});}
+U.wildWalkers=added;
+// nicht fest: man läuft hindurch (npcAt ignoriert sie, außer bei der eigenen Bewegung der Wilden)
+{const _na=npcAt;npcAt=function(x,y){const n=_na(x,y);if(n&&n.d.wildw&&!W._wildSolid){const all=activeNpcs().filter(q=>!q.d.wildw&&((q.x===x&&q.y===y)||(q.moving&&q.tx===x&&q.ty===y)));return all[0];}return n;};}
+// Bewegung: nur im hohen Gras bleiben
+{const _un=updateNpcs;updateNpcs=function(){W._wildSolid=1;try{
+    for(const n of activeNpcs()){if(!n.d.wildw||n.moving)continue;n.d.move=W.lock?"still":"wander";}
+    _un.apply(this,arguments);
+    for(const n of activeNpcs()){if(!n.d.wildw||!n.moving||n.prog!==0)continue;const t=tileAt(n.tx,n.ty);if(!t||t.c!==","||(n.tx===PL.x&&n.ty===PL.y)){n.moving=false;}}
+  }finally{W._wildSolid=0;}};}
+async function wildBattle(n){const sp=speciesFor(n);if(!sp)return;if(U.dailyBump)U.dailyBump("visible");const m=n.m;
+  gone()[n.d.id]=cyc();W.encCool=4;
+  const mon=makeMon(sp,Math.max(2,n._lv||5),{mgm:false,shiny:n._shiny||undefined});
+  sfx("surprise");await startBattle({type:"wild",foes:[mon],bg:m.bg||"grass",area:m.id});}
+// Hineinlaufen = Kampf (auch wenn das Pokémon in den Spieler läuft)
+{const _os=onStep;onStep=function(){
+  try{if(G.save&&partyAlive()&&!W.lock){const n=activeNpcs().find(q=>q.d.wildw&&((q.x===PL.x&&q.y===PL.y)||(q.moving&&q.tx===PL.x&&q.ty===PL.y)));
+      if(n){G.save.steps=(G.save.steps||0)+1;script(wildBattle,n);return;}}}catch(e){console.warn(e);}
+  return _os.apply(this,arguments);};}
+{const _up=updatePlayer;updatePlayer=function(){
+  if(G.save&&!W.lock&&!PL.moving&&partyAlive()){const n=activeNpcs().find(q=>q.d.wildw&&!q.moving&&q.x===PL.x&&q.y===PL.y);if(n){script(wildBattle,n);return;}}
+  return _up.apply(this,arguments);};}
+// Funkeln bei Schillernden + kleine Gras-Wellen bei der Bewegung
+{const _dw=drawWorld;drawWorld=function(){_dw.apply(this,arguments);try{if(!V3.ok)return;const cm=curMap();if(!(cm.world||cm.outside))return;
+  for(const n of activeNpcs()){if(!n.d.wildw)continue;const[x,y]=charWorldPos(n);
+    if(n._shiny&&FRAME%40<24){const[sx,sy]=projectToScreen(x+.5,1.0,y+.6);ctx.save();ctx.globalCompositeOperation="lighter";
+      for(let i=0;i<4;i++){const a=FRAME*.08+i*1.57,r=7+Math.sin(FRAME*.2+i)*2;ctx.fillStyle="rgba(255,250,170,.9)";const px=sx+Math.cos(a)*r,py=sy+Math.sin(a)*r*.7;ctx.fillRect(px-1,py-1,2,2);ctx.fillRect(px-.5,py-2.5,1,5);ctx.fillRect(px-2.5,py-.5,5,1);}
+      ctx.restore();}
+    if(n.moving&&n.prog%8===0&&typeof WLIFE==="undefined"){/* Partikel über unova_g_life */}}}catch(e){}};}
+// Im 2D-Modus (ohne WebGL) als kleines Symbol zeichnen
+U.wildBattle=wildBattle;U.wildSpecies=speciesFor;
+})();
+
+/* ===== regions/unova_k_daily.js ===== */
+/* ================================ EINALL · TAGESAUFGABEN & ARENA ORION CITY (v0.36) ================================
+   1) Tagesaufgaben: In jedem Pokémon-Center hängt eine Aufgaben-Tafel mit drei Aufgaben pro Tag (fangen, Trainer
+      besiegen, laufen, wilde Pokémon besiegen, Phänomene, Musical …). Erledigte Aufgaben bringen Belohnungen.
+   2) Arena Orion City wie im Original mit Rätsel: Ein Vorhang versperrt den Weg zum Arenaleiter. Der Oberkellner
+      stellt drei Fragen – wer alle richtig beantwortet, darf zum Arenaleiter. */
+(function(){
+const U=REGIONS.unova,M=U.maps;
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();};
+const ITEMN_=k=>typeof itemName==="function"?itemName(k):k;
+/* ---------- Tagesaufgaben ---------- */
+const TASKS=[
+  {k:"catch",n:c=>`Fange ${c} Pokémon`,need:[2,3,5]},
+  {k:"trainer",n:c=>`Besiege ${c} Trainer`,need:[2,4,6]},
+  {k:"wild",n:c=>`Besiege ${c} wilde Pokémon`,need:[4,6,10]},
+  {k:"steps",n:c=>`Laufe ${c} Schritte`,need:[300,600,1000]},
+  {k:"phen",n:c=>`Untersuche ${c} Phänomen${c>1?"e":""}`,need:[1,2]},
+  {k:"visible",n:c=>`Kämpfe gegen ${c} sichtbare Wilde`,need:[2,3,4]},
+  {k:"evolve",n:c=>`Lass ${c} Pokémon sich entwickeln`,need:[1]},
+  {k:"musical",n:()=>"Tritt im Musical auf",need:[1],post:()=>flag("musical_intro")||(G.save.badges||[]).length>=4},
+];
+const REW=["rare-candy","pp-up","max-revive","ultra-ball","great-ball","hyper-potion","full-heal","nugget","heart-scale","sitrus-berry","max-potion"].filter(k=>typeof ITEMS==="undefined"||ITEMS[k]);
+function daily(){const s=G.save;if(!s.daily||s.daily.day!==today()){const r=seeded((s.seed||1)^U.hash(today()));const pool=TASKS.filter(t=>!t.post||t.post());const L=[];
+    while(L.length<3&&pool.length){const t=pool.splice(Math.floor(r()*pool.length),1)[0];const c=t.need[Math.floor(r()*t.need.length)];
+      const it=REW[Math.floor(r()*REW.length)];L.push({k:t.k,c,have:0,it,n:["rare-candy","pp-up","max-revive","nugget","heart-scale"].includes(it)?1:3,done:false});}
+    s.daily={day:today(),steps0:s.steps||0,tasks:L};}
+  return s.daily;}
+function bump(k,n=1){if(!G.save||!G.save.party)return;const d=daily();for(const t of d.tasks)if(t.k===k&&!t.done){t.have=Math.min(t.c,t.have+n);if(t.have>=t.c&&!t.toast){t.toast=1;if(typeof showToast==="function")showToast("Tagesaufgabe erfüllt!",150);}}}
+U.dailyBump=bump;
+// Zähler einhängen
+{const _sb=startBattle;startBattle=async function(cfg){const r=await _sb.apply(this,arguments);try{
+    if(cfg&&cfg.type==="wild"){if(r==="caught")bump("catch");else if(r==="win")bump("wild");}
+    else if(cfg&&cfg.type==="trainer"&&r==="win")bump("trainer");}catch(e){}return r;};}
+{const _os=onStep;onStep=function(){const r=_os.apply(this,arguments);try{if(G.save&&G.save.daily){const d=G.save.daily;for(const t of d.tasks)if(t.k==="steps"&&!t.done)t.have=Math.min(t.c,(G.save.steps||0)-d.steps0);}}catch(e){}return r;};}
+if(typeof evolve==="function"){const _ev=evolve;evolve=function(m){const r=_ev.apply(this,arguments);try{if(G.save&&G.save.party&&G.save.party.includes(m))bump("evolve");}catch(e){}return r;};}
+async function board(){const d=daily();
+  const line=t=>`${t.done?"✔":t.have>=t.c?"★":"·"} ${TASKS.find(x=>x.k===t.k).n(t.c)} (${Math.min(t.have,t.c)}/${t.c}) – ${t.n>1?t.n+"× ":""}${ITEMN_(t.it)}`;
+  await say("Tagesaufgaben – heute:");for(const t of d.tasks)await say(line(t));
+  const ready=d.tasks.filter(t=>!t.done&&t.have>=t.c);
+  for(const t of ready){t.done=true;await U.giveItem(t.it,t.n);}
+  if(d.tasks.every(t=>t.done)&&!d.bonus){d.bonus=1;G.save.dailyStreak=(G.save.dailyStreak||0)+1;await say(`Alle Aufgaben erledigt! Das ist dein ${G.save.dailyStreak}. kompletter Tag.`);
+    await U.giveItem(G.save.dailyStreak%7===0?"master-ball":"rare-candy",G.save.dailyStreak%7===0?1:2);if(G.save.dailyStreak%7!==0)await say("Tipp: Jeder 7. komplette Tag bringt einen Meisterball!");}
+  else if(!ready.length&&!d.tasks.every(t=>t.done))await say("Morgen gibt es neue Aufgaben. Komm vorbei, wenn du etwas erledigt hast!");}
+// Tafel-Grafik
+{const mk=(w,h,f)=>{const c=document.createElement("canvas");c.width=w;c.height=h;f(c.getContext("2d"));const i=new Image();i.src=c.toDataURL();return i;};
+  IMG.obj_board=mk(32,40,g=>{g.fillStyle="rgba(0,0,0,.25)";g.fillRect(4,35,24,4);g.fillStyle="#6a4424";g.fillRect(6,22,3,15);g.fillRect(23,22,3,15);
+    g.fillStyle="#8a5a2a";g.fillRect(2,4,28,22);g.fillStyle="#2a4a3a";g.fillRect(4,6,24,18);g.fillStyle="#f6f2d8";for(let i=0;i<3;i++){g.fillRect(6,8+i*5,12,3);g.fillStyle=["#ff6a6a","#ffd040","#6ad0ff"][i];g.fillRect(20,8+i*5,5,3);g.fillStyle="#f6f2d8";}});
+  IMG.obj_curtain=mk(32,48,g=>{const gr=g.createLinearGradient(0,0,32,0);gr.addColorStop(0,"#7a0a1a");gr.addColorStop(.5,"#c8283a");gr.addColorStop(1,"#7a0a1a");g.fillStyle=gr;g.fillRect(0,2,32,44);
+    g.fillStyle="rgba(0,0,0,.25)";for(let i=0;i<4;i++)g.fillRect(4+i*8,2,2,44);g.fillStyle="#e8b030";g.fillRect(0,0,32,4);g.fillRect(0,42,32,2);});
+  if(typeof OBJ_SIZE!=="undefined"){OBJ_SIZE.board=[1,1.25,.66];OBJ_SIZE.curtain=[1.06,1.6,.6];}}
+for(const id in M){if(!/^center_/.test(id))continue;const m=M[id];if(!m.tiles)continue;
+  const free=(x,y)=>{const c=m.tiles[y]&&m.tiles[y][x];return c==="_"&&!m.npcs.some(n=>n.x===x&&n.y===y)&&!(m.warps||[]).some(w=>w.x===x&&w.y===y);};
+  const sp=[[4,5],[11,5],[4,6],[11,6],[5,7],[10,7],[1,7]].find(([x,y])=>free(x,y));
+  if(sp)m.npcs.push({x:sp[0],y:sp[1],obj:"board",fixed:1,move:"still",dir:"down",sid:"daily",run:board});}
+/* ---------- Arena Orion City: Vorhang + Quiz ---------- */
+{const m=M.gym_striaton;if(m){
+  const Q=[["Welcher Typ ist sehr effektiv gegen Pflanze?",["Feuer","Wasser","Boden"],0],
+    ["Welcher Typ ist sehr effektiv gegen Wasser?",["Feuer","Pflanze","Normal"],1],
+    ["Welcher Typ ist sehr effektiv gegen Feuer?",["Käfer","Pflanze","Wasser"],2],
+    ["Welcher Typ ist immun gegen Normal-Attacken?",["Geist","Stahl","Gestein"],0],
+    ["Was heilt eine Sinelbeere?",["Vergiftung","KP","Schlaf"],1],
+    ["Wie heißt die Professorin aus Avenitia?",["Prof. Linde","Prof. Esche","Prof. Kiefer"],1],
+    ["Wie viele Orden braucht man für die Pokémon-Liga?",["6","10","8"],2],
+    ["Welcher Typ ist sehr effektiv gegen Flug?",["Elektro","Kampf","Pflanze"],0],
+    ["Was passiert, wenn ein Pokémon Schutz einsetzt?",["Es wird geheilt","Es weicht der Attacke aus","Es wird schneller"],1]];
+  const open=()=>flag("striaton_quiz")||hasBadge("Trio");
+  for(let x=0;x<14;x++)m.npcs.push({x,y:3,obj:"curtain",fixed:1,move:"still",dir:"down",show:()=>!open(),text:"Ein schwerer roter Vorhang. Der Oberkellner weiß, wie man ihn öffnet."});
+  m.npcs.push({x:6,y:6,ch:"waiter",dir:"down",move:"still",run:async()=>{
+    if(open()){await say("Oberkellner: Die Brüder erwarten dich hinter dem Vorhang. Guten Appetit!");return;}
+    await say("Oberkellner: Willkommen! Bevor du zu den Brüdern darfst, serviere ich dir drei Fragen. Alle richtig – und der Vorhang öffnet sich!");
+    const pool=Q.slice().sort(()=>Math.random()-.5).slice(0,3);
+    for(let i=0;i<3;i++){const[q,opts,ok]=pool[i];const c=await ask(`Frage ${i+1}: ${q}`,opts);
+      if(c!==ok){sfx("deny");await say(`Oberkellner: Leider falsch! Richtig wäre „${opts[ok]}“ gewesen. Versuch es gleich noch einmal!`);return;}
+      sfx("select");await say("Oberkellner: Richtig!");}
+    setFlag("striaton_quiz");sfx("door");await say("Oberkellner: Ausgezeichnet! Der Vorhang öffnet sich – die Brüder erwarten dich.");}});}}
+U.daily=daily;U.dailyBoard=board;
+})();
+
+/* ===== regions/unova_l_turnier.js ===== */
+/* ================================ EINALL · EINALL-TURNIER (v0.37) ================================
+   Im Großen Stadion von Rayono City (ab 8 Orden): drei Runden gegen Arenaleiter mit vollen Teams, geheilt wird
+   zwischen den Runden. Im Finale wartet der Legenden-Leiter – nach dem Champ-Titel sogar Lauro.
+   Level der Gegner passt sich deinem stärksten Pokémon an (mind. 45). Sieg = Pokal, Items und ein Platz in der Ehrentafel. */
+(function(){
+const U=REGIONS.unova,M=U.maps;if(!M.stadium)return;
+const TEAMS={trio:[512,514,516,573,530,537],aloe:[505,508,626,573,531,523],artie:[545,542,558,589,617,596],kamilla:[587,604,596,601,523,523],
+  turner:[553,537,530,622,623,534],geraldine:[528,521,581,561,567,630],sandro:[584,615,614,620,613,560],legenden:[612,621,635,611,634,553]};
+function leaders(){const L=[];for(const id in M){if(!/^gym_/.test(id))continue;for(const n of M[id].npcs||[]){const t=n.tr;if(!t||!t.boss||!TEAMS[t.id])continue;
+      if(n.show&&!n.show())continue;if(L.some(x=>x.tr.id===t.id))continue;L.push({tr:t,ch:n.ch});}}
+  return L;}
+function lauro(){const n=(M.champion_room&&M.champion_room.npcs||[]).find(q=>q.tr&&q.tr.id==="lauro");return n?{tr:n.tr,ch:n.ch}:null;}
+const lvl=()=>Math.max(45,Math.min(90,Math.max(...G.save.party.map(m=>m.lv))));
+async function tournament(){
+  if((G.save.badges||[]).length<8){await say("Turnierleitung: Das Einall-Turnier ist nur für Trainer mit allen acht Orden. Komm wieder, wenn du sie hast!");return;}
+  if(G.save.party.length<3){await say("Turnierleitung: Für das Turnier brauchst du mindestens drei Pokémon im Team.");return;}
+  const c=await ask("Turnierleitung: Willkommen zum Einall-Turnier! Drei Runden gegen Arenaleiter – geheilt wird zwischen den Kämpfen. Teilnehmen?",["JA","REGELN","NEIN"]);
+  if(c===1){await say("Turnierleitung: Du kämpfst dreimal hintereinander. Verlierst du einmal, ist das Turnier vorbei. Die Gegner passen sich deinem stärksten Pokémon an.");
+    await say("Turnierleitung: Wer gewinnt, bekommt einen Pokal, seltene Items und einen Eintrag in der Ehrentafel. Nach dem Champ-Titel wartet im Finale Lauro!");return;}
+  if(c!==0)return;
+  const L=lvl();const pool=leaders();const leg=pool.find(x=>x.tr.id==="legenden");const others=pool.filter(x=>x!==leg).sort(()=>Math.random()-.5);
+  const fin=flag("champion")&&lauro()?lauro():leg||others.pop();
+  const rounds=[others[0],others[1],fin].filter(Boolean);
+  const prev=Music.cur;healParty();
+  await say("Turnierleitung: Dann los! Die Paarungen stehen fest: "+rounds.map(r=>r.tr.name).join(", ")+".");
+  for(let i=0;i<rounds.length;i++){const r=rounds[i],last=i===rounds.length-1;
+    await say(`Stadionsprecher: ${last?"FINALE":"Runde "+(i+1)}! ${G.save.name} gegen ${r.tr.name}!`);sfx("encounter");
+    const base=r.tr.id==="lauro"?(typeof r.tr.team==="function"?r.tr.team():r.tr.team).map(x=>x[0]):TEAMS[r.tr.id];
+    const team=base.slice(0,last?6:5).filter(sp=>SPECIES[sp]).map((sp,j)=>[sp,Math.min(100,L+(last?3:0)+(j===base.length-1?2:0))]);
+    const t=Object.assign({},r.tr,{id:"pwt_"+r.tr.id,team,boss:true,prize:0,intro:null,lose:null,onWin:null,bg:"gym"});
+    const res=await startTrainerBattle(t,r.ch);delete G.save.def[t.id];
+    if(res!=="win"){await say(`Stadionsprecher: ${r.tr.name} gewinnt! Das Turnier ist für ${G.save.name} vorbei – aber was für ein Kampf!`);healParty();if(prev)Music.play(prev);return;}
+    healParty();if(!last){await say(`Stadionsprecher: ${G.save.name} gewinnt und zieht in die nächste Runde ein! Deine Pokémon wurden geheilt.`);}}
+  const s=G.save;s.pwt=(s.pwt||0)+1;
+  if(typeof confetti==="function")confetti(200);Music.play("victory");
+  await say(`Stadionsprecher: Und der Sieger des Einall-Turniers ist ... ${s.name}!`);
+  await say(`Turnierleitung: Herzlichen Glückwunsch! Das ist dein ${s.pwt}. Turniersieg.`);
+  const prizes=[["rare-candy",3],["pp-up",2],["max-revive",2],["nugget",2]].filter(([k])=>typeof ITEMS==="undefined"||ITEMS[k]);
+  const p=prizes[(s.pwt-1)%prizes.length];await U.giveItem(p[0],p[1]);
+  if(s.pwt===1){await say("Turnierleitung: Als erster Sieg bekommst du außerdem den Turnier-Pokal für dein Zimmer!");setFlag("pwt_trophy");}
+  if(s.pwt===5)await U.giveItem("master-ball");
+  if(prev)Music.play(prev);}
+const m=M.stadium;const[dx0,dy0]=U.freeSpot("stadium",3,3);m.npcs.push({x:dx0,y:dy0,ch:"sport",dir:"down",move:"still",id:"pwt_desk",run:tournament});
+{const[fx,fy]=U.freeSpot("stadium",7,5);m.npcs.push({x:fx,y:fy,ch:"gent",move:"look",text:()=>G.save.pwt?`Ehrentafel: ${G.save.name} – ${G.save.pwt} Turniersieg${G.save.pwt>1?"e":""}!`:"Die Ehrentafel des Einall-Turniers ist noch leer ... Vielleicht steht da bald dein Name?"});}
+// Pokal zu Hause
+if(M.home&&M.home.npcs){M.home.npcs.push({x:7,y:2,obj:"trophy",fixed:1,move:"still",dir:"down",show:()=>flag("pwt_trophy"),text:()=>`Der Pokal des Einall-Turniers! Eingraviert: ${G.save.name} – ${G.save.pwt||1} Sieg${(G.save.pwt||1)>1?"e":""}.`});
+  const c=document.createElement("canvas");c.width=32;c.height=32;const g=c.getContext("2d");g.fillStyle="rgba(0,0,0,.25)";g.beginPath();g.ellipse(16,29,10,3,0,0,7);g.fill();
+  g.fillStyle="#7a4a1a";g.fillRect(10,24,12,5);g.fillStyle="#f0c030";g.fillRect(14,17,4,8);g.beginPath();g.moveTo(7,4);g.lineTo(25,4);g.quadraticCurveTo(25,17,16,18);g.quadraticCurveTo(7,17,7,4);g.fill();
+  g.strokeStyle="#f0c030";g.lineWidth=2;g.beginPath();g.arc(7,9,4,1.6,4.7);g.stroke();g.beginPath();g.arc(25,9,4,-1.6,1.6);g.stroke();g.fillStyle="#fff6b0";g.fillRect(10,6,3,8);
+  const im=new Image();im.src=c.toDataURL();IMG.obj_trophy=im;if(typeof OBJ_SIZE!=="undefined")OBJ_SIZE.trophy=[.8,.8,.7];}
+U.tournament=tournament;
+})();
+
+/* ===== regions/unova_m_ambient.js ===== */
+/* ================================ EINALL · STIMMUNG (v0.37) ================================
+   Wolkenschatten ziehen tagsüber über das Land, Sonnenglitzern auf dem Wasser, Rauch steigt aus den Schornsteinen
+   der Häuser (im Herbst, Winter und abends mehr). */
+(function(){
+const A={smoke:[],glint:[],t:0};
+function weather(){return typeof worldWeather==="function"?worldWeather():null;}
+function drawAmbient(){if(!V3.ok||!G.save)return;const cm=curMap();if(!cm||cm.cave||!cm.world)return;
+  const tod=typeof battleTod==="function"?battleTod():"day";const wx=weather();const ssn=typeof seasonNow==="function"?seasonNow():"summer";const g=ctx;A.t++;
+  // Wolkenschatten (nur bei schönem Wetter, tagsüber)
+  if(tod==="day"&&!wx&&OPT.light!==false){g.save();
+    const drift=FRAME*.004;const C=12;
+    for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const cx0=Math.floor(PL.x/C)+i,cz0=Math.floor(PL.y/C)+j;const h=REGIONS.unova.hash(cx0+","+cz0);if(h%3)continue;
+      const x=cx0*C+(h%7)+drift%C,z=cz0*C+((h>>4)%7);const r=3.5+(h>>8)%4;
+      const[sx,sy]=projectToScreen(x,0,z);const[ex]=projectToScreen(x+r,0,z);const R=Math.abs(ex-sx);if(R<4||sx<-R*2||sx>SW+R*2||sy<-R*2||sy>SH+R*2)continue;
+      const gr=g.createRadialGradient(sx,sy,R*.2,sx,sy,R*1.4);gr.addColorStop(0,"rgba(20,30,60,.13)");gr.addColorStop(1,"rgba(20,30,60,0)");g.fillStyle=gr;
+      g.beginPath();g.ellipse(sx,sy,R*1.4,R*.9,0,0,7);g.fill();}
+    g.restore();}
+  // Sonnenglitzern auf dem Wasser
+  if(tod!=="night"&&wx!=="rain"&&A.t%6===0&&A.glint.length<14){for(let k=0;k<6;k++){const x=PL.x+Math.floor(Math.random()*17)-8,y=PL.y+Math.floor(Math.random()*13)-6;const t=tileAt(x,y);
+      if(t&&t.c==="~"&&!(ssn==="winter"&&t.m.iceNow)){A.glint.push({x:x+Math.random(),z:y+Math.random(),t:0,L:30+Math.random()*30});break;}}}
+  g.save();g.globalCompositeOperation="lighter";
+  for(let i=A.glint.length-1;i>=0;i--){const q=A.glint[i];q.t++;if(q.t>q.L){A.glint.splice(i,1);continue;}const a=Math.sin(q.t/q.L*Math.PI)*(tod==="day"?.9:.6);const[sx,sy]=projectToScreen(q.x,.03,q.z);
+    g.fillStyle=tod==="day"?`rgba(255,255,240,${a})`:`rgba(255,200,140,${a})`;g.fillRect(sx-.5,sy-2,1,4);g.fillRect(sx-2,sy-.5,4,1);g.fillRect(sx-.5,sy-.5,1,1);}
+  g.restore();
+  // Schornsteinrauch
+  const cold=ssn==="winter"||ssn==="autumn"||tod!=="day";
+  if(A.t%(cold?10:22)===0){for(const mm of outdoorMaps(zoneOf(cm))){if(Math.abs(mm.ox+mm.w/2-PL.x)>30||Math.abs(mm.oy+mm.h/2-PL.y)>30)continue;
+      for(const b of mm.bld||[]){if(b.k!=="house"&&b.k!=="lab")continue;const B=b.B||b,w=B.w;if(w<4)continue;const x0=mm.ox+b.x,z0=mm.oy+b.y+.4,z1=mm.oy+b.y+B.h;if(Math.abs(x0+w/2-PL.x)>13||Math.abs(z1-PL.y)>11)continue;
+        if((REGIONS.unova.hash(mm.id+b.x+","+b.y)%4)===0)continue;
+        const H=b.fh||(typeof FACADE_H!=="undefined"&&FACADE_H[b.k])||2,R=(typeof ROOF_R!=="undefined"&&ROOF_R[b.k])||.85;
+        A.smoke.push({x:x0+w*.74+.21+(Math.random()-.5)*.1,y:H+R+.6,z:(z0+z1)/2+.46,t:0,vx:.004+Math.random()*.004,vy:.01+Math.random()*.006,r:.1});}}}
+  if(A.smoke.length>90)A.smoke.splice(0,A.smoke.length-90);
+  g.save();for(let i=A.smoke.length-1;i>=0;i--){const s=A.smoke[i];s.t++;s.x+=s.vx;s.y+=s.vy;s.r+=.006;if(s.t>110){A.smoke.splice(i,1);continue;}
+    const[sx,sy]=projectToScreen(s.x,s.y,s.z);const[ex]=projectToScreen(s.x+s.r,s.y,s.z);const R=Math.max(1.5,Math.abs(ex-sx));const a=Math.min(1,s.t/12)*(1-s.t/110)*.45;
+    g.fillStyle=tod==="night"?`rgba(150,150,170,${a*.7})`:`rgba(235,235,240,${a})`;g.beginPath();g.arc(sx,sy,R,0,7);g.fill();}
+  g.restore();}
+{const _dw=drawWorld;drawWorld=function(){_dw.apply(this,arguments);try{drawAmbient();}catch(e){}};}
+{const _ew=enterMap;enterMap=function(){A.smoke.length=0;A.glint.length=0;return _ew.apply(this,arguments);};}
+})();
+
+/* ===== regions/unova_n_soullink.js ===== */
+/* ================================ SOUL-LINK ONLINE (v0.38) – Duo & Trio ================================
+   Zwei oder drei Spieler spielen gleichzeitig jeder sein eigenes Nuzlocke-Spiel. Die erste Begegnung jedes Gebiets
+   ist über ein „Seelenband“ verbunden: Fällt ein Pokémon (oder scheitert der Fang), fallen die verbundenen Pokémon
+   der anderen Spieler aus demselben Gebiet ebenfalls. Gemeinsamer Startwert → gleicher Randomizer für alle.
+   Technik: Supabase Realtime-Broadcast (wie das Live-Duell, keine neue Tabelle). Jeder Spieler schickt regelmäßig
+   eine Momentaufnahme seiner Begegnungen; jeder Spielstand speichert die letzten Aufnahmen der Partner. So gleichen
+   sich die Spiele auch an, wenn jemand offline war – sobald alle wieder online sind.
+   Testen ohne Server: ?mp=local (zwei Tabs im selben Browser). */
+(function(){
+const SLV=1;
+const SL={tr:null,state:"off",lastTx:0,dirty:true,queue:[],seen:{},on:{}};window.SL=SL;
+const sl=()=>G.save&&G.save.sl;
+const myId=()=>sl()&&sl().me;
+const areaName=a=>a==="starter"?"Starter":(typeof mapById==="function"&&mapById(a)&&mapById(a).name)?mapById(a).name.replace(/^ROUTE /,"Route "):String(a);
+const titleCase=s=>String(s).toLowerCase().replace(/(^|[\s-])\S/g,c=>c.toUpperCase());
+const allMons=()=>[...(G.save.party||[]),...(G.save.box||[])].filter(Boolean);
+const findMon=uid=>allMons().find(m=>m&&m.uid===uid);
+const inGrave=uid=>(G.save.grave||[]).some(m=>m&&m.uid===uid);
+const memberName=id=>{const m=(sl().members||[]).find(x=>x.id===id);return m?m.name:"?";};
+
+/* ---------- eigene Begegnungen erfassen ---------- */
+function myEnc(){const s=sl();s.enc=s.enc||{};return s.enc;}
+function refreshMine(){const s=sl();if(!s)return;const E=myEnc();
+  // Starter = erstes eigenes Pokémon
+  if(!E.starter){const L=[...allMons(),...(G.save.grave||[])].filter(m=>m&&m.uid!=null).sort((a,b)=>a.uid-b.uid);if(L[0])E.starter={sp:L[0].sp,uid:L[0].uid,lv:L[0].lv,st:"caught",nick:L[0].nick||""};}
+  for(const a in E){const e=E[a];if(e.st!=="caught"||e.uid==null)continue;const m=findMon(e.uid);
+    if(m){e.sp=m.sp;e.lv=m.lv;e.nick=m.nick||"";if(!alive(m)&&nuzRules()){/* K.O. im Kampf – zählt erst, wenn es im Grab liegt */}continue;}
+    if(inGrave(e.uid)){e.st="dead";SL.dirty=true;continue;}
+    e.st="dead";e.why="weg";SL.dirty=true;}}   // freigelassen / getauscht = verloren
+{const _sb=startBattle;startBattle=async function(cfg){
+  const s=sl();const a=cfg&&cfg.area;const first=!!(s&&cfg&&cfg.type==="wild"&&!cfg.duel&&a&&!(G.save.runArea||{})[a]);
+  const foeUid=cfg&&cfg.foes&&cfg.foes[0]&&cfg.foes[0].uid,foeSp=cfg&&cfg.foes&&cfg.foes[0]&&cfg.foes[0].sp;
+  const r=await _sb.apply(this,arguments);
+  try{if(first&&(G.save.runArea||{})[a]&&!myEnc()[a]){
+      if(r==="caught"){const m=findMon(foeUid)||allMons().slice().sort((x,y)=>y.uid-x.uid)[0];myEnc()[a]={sp:m?m.sp:foeSp,uid:m?m.uid:null,lv:m?m.lv:0,st:"caught",nick:""};}
+      else myEnc()[a]={sp:foeSp,st:"failed"};
+      SL.dirty=true;slSend();}}catch(e){console.warn(e);}
+  return r;};}
+
+/* ---------- Seelenband anwenden ---------- */
+function peersEnc(){const P=sl().peers||{};return P;}
+function applyLinks(){const s=sl();if(!s)return;refreshMine();const E=myEnc();const P=peersEnc();
+  for(const pid in P){const pe=(P[pid]&&P[pid].enc)||{};
+    for(const a in pe){const q=pe[a];if(q.st!=="dead"&&q.st!=="failed")continue;const mine=E[a];
+      if(!mine){E[a]={st:"blocked",by:pid};if(!G.save.runArea)G.save.runArea={};G.save.runArea[a]=1;SL.dirty=true;
+        SL.queue.push(`Seelenband: ${P[pid].name} hat in ${areaName(a)} ${q.st==="failed"?"die Begegnung verpasst":"sein Pokémon verloren"}. Deine Begegnung dort zählt nicht mehr.`);continue;}
+      if(mine.st==="caught"){const m=findMon(mine.uid);mine.st="dead";mine.by=pid;SL.dirty=true;
+        if(m){m.hp=0;G.save.party=(G.save.party||[]).filter(x=>x!==m);G.save.box=(G.save.box||[]).filter(x=>x!==m);
+          (G.save.grave=G.save.grave||[]).push(m);}
+        const pm=q.sp&&SPECIES[q.sp]?(q.nick||SPECIES[q.sp].n):"sein Pokémon";
+        SL.queue.push(`Seelenband gerissen! ${P[pid].name}s ${pm} ist gefallen – und mit ihm dein ${m?monName(m):SPECIES[mine.sp]?SPECIES[mine.sp].n:"Pokémon"} (${areaName(a)}).`);}}}
+  // Team darf nicht leer sein
+  if(G.save.party&&!G.save.party.length){const bx=allMons().find(m=>alive(m));if(bx){G.save.box=G.save.box.filter(x=>x!==bx);G.save.party.push(bx);}}}
+async function flushQueue(){if(!SL.queue.length)return;const L=SL.queue.splice(0);sfx("faint");for(const t of L)await say(t);
+  if(G.save.party&&!G.save.party.some(alive)&&!allMons().some(alive)){await say("Alle Pokémon sind gefallen ... Der Soul-Link ist für dich vorbei.");if(typeof nuzOver==="function")await nuzOver();}
+  saveGame();}
+
+/* ---------- Netzwerk ---------- */
+function snapshot(){const s=sl();refreshMine();return{t:"st",f:s.me,name:s.myName,v:SLV,enc:myEnc(),party:(G.save.party||[]).map(m=>({sp:m.sp,lv:m.lv,a:Object.keys(myEnc()).find(k=>myEnc()[k].uid===m.uid)||null,ok:alive(m)})),
+  badges:(G.save.badges||[]).length,loc:curMap?curMap().name:"",at:Date.now()};}
+function slSend(){if(!SL.tr||SL.state!=="joined")return;try{SL.tr.send(snapshot());SL.lastTx=Date.now();SL.dirty=false;}catch(e){}}
+function onMsg(m){const s=sl();if(!s||!m||m.f===s.me||m.v!==SLV)return;if(!(s.members||[]).some(x=>x.id===m.f))return;
+  SL.on[m.f]=Date.now();
+  if(m.t==="st"){const P=s.peers=s.peers||{};const old=P[m.f];const enc=m.enc&&typeof m.enc==="object"?m.enc:{};
+    // Neuigkeiten als Hinweis
+    if(old&&old.enc){for(const a in enc){const o=old.enc[a],n=enc[a];if(!o&&n&&n.st==="caught"&&SPECIES[n.sp]){typeof showToast==="function"&&showToast(`${m.name}: ${SPECIES[n.sp].n} in ${areaName(a)}`.slice(0,40),180);}}}
+    P[m.f]={name:String(m.name||"?").slice(0,12),enc,party:Array.isArray(m.party)?m.party.slice(0,6):[],badges:+m.badges||0,loc:String(m.loc||"").slice(0,24),at:Date.now()};
+    applyLinks();if(!old)slSend();}
+  else if(m.t==="hi")slSend();}
+function connect(){const s=sl();if(!s||SL.tr||Date.now()<(SL.next||0))return;if(typeof onTransport!=="function")return;SL.state="connecting";
+  SL.tr=onTransport("obs-sl-"+s.rid,onMsg,st=>{if(st==="joined"){SL.state="joined";SL.tr.send({t:"hi",f:s.me,v:SLV});slSend();}else{SL.state="off";SL.next=Date.now()+8000;const t=SL.tr;SL.tr=null;try{t&&t.close();}catch(e){}}});}
+function disconnect(){if(SL.tr){try{SL.tr.close();}catch(e){}}SL.tr=null;SL.state="off";}
+setInterval(()=>{try{const s=sl();
+    if(!s||!Scenes.includes(WorldScene)){if(SL.tr)disconnect();return;}
+    if(!SL.tr)connect();
+    if(SL.state==="joined"&&(SL.dirty||Date.now()-SL.lastTx>15000))slSend();
+    if(SL.queue.length&&topScene()===WorldScene&&!W.lock&&!PL.moving)script(flushQueue);
+  }catch(e){console.warn(e);}},1500);
+// beim Speichern Änderungen sofort melden
+{const _sv=saveGame;saveGame=function(){const r=_sv.apply(this,arguments);if(sl())SL.dirty=true;return r;};}
+
+/* ---------- Lobby: Raum erstellen / beitreten ---------- */
+function lobby(code,host,me,n,rules){return new Promise(res=>{let done=false,iv=0;const L={members:host?[me]:[],rules:rules||null,rid:host?Math.random().toString(36).slice(2,10):null,n:n||0,go:false};
+  const fin=v=>{if(done)return;done=true;clearInterval(iv);clearInterval(chk);setTimeout(()=>{try{tr.close();}catch(e){}},1500);res(v);};
+  const tr=onTransport("obs-slroom-"+code,m=>{if(done||!m||m.f===me.id||m.v!==SLV)return;
+      if(host&&m.t==="join"){if(!L.members.some(x=>x.id===m.f)&&L.members.length<L.n){L.members.push({id:m.f,name:String(m.name||"?").slice(0,12)});sfx("select");}}
+      if(!host&&m.t==="room"){L.members=m.members||[];L.n=m.n;L.rules=m.rules;if(m.go&&L.members.some(x=>x.id===me.id)){L.rid=m.rid;L.go=true;fin({members:L.members,rid:m.rid,rules:m.rules,n:m.n});}}},
+    st=>{if(st==="joined"){const tick=()=>{if(host)tr.send({t:"room",f:me.id,v:SLV,members:L.members,n:L.n,rules:L.rules,rid:L.rid,go:L.go});else if(!L.members.some(x=>x.id===me.id))tr.send({t:"join",f:me.id,name:me.name,v:SLV});};tick();iv=setInterval(tick,900);}
+      else fin("Keine Verbindung zum Server.");});
+  const w=onWait(()=>[host?(L.members.length<L.n?`Warte auf Mitspieler … (${L.members.length}/${L.n})`:"Alle da! Gleich geht's los …"):(L.members.length?`Im Raum: ${L.members.length}/${L.n}`:"Verbinde mit Raum …"),
+      "Spieler: "+(L.members.map(x=>x.name).join(", ")||"–"),L.rules?`${L.rules.story?"Story":"Frei"} · ${L.rules.rand?"Randomizer":"normale Pokémon"} · Edition ${L.rules.ver==="w"?"Weiß":"Schwarz"}`:""],
+    {title:"SOUL-LINK "+(n===3||L.n===3?"TRIO":"DUO"),right:me.name,code:host?code:null});
+  const t0=Date.now();
+  const chk=setInterval(()=>{if(w.cancel)return fin("cancel");
+    if(host&&L.members.length>=L.n&&!L.go){L.go=true;setTimeout(()=>fin({members:L.members,rid:L.rid,rules:L.rules,n:L.n}),2600);}
+    if(!host&&!L.members.length&&Date.now()-t0>20000)fin("In diesem Raum wartet niemand. Prüfe den Code.");},250);
+  run(w).then(v=>{if(v==="cancel")fin("cancel");});
+  // Warteszene schließen, sobald fertig
+  const close=setInterval(()=>{if(done){clearInterval(close);if(Scenes.includes(w)&&w.done)w.done();}},100);});}
+async function pickGender(){const c=await onMenu("SOUL-LINK","",[["JUNGE","mon"],["MÄDCHEN","mon"]],["Wer bist du?","Dein Trainer im Soul-Link-Spiel"]);return c===1?"f":"m";}
+async function slFlow(kind){if(ON.busy)return;
+  if(!ON.sess){await onMsgBox("Für Soul-Link musst du angemeldet sein.");return;}
+  await onLoadCfg(true);if(onOutdated()){await onMsgBox("Es gibt eine neue Version. Bitte das Spiel neu laden (Strg+F5).");return;}
+  const me={id:ON.sess.uid,name:ON.sess.name};let code,host=kind==="create",n=0,rules=null;
+  if(host){const c=await onMenu("SOUL-LINK",me.name,[["DUO (2 SPIELER)","mon"],["TRIO (3 SPIELER)","mon"],["ZURÜCK","back"]],["Soul-Link: Jeder spielt sein eigenes Nuzlocke – die Pokémon aus demselben Gebiet sind verbunden.","Fällt eins, fallen alle verbundenen!"]);
+    if(c<0||c===2)return;n=c===0?2:3;
+    const m=await onMenu("SOUL-LINK","",[["STORY","news"],["FREI","map"],["ZURÜCK","back"]],["Story: mit Geschichte und Team Plasma.","Frei: offene Welt ohne Story-Sperren."]);if(m<0||m===2)return;
+    const r=await onMenu("SOUL-LINK","",[["RANDOMIZER","shard"],["NORMAL","mon"],["ZURÜCK","back"]],["Randomizer: Alle Pokémon zufällig – für alle Spieler gleich.","Normal: Original-Begegnungen."]);if(r<0||r===2)return;
+    const v=await onMenu("SOUL-LINK","",[["SCHWARZ","shard"],["WEISS","shard"],["ZURÜCK","back"]],["Edition für alle Spieler"]);if(v<0||v===2)return;
+    rules={story:m===0,rand:r===0,ver:v===1?"w":"b",seed:(Math.random()*2147483647)|0};code=String(1000+Math.floor(Math.random()*9000));}
+  else{const f=await onForm({title:"SOUL-LINK BEITRETEN",ok:"Beitreten",fields:[{id:"c",label:"Raum-Code (4 Ziffern)",max:4,mode:"numeric"}],check:v=>/^\d{4}$/.test(v.c.trim())?null:"Der Code hat 4 Ziffern."});if(!f)return;code=f.c.trim();}
+  ON.busy=true;let res;try{res=await lobby(code,host,me,n,rules);}finally{ON.busy=false;}
+  if(res==="cancel")return;if(typeof res==="string"){await onMsgBox(res);return;}
+  await onMsgBox(`Soul-Link mit ${res.members.filter(x=>x.id!==me.id).map(x=>x.name).join(" und ")}! Wähle jetzt einen Speicherplatz für euer gemeinsames Abenteuer.`,"SOUL-LINK");
+  const slot=await slotPicker("new");if(!slot){await onMsgBox("Kein Platz gewählt – den Soul-Link kannst du nicht nachträglich beitreten. Erstellt bitte einen neuen Raum.");return;}
+  const gender=await pickGender();const R=res.rules;
+  G.save=newSave({name:me.name.slice(0,10),gender,mode:"nuz",diff:"normal",mgm:false,rand:!!R.rand,expAll:true,story:!!R.story,ver:R.ver||"b",bonus:{}});
+  G.save.seed=R.seed>>>0||G.save.seed;G.save.slot=slot;G.save.tmv=1;
+  G.save.sl={rid:res.rid,code,n:res.n,members:res.members,me:me.id,myName:me.name,enc:{},peers:{},created:Date.now()};
+  saveGame();await fadeTo(1,16);pop(TitleScene);await startWorld(true);}
+U_SL_FLOW=slFlow;
+
+/* ---------- Übersicht (Startmenü → SEELENBAND) ---------- */
+async function slScreen(){const s=sl();if(!s)return;applyLinks();let sc=0;
+  const cols=()=>[{id:s.me,name:s.myName,enc:myEnc()},...(s.members||[]).filter(x=>x.id!==s.me).map(x=>({id:x.id,name:x.name,enc:(s.peers&&s.peers[x.id]&&s.peers[x.id].enc)||{}}))];
+  const areas=()=>{const set=new Set();for(const c of cols())for(const a in c.enc)set.add(a);const L=[...set];L.sort((a,b)=>a==="starter"?-1:b==="starter"?1:0);return L;};
+  await run({opaque:true,update(){const n=areas().length;if(Input.nav("down"))sc=Math.min(Math.max(0,n-6),sc+1);if(Input.nav("up"))sc=Math.max(0,sc-1);if(Input.hit("b")||Input.hit("a")){sfx("back");this.done();}},
+    draw(){obBg();obHeader("SEELENBAND",`${s.n===3?"TRIO":"DUO"} · Raum ${s.code}`);const C=cols(),A=areas();const cw=(PRW-96)/C.length;
+      C.forEach((c,i)=>{const x=92+i*cw;const on=c.id===s.me?SL.state==="joined":(Date.now()-(SL.on[c.id]||0)<40000);
+        ctx.fillStyle=on?"#5ad87a":"#7a7a8a";ctx.beginPath();ctx.arc(x+6,34,3,0,7);ctx.fill();prT(c.id===s.me?"DU":c.name,x+12,38,{size:12,c:c.id===s.me?"#9ad0ff":"#fff"});});
+      if(!A.length)prT("Noch keine Begegnungen. Fangt euer erstes Pokémon!",PRW/2,90,{align:"center",size:13,c:OB.dim});
+      A.slice(sc,sc+6).forEach((a,j)=>{const y=46+j*24;obCard(6,y,PRW-12,22,false);prT(areaName(a).slice(0,13),10,y+14,{size:11,c:OB.dim});
+        let dead=false;C.forEach(c=>{const e=c.enc[a];if(e&&(e.st==="dead"||e.st==="failed"||e.st==="blocked"))dead=true;});
+        C.forEach((c,i)=>{const x=92+i*cw,e=c.enc[a];if(!e){prT("–",x+8,y+14,{size:11,c:OB.dim});return;}
+          if(e.sp&&SPECIES[e.sp]){const k=e.sp-1;ctx.globalAlpha=e.st==="caught"&&!dead?1:.35;ctx.drawImage(IMG.icon,(k%16)*40,Math.floor(k/16)*30,40,30,x,y-3,32,24);ctx.globalAlpha=1;}
+          const lbl=e.st==="caught"?(dead?"✝":`Lv.${e.lv||"?"}`):e.st==="dead"?"✝":e.st==="failed"?"verpasst":"gesperrt";
+          prT(lbl,x+34,y+14,{size:10,c:e.st==="caught"&&!dead?"#fff":"#ff8a7a"});});});
+      const alive_=A.filter(a=>C.every(c=>c.enc[a]&&c.enc[a].st==="caught")).length;
+      obFoot(`Verbundene Paare: ${alive_} · Gefallen: ${A.length-alive_}${SL.state!=="joined"?" · offline":""}`,"▲▼ blättern · B: zurück");prEnd();}});}
+U_SL_SCREEN=slScreen;
+REGIONS.unova.slApply=applyLinks;REGIONS.unova.slSnapshot=snapshot;
+})();
+var U_SL_FLOW,U_SL_SCREEN;
+
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.35";
+const VERSION="0.38";
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
   return{v:1,mapv:3,region:o.region||"unova",story:o.story!==false,ver:o.ver||"b",name:o.name,gender:o.gender,rival:"Cheren",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
