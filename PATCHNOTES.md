@@ -2,6 +2,14 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.39 (02.11.2026)
+- Soul-Link mit allen Regeln: Verbundene Pokémon sind jetzt immer gemeinsam im Team. Ins Team dürfen nur Paare (bzw. Trios), bei denen jeder Spieler sein verbundenes Pokémon noch hat – alles andere wandert automatisch in die Box.
+- Team-Spiegel: Wer sein Team zuletzt ändert, gibt es vor. Die Spiele der Partner stellen ihr Team automatisch genauso zusammen (gleiche Gebiete, gleiche Reihenfolge).
+- Neue Raum-Option Typ-Regel: Im Team darf kein Primärtyp doppelt vorkommen – bei keinem Spieler.
+- Verliert ein Spieler alle Pokémon, ist der Soul-Link für alle vorbei (wie im Original).
+- Geschenkte Pokémon (z. B. die Affen in Orion City) und Story-Legenden werden jetzt ebenfalls verbunden.
+- Seelenband-Übersicht: ★ zeigt, welche Pokémon gerade im Team sind, dazu die aktiven Regeln.
+
 ## v0.38 (02.11.2026)
 - Neu: Soul-Link online – als Duo (2 Spieler) oder Trio (3 Spieler)! Titel → ONLINE → SOUL-LINK STARTEN: Story oder Frei, Randomizer oder normal, Edition wählen und den 4-stelligen Code an deine Mitspieler geben. Die treten über SOUL-LINK BEITRETEN bei.
 - Jeder spielt sein eigenes Nuzlocke-Spiel. Die erste Begegnung jedes Gebiets (und die Starter) sind per Seelenband verbunden: Fällt ein Pokémon oder geht ein Fang schief, fallen die verbundenen Pokémon der anderen ebenfalls.
