@@ -2701,6 +2701,7 @@ async function battleMain(){
   await trainerOut(0);await sendOut(0,B.act[0].m,true);
   B.part.add(B.act[0].m.uid);
   for(const b of duelHostFirst([B.act[0],B.act[1]])){rngOwn(b);await switchInAbility(b);}
+  if(!B.duel&&typeof battleStartWeather==="function")await battleStartWeather();   // v0.33: Wetter der Karte (Sandsturm, Regen) gilt auch im Kampf
   if(B.type==="wild"&&nuzRules()&&!(B.legend&&B.noRun))await runAreaCheck();   // Pflicht-Legende der Story (Burg) ist immer fangbar
   while(true){
     B.turn++;
@@ -7377,6 +7378,7 @@ function optionsMenu(){
         ["Grafikstil",()=>OPT.look==="classic"?"Klassisch":"Y2K",()=>{OPT.look=OPT.look==="classic"?"y2k":"classic";if(typeof BV!=="undefined")BV.bgKind=null;},"Klassische Pixel-Welt oder Y2K-Look mit Neon-Kampfbühne."],
         ["Lichteffekte",()=>onoff(OPT.light!==false),()=>OPT.light=OPT.light===false,"Weiches Licht und Tiefenunschärfe. Aus = schneller auf schwachen Geräten."],
         ["Tageszeit-Licht",()=>onoff(OPT.daynight),()=>OPT.daynight=!OPT.daynight,"Welt und Kämpfe folgen der echten Uhrzeit (Abend, Nacht)."],
+        ["Wetter",()=>onoff(OPT.weather!==false),()=>OPT.weather=OPT.weather===false,"Regen, Sandsturm, Schnee und Nebel in der Welt – Sandsturm und Regen gelten auch im Kampf."],
         ["Jahreszeit",()=>typeof seasonLabel==="function"?seasonLabel():"Auto",()=>{if(typeof seasonCycle==="function")seasonCycle();},"Wie in Schwarz/Weiß wechselt die Jahreszeit jeden Monat (Auto). Oder fest: Frühling, Sommer, Herbst, Winter."]]],
       ["SOUND",[
         ["Musik",()=>Math.round(OPT.mus*10),d=>{OPT.mus=clamp(Math.round((OPT.mus+d*.1)*10)/10,0,1);if(typeof Music!=="undefined"&&Music.vol)Music.vol();},"Lautstärke der Musik.","bar"],
@@ -7662,6 +7664,25 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.35",d:"01.11.2026",items:[
+    "Neu: das Pokémon-Musical in Rayono City! Schmücke ein Pokémon mit Accessoires (Kopf, Gesicht, Hand) und tritt gegen drei andere auf. Jeder Auftritt hat ein Thema (Süß, Cool, Elegant, Lustig) – passende Accessoires bringen mehr Herzen vom Publikum. Siege schalten neue Accessoires frei (16 insgesamt).",
+    "Neu: die Royal Einall! Am Hafen von Stratos City nimmt dich ein Matrose mit auf Rundfahrt. An Bord warten sechs Trainer, die jeden Tag neu kämpfen wollen, und der Kapitän hat ein Tagesgeschenk für alle, die sie besiegen. Mit Abendstimmung über dem Meer.",
+    "Musical: eigene Musik, Bühne mit Vorhang, Scheinwerfern, Publikum und fliegenden Herzen."]},
+  {v:"0.34",d:"01.11.2026",items:[
+    "Arena-Rätsel wie im Original: In Stratos City versperren Honigwände den Weg (vor die Wand stellen und A drücken), in Rayono City öffnen und schließen Schalter die Absperrungen, in Septerna musst du in Aloes Bibliothek das richtige Buch finden, und in Nevaio City rutschst du übers Eis, bis du gegen einen Eisblock stößt.",
+    "Phänomene wie in Schwarz/Weiß: Raschelndes Gras, Staubwolken in Höhlen und sprudelndes Wasser. Lauf hinein, um seltene und stärkere Pokémon zu treffen (Ohrdoch, Emolga, Rotomurf, Mamolida …) – mit erhöhter Shiny-Chance und guten Werten. In Staubwolken liegen oft Items wie Sonderbonbons, Nuggets oder Entwicklungssteine.",
+    "Liga-Revanche: Nach dem Champ-Titel kannst du die Top Vier und Lauro erneut herausfordern. Sie kämpfen mit 6 Pokémon auf Lv. 70+ und zahlen deutlich mehr Preisgeld.",
+    "Leben in der Welt: Vogelschwärme ziehen über den Himmel, Schmetterlinge flattern über Blumen und nachts leuchten Glühwürmchen im Gras.",
+    "Konfetti beim Orden-Gewinn und beim Einzug in die Ruhmeshalle."]},
+  {v:"0.33",d:"01.11.2026",items:[
+    "Wetter: Sandsturm auf Route 4, im Wüstenresort und im Alten Palast, Nebel an der Drachenstiege, Regentage (im Norden öfter) und Schnee im Winter. Sandsturm und Regen gelten auch im Kampf (wie im Original). In den Optionen abschaltbar.",
+    "Welt-Effekte: Fenster leuchten abends und nachts, Fußspuren im Sand und im Schnee, Blätter fliegen beim Laufen durchs hohe Gras, Wellen beim Surfen.",
+    "Jahreszeit jetzt passend zum Monat: Im November ist Herbst – Einall färbt sich rot und gold.",
+    "Tauschpartner: In Orion City, Stratos City, Marea City, Nevaio City und Ondula wollen Leute Pokémon tauschen (z. B. Zorua gegen Dusselgurr). Im Randomizer nehmen sie jedes Pokémon.",
+    "In jedem Pokémon-Center: der Attacken-Erinnerer (vergessene Attacken gegen eine Herzschuppe) und der Namensbewerter (Spitznamen ändern).",
+    "Prof. Esche bewertet deinen Pokédex und belohnt dich: bei 30, 60 und 100 gefangenen Pokémon Items, bei 140 den Schillerpin (dreifache Shiny-Chance).",
+    "Arena Panaero City wie im Original: Kanonen schießen dich durch die Halle – nur so kommst du zu Géraldine.",
+    "Winter in Nevaio City: Teiche, Moor und Wasser an der Drachenstiege frieren zu – du kannst übers Eis laufen."]},
   {v:"0.32",d:"31.10.2026",items:[
     "Neu nach der Story: Ost-Einall! Route 11 bis 16, die Dorfbrücke, Tessera (mit Mauer und alter Drachen-Legende), der Ferienort Ondula am Meer, der Schrein der Ernte und die Wunderbrücke.",
     "Editionsorte wie im Original: In Schwarz die Schwarze Stadt (starke Trainer und ein Händler mit seltenen Waren), in Weiß der Weiße Wald (seltene Pokémon wie Kapuno, Milza, Ignivor, Lichtel und Zorua).",
@@ -10503,7 +10524,7 @@ const LAURO_EARLY=[[617,52],[626,52],[621,52],[584,52],[589,52],[637,54,{item:"s
 M.champion_room={name:"SAAL DES CHAMPS",tiles:["WWWWWWWWWWWW","WWWWWwwWWWWW","i__________i","____________","_F________F_","____________","____________","_F________F_","____________","____________","_____d______"],
   floor:"stone",wall:"league:champ",gymTheme:["normal","#c89820"],entry:[5,10],music:"gym",bg:"gym",warps:[{x:5,y:10,to:"e4hall",tx:7,ty:7,dir:"down"}],
   npcs:[{x:5,y:3,ch:"lauro",dir:"down",move:"still",show:()=>!story()||flag("story_done"),
-    tr:tr("lauro","Lauro","Champ","lauro",()=>flag("story_done")?LAURO:LAURO_EARLY,{boss:true,prize:12000,bg:"gym",range:0,
+    tr:tr("lauro","Lauro","Champ","lauro",()=>flag("story_done")||flag("champion")?LAURO:LAURO_EARLY,{boss:true,prize:12000,bg:"gym",range:0,
       intro:"Lauro: Ich bin Lauro, Champ von Einall. Ich reise durch die Welt und lerne von Pokémon und Menschen. Jetzt lerne ich von dir – zeig mir alles!",
       lose:"Lauro: Großartig! Du bist der neue Champ von Einall!",after:"Lauro: Ein Champ hört nie auf zu lernen. Ich auch nicht.",
       onWin:async()=>{await U.hallOfFame();}})}]};
@@ -11030,7 +11051,8 @@ async function hofScreen(title,line){G.save.hof=(G.save.hof||[]).concat([{t:Date
       drawMon(m.sp,x-32,y-30,{s:.8});txt(monName(m),x,y+30,{size:9,w:700,c:"#fff",align:"center"});txt("Lv "+m.lv,x,y+40,{size:8,c:"#c8c0e0",align:"center"});ctx.globalAlpha=1;});
     if(t>60)txt(line,SW/2,SH-14,{size:10,w:700,c:"#fff",align:"center"});}});}
 U.hofScreen=hofScreen;
-U.hallOfFame=async function(){setFlag("champion");Music.play("victory");
+U.hallOfFame=async function(){const again=flag("champion");setFlag("champion");Music.play("victory");
+  if(again){G.save.leagueWins=(G.save.leagueWins||1)+1;await say(`Lauro: Wieder geschlagen! Du bist und bleibst der Champ von Einall. (Liga-Siege: ${G.save.leagueWins})`);await hofScreen("RUHMESHALLE","Titel verteidigt – Champ "+G.save.name+"!");const h=U.home;warp(h.map,h.x,h.y,"down");return;}
   await say("Lauro: {P}! Du bist der neue Champ von Einall! Deine Pokémon werden für immer in der Ruhmeshalle verewigt.");
   await hofScreen("RUHMESHALLE","Glückwunsch, Champ "+G.save.name+"!");
   if(G.save.mode==="run"){G.save.runStats.champ=1;}
@@ -11451,9 +11473,563 @@ function seasonCycle(){const i=SEASONS.indexOf(OPT.season);OPT.season=i<0?"sprin
     else if(s==="spring"){d[i]=Math.min(255,r+14);d[i+1]=Math.min(255,gg+10);if(n>.985){d[i]=246;d[i+1]=170;d[i+2]=204;}}}
   g.putImageData(id,0,0);}catch(e){}return c;};}
 
+/* ---------- Wetter (v0.33): Sandsturm in der Wüste, Regentage, Schnee im Winter, Nebel an der Drachenstiege ---------- */
+const WX_SAND=new Set(["desert","route4","relic1"]),WX_NORTH=new Set(["icirrus","route8","dragonout","route7","twist1","tubeline"]);
+function dayKey(){const d=new Date();return d.getFullYear()*1000+Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);}
+function worldWeather(m){m=m||(typeof curMap==="function"&&G.save?curMap():null);if(!m||m.cave||!(m.world||m.outside))return null;
+  if(OPT.weather===false)return null;
+  const t=typeof tileAt==="function"&&m.world?tileAt(PL.x,PL.y):null;const id=(t&&t.m&&t.m.id)||m.id;
+  if(WX_SAND.has(id))return"sand";
+  if(id==="dragonout")return"fog";
+  const s=typeof seasonNow==="function"?seasonNow():"summer";
+  if(s==="winter")return WX_NORTH.has(id)?"snow":(REGIONS.unova.hash(dayKey()+":"+(m.zone||id))%3===0?"snow":null);
+  // Regentage: je Tag und Gebiet fest (etwa jeder 6. Tag), im Norden öfter
+  const h=REGIONS.unova.hash(dayKey()+":r:"+(m.zone||id))%100;if(h<(WX_NORTH.has(id)?30:16))return"rain";
+  return null;}
+const WXP=[];let WX_LAST=null;
+function drawWeather(){const w=worldWeather();if(w!==WX_LAST){WXP.length=0;WX_LAST=w;}if(!w)return;
+  const N={rain:120,sand:160,snow:80,fog:0}[w];while(WXP.length<N)WXP.push({x:Math.random()*SW,y:Math.random()*SH,v:.6+Math.random()*.8,p:Math.random()*6.28});
+  ctx.save();
+  if(w==="rain"){ctx.fillStyle="rgba(20,32,64,.16)";ctx.fillRect(0,0,SW,SH);ctx.strokeStyle="rgba(200,220,255,.55)";ctx.lineWidth=1;ctx.beginPath();
+    for(const q of WXP){q.x-=1.6*q.v;q.y+=6*q.v;if(q.y>SH){q.y=-8;q.x=Math.random()*(SW+40);}if(q.x<-10)q.x=SW+10;ctx.moveTo(q.x,q.y);ctx.lineTo(q.x+1.6,q.y-6);}ctx.stroke();
+    if(FRAME%700<3&&REGIONS.unova.hash(dayKey()+"b")%4===0){ctx.fillStyle="rgba(255,255,255,.35)";ctx.fillRect(0,0,SW,SH);}}
+  else if(w==="sand"){ctx.fillStyle="rgba(196,150,80,.28)";ctx.fillRect(0,0,SW,SH);
+    for(const q of WXP){q.x+=5*q.v;q.y+=Math.sin(q.p+FRAME*.05)*.5;if(q.x>SW+10){q.x=-10;q.y=Math.random()*SH;}ctx.fillStyle=q.v>1?"rgba(240,214,160,.85)":"rgba(210,170,110,.7)";ctx.fillRect(q.x,q.y,5+q.v*6,q.v>1.1?2:1);}}
+  else if(w==="snow"){ctx.fillStyle="rgba(220,232,255,.10)";ctx.fillRect(0,0,SW,SH);ctx.fillStyle="rgba(255,255,255,.9)";
+    for(const q of WXP){q.y+=.5*q.v+.2;q.x+=Math.sin(q.p+FRAME*.02)*.35;if(q.y>SH){q.y=-4;q.x=Math.random()*SW;}const r=q.v>1.1?2:1;ctx.fillRect(q.x,q.y,r,r);}}
+  else if(w==="fog"){ctx.fillStyle="rgba(220,222,240,.18)";ctx.fillRect(0,0,SW,SH);for(let i=0;i<5;i++){const y=SH*(.15+i*.22)+Math.sin(FRAME*.004+i)*8,x=((FRAME*.15*(i%2?1:-1))%SW+SW)%SW;
+      const gr=ctx.createLinearGradient(0,y-24,0,y+24);gr.addColorStop(0,"rgba(230,230,245,0)");gr.addColorStop(.5,"rgba(230,230,245,.42)");gr.addColorStop(1,"rgba(230,230,245,0)");ctx.fillStyle=gr;ctx.fillRect(-SW+x,y-24,SW*3,48);}}
+  ctx.restore();}
+{const _dw=drawWorld;drawWorld=function(){_dw.apply(this,arguments);try{drawWeather();}catch(e){}};}
+async function battleStartWeather(){if(!G.save||B.weather)return;const w=worldWeather();if(w!=="sand"&&w!=="rain")return;
+  B.weather={k:w,n:999};await msg(w==="sand"?"Ein Sandsturm tobt!":"Es regnet in Strömen!");}
+
+/* ---------- Tauschpartner, Attacken-Erinnerer, Namensbewerter (v0.33) ---------- */
+(function(){const U=REGIONS.unova,M=U.maps;
+const sn=sp=>SPECIES[sp].n;
+// [Karte, x, y, gesucht, gibt, Spitzname, Tauschpartner, Bedingung]
+const TRADES=[["striaton",.2,.75,506,585,"Herbi","Lene"],["castelia",.62,.82,519,570,"Fuchsi","Ruben"],["driftveil",.55,.3,532,618,"Platti","Hanne"],
+  ["icirrus",.4,.62,524,613,"Bibber","Jasper"],["undella",.7,.55,594,null,"Adler","Fiona"]];
+for(const[mid,fx,fy,want0,give0,nick,who]of TRADES){if(!M[mid])continue;const p=U.spotAt(mid,fx,fy,[".",":",",","F",";"]);if(!p)continue;const id="trade_"+mid;
+  M[mid].npcs.push({x:p[0],y:p[1],ch:"pokefan",dir:"down",move:"look",sid:id,run:async()=>{
+    const give=give0||(U.ver()==="w"?630:628),rand=G.save.rand,want=rand?null:want0;
+    if(flag(id)){await say(`${who}: Wie geht es ${nick}? Ich hoffe, ihr seid ein gutes Team!`);return;}
+    const q=rand?`${who}: Ich tausche mein ${sn(give)} gegen irgendein Pokémon von dir! Na, wie wär's?`:`${who}: Ich suche ein ${sn(want)}. Tauschst du es gegen mein ${sn(give)}?`;
+    if(!(await yesNo(q))){await say(`${who}: Schade. Sag Bescheid, wenn du es dir anders überlegst!`);return;}
+    const i=await partyMenu({mode:"pick",title:rand?"Welches Pokémon tauschen?":`${sn(want)} auswählen`});if(i==null||i<0)return;const m=G.save.party[i];
+    if(!rand&&m.sp!==want){await say(`${who}: Das ist kein ${sn(want)} ...`);return;}
+    if(G.save.party.length<=1){await say(`${who}: Dann hättest du ja kein Pokémon mehr!`);return;}
+    const n=makeMon(give,Math.max(5,m.lv),{met:"Tausch",nick});n.nick=nick;n.ot=who;G.save.party.splice(i,1,n);markCaught(give);setFlag(id);
+    sfx("evo");await say(`${G.save.name} schickt ${monName(m)} los ... und erhält ${nick} (${sn(give)})!`);await say(`${who}: Danke! Pass gut auf ${nick} auf!`);}});}
+// In jedem Pokémon-Center: Attacken-Erinnerer und Namensbewerter
+async function reminder(){
+  if(!(await yesNo("Attacken-Erinnerer: Ich bringe Pokémon vergessene Attacken wieder bei – für eine Herzschuppe. Interesse?")))return;
+  if(!bagCount("heart-scale")){await say("Attacken-Erinnerer: Du hast keine Herzschuppe. Man findet sie manchmal versteckt am Wegrand.");return;}
+  const i=await partyMenu({mode:"pick",title:"Welches Pokémon?"});if(i==null||i<0)return;const m=G.save.party[i];
+  const have=new Set(m.moves.map(x=>x.id));const L=[];const seen=new Set();
+  for(const[l,id]of SPECIES[m.sp].ls){if(l<=m.lv&&MOVES[id]&&!have.has(id)&&!seen.has(id)){seen.add(id);L.push({id:String(id),label:MOVES[id].n,right:TYPE_N[MOVES[id].t]});}}
+  if(!L.length){await say(`Attacken-Erinnerer: ${monName(m)} hat nichts vergessen, das ich ihm beibringen könnte.`);return;}
+  const k=await listPicker("ERINNERN",L,{right:monName(m)});if(!k)return;const before=m.moves.map(x=>x.id).join(",");
+  await learnMove(m,+k,false);if(m.moves.map(x=>x.id).join(",")!==before){takeItem("heart-scale");await say("Attacken-Erinnerer: Danke für die Herzschuppe!");}}
+async function rater(){const i=await partyMenu({mode:"pick",title:"Welcher Spitzname?"});if(i==null||i<0)return;const m=G.save.party[i];
+  if(m.ot&&m.ot!==G.save.name){await say(`Namensbewerter: ${monName(m)} stammt von ${m.ot}. Den Namen darf ich nicht ändern.`);return;}
+  await say(`Namensbewerter: ${monName(m)} ... ein schöner Name! Möchtest du ihn trotzdem ändern?`);if(!(await yesNo("Spitzname ändern?")))return;
+  const n=await nameEntry(`Neuer Name für ${SPECIES[m.sp].n}?`,monName(m));if(n&&n!==SPECIES[m.sp].n)m.nick=n;else delete m.nick;await say(`Namensbewerter: ${monName(m)}! Perfekt.`);}
+for(const id in M){if(!/^center_/.test(id))continue;const m=M[id];if(!m.tiles)continue;
+  const free=(x,y)=>{const c=m.tiles[y]&&m.tiles[y][x];return c==="_"&&!m.npcs.some(n=>n.x===x&&n.y===y)&&!(m.warps||[]).some(w=>w.x===x&&w.y===y);};
+  const spots=[[2,6],[13,7],[3,7],[12,6],[2,5],[14,6]].filter(([x,y])=>free(x,y));
+  if(spots[0])m.npcs.push({x:spots[0][0],y:spots[0][1],ch:"oldman",dir:"down",move:"look",sid:"reminder",run:reminder});
+  if(spots[1])m.npcs.push({x:spots[1][0],y:spots[1][1],ch:"gent",dir:"down",move:"look",sid:"rater",run:rater});}
+})();
+
+/* ---------- Welt-Effekte (v0.33): leuchtende Fenster bei Nacht, Fußspuren in Sand und Schnee, raschelndes Gras, Wellen beim Surfen ---------- */
+const WFX={prints:[],leaves:[],rings:[]};
+{const _os=onStep;onStep=function(){_os.apply(this,arguments);try{if(!G.save||!V3.ok)return;const t=tileAt(PL.x,PL.y);if(!t)return;const m=t.m;if(m.cave||!(m.world||m.outside))return;
+  const X=PL.x+.5,Z=PL.y+.5,win=typeof seasonNow==="function"&&seasonNow()==="winter";
+  if(t.c===";"||(win&&(t.c==="."||t.c===":"||t.c===","))){WFX.prints.push({x:X+(PL.alt?.12:-.12),z:Z,t:0,d:PL.dir,snow:win&&t.c!==";"});if(WFX.prints.length>48)WFX.prints.shift();}
+  if(t.c===","){for(let i=0;i<7;i++)WFX.leaves.push({x:X+(Math.random()-.5)*.6,y:.15,z:Z+(Math.random()-.5)*.3,vx:(Math.random()-.5)*.03,vy:.03+Math.random()*.03,vz:(Math.random()-.5)*.02,t:0,c:win?"#e8f0f4":seasonNow&&seasonNow()==="autumn"?"#d8902e":"#58b048"});}
+  }catch(e){}};}
+function drawWorldFx(){if(!V3.ok||!G.save)return;const cm=curMap();if(cm.cave||!(cm.world||cm.outside))return;ctx.save();
+  // Fußspuren
+  for(let i=WFX.prints.length-1;i>=0;i--){const p=WFX.prints[i];p.t++;if(p.t>420){WFX.prints.splice(i,1);continue;}const a=(1-p.t/420)*(p.snow?.55:.5);const[sx,sy]=projectToScreen(p.x,.02,p.z);
+    ctx.fillStyle=p.snow?`rgba(130,150,190,${a})`:`rgba(96,66,30,${a})`;ctx.beginPath();ctx.ellipse(sx,sy,3,1.8,0,0,7);ctx.fill();}
+  // Blätter aus dem hohen Gras
+  for(let i=WFX.leaves.length-1;i>=0;i--){const l=WFX.leaves[i];l.t++;l.x+=l.vx;l.y+=l.vy;l.z+=l.vz;l.vy-=.003;if(l.t>36){WFX.leaves.splice(i,1);continue;}const[sx,sy]=projectToScreen(l.x,l.y,l.z);
+    ctx.globalAlpha=1-l.t/36;ctx.fillStyle=l.c;ctx.fillRect(sx-1,sy-1,2,2);}
+  ctx.globalAlpha=1;
+  // Wellen beim Surfen
+  if(PL.surf&&FRAME%18===0)WFX.rings.push({x:PL.x+.5,z:PL.y+.6,t:0});
+  for(let i=WFX.rings.length-1;i>=0;i--){const r=WFX.rings[i];r.t++;if(r.t>50){WFX.rings.splice(i,1);continue;}const[sx,sy]=projectToScreen(r.x,.02,r.z);const k=r.t/50;
+    ctx.strokeStyle=`rgba(230,245,255,${.6*(1-k)})`;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(sx,sy,4+k*14,2+k*6,0,0,7);ctx.stroke();}
+  // Fenster leuchten abends und nachts
+  const tod=typeof battleTod==="function"?battleTod():"day";
+  if(tod!=="day"&&cm.world){const k=tod==="night"?1:.55;ctx.globalCompositeOperation="lighter";
+    for(const mm of outdoorMaps(zoneOf(cm))){if(Math.abs(mm.ox+mm.w/2-PL.x)>40||Math.abs(mm.oy+mm.h/2-PL.y)>40)continue;
+      for(const b of mm.bld||[]){if(b.k==="cave")continue;const B=b.B||b;const x0=mm.ox+b.x,w=B.w||b.w,z=mm.oy+b.y+(B.h||b.h)+.02;if(Math.abs(x0+w/2-PL.x)>16||Math.abs(z-PL.y)>14)continue;
+        const n=w>=6?3:2;for(let j=0;j<n;j++){const wx=x0+w*(j+1)/(n+1);const[sx,sy]=projectToScreen(wx,1.05,z);if(sx<-20||sx>SW+20||sy<-20||sy>SH+20)continue;
+          const r=7+Math.sin(FRAME*.03+wx)*.6;const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r*2.2);g.addColorStop(0,`rgba(255,214,120,${.55*k})`);g.addColorStop(.4,`rgba(255,180,80,${.22*k})`);g.addColorStop(1,"rgba(255,160,60,0)");
+          ctx.fillStyle=g;ctx.fillRect(sx-r*2.2,sy-r*2.2,r*4.4,r*4.4);}}}
+    ctx.globalCompositeOperation="source-over";}
+  ctx.restore();}
+{const _dw2=drawWorld;drawWorld=function(){_dw2.apply(this,arguments);try{drawWorldFx();}catch(e){}};}
+
+/* ---------- Pokédex-Bewertung bei Prof. Esche + Belohnungen (v0.33) ---------- */
+(function(){const M=REGIONS.unova.maps;const e=(M.lab.npcs||[]).find(n=>n.id==="esche_lab");if(!e)return;const old=e.text;
+  const REW=[[30,"dex30","rare-candy",3,"Drei Sonderbonbons für deinen Fleiß!"],[60,"dex60","pp-up",2,"Zwei AP-Plus – damit halten deine Attacken länger."],
+    [100,"dex100","max-revive",3,"Drei Top-Beleber. Du bist schon richtig weit!"],[140,"dex140",null,0,"Der Schillerpin! Schillernde Pokémon begegnen dir jetzt dreimal so oft."]];
+  e.run=async()=>{if(!G.save.party.length||(REGIONS.unova.story()&&!flag("st_dex"))){await say(typeof old==="function"?old():old);return;}
+    const c=caughtCount(),s=seenCount();await say(`Prof. Esche: Lass mich deinen Pokédex sehen ... ${s} gesehen, ${c} gefangen!`);
+    await say("Prof. Esche: "+(c<20?"Ein guter Anfang! Im hohen Gras, im Wasser und in Höhlen warten viele Pokémon.":c<60?"Sehr schön! Vergiss nicht: Manche Pokémon entwickeln sich nur mit Steinen oder im Tausch.":c<120?"Beeindruckend! Du kennst Einall schon richtig gut.":c<150?"Fantastisch! Nur noch wenige fehlen – auch die Legenden zählen.":"Unglaublich ... du hast fast alle Pokémon Einalls gefangen! Ich bin sprachlos."));
+    for(const[n,f,it,k,txt]of REW){if(c>=n&&!flag(f)){setFlag(f);if(it)await REGIONS.unova.giveItem(it,k);else{G.save.charm=true;sfx("caught");Music.jingle&&Music.jingle("caught");await say("{P} erhält den Schillerpin!");}await say("Prof. Esche: "+txt);}}
+    const next=REW.find(([n,f])=>!flag(f));if(next)await say(`Prof. Esche: Bring mir ${next[0]} gefangene Pokémon – dann habe ich wieder etwas für dich!`);};
+})();
+
+/* ---------- Arena Panaero City: Kanonen wie im Original (v0.33) ---------- */
+(function(){const M=REGIONS.unova.maps,m=M.gym_mistralton;if(!m)return;
+  // Kanonen-Grafik
+  const cv=mk(32,32,g=>{g.fillStyle="rgba(0,0,0,.25)";g.beginPath();g.ellipse(16,28,12,3,0,0,7);g.fill();
+    g.fillStyle="#3a4a6a";g.beginPath();g.ellipse(16,22,11,6,0,0,7);g.fill();g.fillStyle="#5a6e96";g.fillRect(9,6,14,16);g.fillStyle="#7a90ba";g.fillRect(11,6,4,16);
+    g.fillStyle="#2a3450";g.beginPath();g.ellipse(16,6,7,3,0,0,7);g.fill();g.fillStyle="#0e1220";g.beginPath();g.ellipse(16,6,4.5,1.8,0,0,7);g.fill();
+    g.fillStyle="#3a8ad0";g.fillRect(9,13,14,3);g.fillStyle="#f8d048";g.fillRect(14,13,4,3);});
+  {const im=new Image();im.src=cv.toDataURL();IMG.obj_cannon=im;}
+  if(typeof OBJ_SIZE!=="undefined")OBJ_SIZE.cannon=[1.15,1.15,.75];
+  // Abschnitte trennen: nur Kanonen bringen dich weiter
+  const t=m.tiles.slice();t[6]="XXXXXXXXXXXXXXXX";t[10]="XXXXXXXXXXXXXXXX";m.tiles=t;
+  const can=(x,y,tx,ty,txt)=>({x,y,obj:"cannon",fixed:1,move:"still",dir:"down",sid:"cannon",run:async()=>{
+    if(!(await yesNo(txt||"Eine Kanone! Hineinklettern und abheben?")))return;sfx("jump");await fadeTo(1,10,"#ffffff");
+    await warp("gym_mistralton",tx,ty,"up",{sound:false});sfx("land");}});
+  m.npcs.push(can(3,12,3,9,"Eine Kanone! Sie zielt nach oben. Hineinklettern und abheben?"),can(2,8,2,11,"Eine Kanone zurück nach unten. Einsteigen?"),
+    can(11,8,11,5,"Eine Kanone! Sie zielt ganz nach oben zu Géraldine. Abheben?"),can(14,3,14,7,"Eine Kanone zurück nach unten. Einsteigen?"));
+  const g=m.npcs.find(n=>n.ch==="guide"||(/Tipp/.test(String(n.text||""))));if(g)g.text="Tipp: In dieser Arena kommst du nur mit den Kanonen weiter. Sprich sie an und flieg los!";
+  else m.npcs.push({x:6,y:11,ch:"guide",dir:"up",move:"still",text:"Tipp: In dieser Arena kommst du nur mit den Kanonen weiter. Sprich sie an und flieg los!"});
+})();
+
+/* ---------- Winter in Nevaio City: Teiche und das Moor frieren zu und sind begehbar (wie im Original) ---------- */
+const ICE_MAPS=new Set(["icirrus","route8","dragonout"]);
+const frozen=m=>m&&ICE_MAPS.has(m.id)&&typeof seasonNow==="function"&&seasonNow()==="winter";
+{const _sa=solidAt;solidAt=function(sx,sy,pl){const t=tileAt(sx,sy);if(t&&t.c==="~"&&frozen(t.m)&&!t.m.blk.has(t.x+","+t.y))return false;return _sa.apply(this,arguments);};}
+{const _ts=trySurf;trySurf=async function(nx,ny){const t=tileAt(nx,ny);if(t&&frozen(t.m)){await say("Das Wasser ist zugefroren. Man kann darüber laufen!");return;}return _ts.apply(this,arguments);};}
+{const _gc2=groundCanvas;groundCanvas=function(m){const c=_gc2.apply(this,arguments);try{if(!frozen(m))return c;const g=c.getContext("2d"),id=g.getImageData(0,0,c.width,c.height),d=id.data,W=c.width;
+  for(let i=0,p=0;i<d.length;i+=4,p++){const r=d[i],gg=d[i+1],b=d[i+2];if(!(b>r+30&&b>=gg))continue;const x=p%W,y=(p/W)|0,n=nz(x,y,61);const crack=((x+y*3)%37===0||(x*2-y)%41===0)&&n>.4;
+    d[i]=crack?150:200+n*30;d[i+1]=crack?178:224+n*20;d[i+2]=crack?210:244+n*10;}
+  g.putImageData(id,0,0);}catch(e){}return c;};}
+
+/* ---------- Arena-Rätsel (v0.34): Honigwände (Stratos), Stromsperren mit Schaltern (Rayono) ---------- */
+(function(){const U=REGIONS.unova,M=U.maps;
+  const img=(w,h,f)=>{const c=mk(w,h,f),im=new Image();im.src=c.toDataURL();return im;};
+  IMG.obj_honey=img(32,32,g=>{g.fillStyle="rgba(0,0,0,.2)";g.beginPath();g.ellipse(16,29,13,3,0,0,7);g.fill();
+    const gr=g.createLinearGradient(0,4,0,30);gr.addColorStop(0,"#ffe08a");gr.addColorStop(.5,"#f0b030");gr.addColorStop(1,"#c87818");g.fillStyle=gr;
+    g.beginPath();g.moveTo(4,30);g.lineTo(4,10);g.quadraticCurveTo(8,2,16,4);g.quadraticCurveTo(26,2,28,10);g.lineTo(28,30);g.fill();
+    g.fillStyle="rgba(255,255,255,.55)";g.fillRect(8,8,3,10);g.fillRect(20,12,2,6);g.fillStyle="#b86a10";for(const[x,y]of[[10,22],[18,18],[22,26]]){g.beginPath();g.arc(x,y,2,0,7);g.fill();}});
+  IMG.obj_fence=img(32,32,g=>{g.fillStyle="#3a3a48";g.fillRect(3,6,4,24);g.fillRect(25,6,4,24);g.fillStyle="#f8d048";g.fillRect(3,6,4,3);g.fillRect(25,6,4,3);
+    g.strokeStyle="#9ae8ff";g.lineWidth=2;for(const y of[11,17,23]){g.beginPath();g.moveTo(7,y);for(let x=8;x<=25;x+=3)g.lineTo(x,y+((x/3)%2?-2:2));g.stroke();}
+    g.strokeStyle="rgba(255,255,255,.8)";g.lineWidth=1;g.beginPath();g.moveTo(7,17);g.lineTo(25,17);g.stroke();});
+  IMG.obj_switch=img(32,32,g=>{g.fillStyle="rgba(0,0,0,.25)";g.fillRect(8,26,16,4);g.fillStyle="#4a4a5a";g.fillRect(8,12,16,16);g.fillStyle="#6a6a7e";g.fillRect(10,14,12,12);
+    g.fillStyle="#e83830";g.fillRect(13,6,6,10);g.fillStyle="#ff8a7a";g.fillRect(14,7,2,5);g.fillStyle="#f8d048";g.fillRect(10,24,12,2);});
+  if(typeof OBJ_SIZE!=="undefined"){OBJ_SIZE.honey=[1.05,1.1,.7];OBJ_SIZE.fence=[1.05,1.05,.7];OBJ_SIZE.switch=[.9,.9,.7];}
+  // Stratos: Honigwände – mit A schiebst du dich hindurch
+  const gc=M.gym_castelia;if(gc){const honey=(x,y)=>({x,y,obj:"honey",fixed:1,move:"still",dir:"down",sid:"honey",run:async()=>{
+      const[dx,dy]=DIRS[PL.dir];const t=tileAt(PL.x+dx*2,PL.y+dy*2);if(!t||solidAt(PL.x+dx*2,PL.y+dy*2,true)||npcAt(PL.x+dx*2,PL.y+dy*2)){await say("Eine klebrige Honigwand. Von dieser Seite kommst du nicht hindurch.");return;}
+      sfx("splash");await say("Du drückst dich durch die klebrige Honigwand ...");await warp(curMap().id,PL.x+dx*2,PL.y+dy*2,PL.dir,{sound:false});}});
+    gc.npcs.push(honey(1,9),honey(12,9),honey(7,3),honey(3,6));
+    const g=gc.npcs.find(n=>/Tipp/.test(String(n.text||"")));const tip="Tipp: Durch die Honigwände kommst du nur, wenn du sie ansprichst und dich hindurchschiebst!";if(g)g.text=tip;}
+  // Rayono: Stromsperren – ein Schalter kehrt um, welche Sperren aktiv sind
+  const gn=M.gym_nimbasa;if(gn){const st=()=>!!flag("nimbasa_sw");
+    const fence=(x,y,on)=>({x,y,obj:"fence",fixed:1,move:"still",dir:"down",sid:"fence",show:()=>st()===on,text:"Eine Stromsperre! Hier kommst du nicht durch. Irgendwo muss ein Schalter sein."});
+    const sw=(x,y)=>({x,y,obj:"switch",fixed:1,move:"still",dir:"down",sid:"switch",run:async()=>{sfx("select");if(st())delete G.save.flags.nimbasa_sw;else setFlag("nimbasa_sw");
+      sfx("zap");await say("Klick! Irgendwo in der Arena schalten sich Stromsperren um ...");}});
+    gn.npcs.push(fence(6,11,false),fence(11,11,true),fence(12,11,true),fence(6,3,false),fence(7,3,false),fence(1,3,false),fence(12,3,false),sw(2,12),sw(8,8));
+    gn.npcs.push({x:3,y:12,ch:"guide",dir:"up",move:"still",text:"Tipp: Die Schalter vertauschen die Stromsperren. Probier aus, welcher Weg dann frei ist!"});}
+})();
+
+/* ---------- Liga-Revanche (v0.34): Nach dem Champ warten Top Vier und Lauro stärker auf dich ---------- */
+(function(){const U=REGIONS.unova,M=U.maps;const E4=["e4_ghost","e4_dark","e4_psychic","e4_fight"];
+  {const _st=startTrainerBattle;startTrainerBattle=function(tr,ch){if(tr&&E4.includes(tr.id)&&flag("champion")){const t0=typeof tr.team==="function"?tr.team():tr.team;
+      const extra={e4_ghost:[[571,70],[637,70]],e4_dark:[[635,70],[630,70]],e4_psychic:[[606,70],[528,70]],e4_fight:[[560,70],[626,70]]}[tr.id]||[];
+      tr=Object.assign({},tr,{team:t0.map(r=>{const c=r.slice();c[1]=Math.min(100,c[1]+22);return c;}).concat(extra).slice(0,6),prize:12000});}
+    else if(tr&&tr.id==="lauro"&&flag("champion")){const t0=typeof tr.team==="function"?tr.team():tr.team;
+      tr=Object.assign({},tr,{team:t0.map(r=>{const c=r.slice();c[1]=Math.min(100,c[1]+18);return c;}),prize:20000});}
+    return _st.call(this,tr,ch);};}
+  const old=M.league_lobby.onEnter;M.league_lobby.onEnter=async function(){if(old)await old();
+    if(flag("champion")&&E4.every(k=>G.save.def[k])&&G.save.def.lauro){for(const k of E4)delete G.save.def[k];delete G.save.def.lauro;delete G.save.flags.e4_done;
+      await say("Rezeption: Willkommen zurück, Champ! Die Top Vier und Lauro haben trainiert – sie sind stärker als je zuvor. Viel Glück bei der Revanche!");}};
+})();
+
+/* ---------- Konfetti bei Orden und Champ-Titel (v0.34) ---------- */
+const CONF=[];
+function confetti(n=120){for(let i=0;i<n;i++)CONF.push({x:Math.random()*SW,y:-10-Math.random()*SH*.5,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*1.8,r:Math.random()*6.28,vr:(Math.random()-.5)*.3,c:["#ff5a4a","#ffd040","#5ad0ff","#7aff8a","#ff8ae0","#ffffff"][i%6],t:0});}
+{const _dw3=drawWorld;drawWorld=function(){_dw3.apply(this,arguments);if(!CONF.length)return;ctx.save();
+  for(let i=CONF.length-1;i>=0;i--){const c=CONF[i];c.t++;c.x+=c.vx+Math.sin(c.t*.08)*.4;c.y+=c.vy;c.r+=c.vr;if(c.y>SH+10||c.t>400){CONF.splice(i,1);continue;}
+    ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.r);ctx.fillStyle=c.c;ctx.fillRect(-2,-1,4,2.4);ctx.restore();}ctx.restore();};}
+{const _gw=REGIONS.unova.gymWin;if(_gw)REGIONS.unova.gymWin=async function(){confetti(160);return _gw.apply(this,arguments);};
+  const _hf=REGIONS.unova.hallOfFame;if(_hf)REGIONS.unova.hallOfFame=async function(){confetti(220);return _hf.apply(this,arguments);};}
+
+/* ===== regions/unova_g_life.js ===== */
+/* ================================ EINALL · PHÄNOMENE & LEBEN IN DER WELT (v0.34) ================================
+   Wie in Schwarz/Weiß: raschelndes Gras, Staubwolken in Höhlen und sprudelndes Wasser. Wer hineinläuft, trifft
+   seltene oder stärkere Pokémon (Shiny-Chance erhöht) – in Staubwolken liegen manchmal Items.
+   Dazu Leben in der Welt: Vogelschwärme am Himmel, Schmetterlinge über Blumen, Glühwürmchen in der Nacht. */
+(function(){
+const U=REGIONS.unova;
+const PH={cur:null,cnt:0};U.PH=PH;
+const evoUp=(sp,L)=>{let x=sp,g=0;while(g++<3){const e=(SPECIES[x].ev||[]).find(q=>q[0]==="lv"&&L>=q[1]&&SPECIES[q[2]]&&q[2]<=MAXDEX);if(!e)break;x=e[2];}return x;};
+const DUST_ITEMS=["rare-candy","nugget","stardust","heart-scale","fire-stone","water-stone","thunder-stone","leaf-stone","moon-stone","dusk-stone","shiny-stone","dawn-stone","sun-stone","pp-up","max-revive","everstone"].filter(k=>typeof ITEMS==="undefined"||ITEMS[k]);
+function kindAt(t){if(!t)return null;const m=t.m;
+  if(t.c===","&&m.enc&&(m.world||m.outside))return"grass";
+  if(t.c==="~"&&m.encWater)return"water";
+  if(m.cave&&m.enc&&t.c!=="~"&&t.c!=="l"&&!solidAt(t.m.ox+t.x,t.m.oy+t.y,true))return"dust";
+  return null;}
+function trySpawn(){const t0=tileAt(PL.x,PL.y);if(!t0)return;const m=t0.m;
+  const want=PL.surf?["water"]:m.cave?["dust"]:["grass","water"];
+  for(let k=0;k<30;k++){const r=3+Math.floor(Math.random()*5),a=Math.random()*6.283;const x=PL.x+Math.round(Math.cos(a)*r),y=PL.y+Math.round(Math.sin(a)*r*.7);
+    const t=tileAt(x,y);if(!t||t.m!==m)continue;const kd=kindAt(t);if(!kd||!want.includes(kd))continue;if(npcAt(x,y))continue;
+    if(kd!=="water"&&solidAt(x,y,true))continue;
+    PH.cur={x,y,kind:kd,map:m.id,born:G.save.steps||0,t:0};return;}}
+async function phEncounter(ph){const t=tileAt(ph.x,ph.y);const m=t?t.m:curMap();PH.cur=null;
+  if(ph.kind==="dust"&&Math.random()<.45){sfx("item");await say("Aus der Staubwolke kullert etwas heraus!");await U.giveItem(DUST_ITEMS[Math.floor(Math.random()*DUST_ITEMS.length)]);return;}
+  const enc=ph.kind==="water"?m.encWater:m.enc;if(!enc||!enc.list||!enc.list.length)return;
+  const top=Math.max(...enc.list.map(e=>e[2]));const lv=Math.min(100,top+2+Math.floor(Math.random()*3));
+  let sp;const r=Math.random();
+  if(ph.kind==="grass")sp=r<.35?531:r<.5?(G.save.ver==="w"?587:587):null;          // Ohrdoch wie im Original, manchmal Emolga
+  else if(ph.kind==="dust")sp=r<.3?(lv>=31?530:529):null;                          // Rotomurf / Stalobor
+  else sp=r<.3?594:r<.45?593:null;                                                 // Mamolida / Quabbel
+  if(!sp){const L=enc.list.slice().sort((a,b)=>a[3]-b[3]);const pickL=L.slice(0,Math.max(1,Math.ceil(L.length/2)));const e=pickL[Math.floor(Math.random()*pickL.length)];sp=typeof e[0]==="function"?e[0]():e[0];}
+  sp=evoUp(sp,lv);if(!SPECIES[sp])return;
+  if(G.save.rand)sp=randomSpecies(sp,"ph:"+m.id+":"+(G.save.steps||0)%7);
+  const charm=G.save.charm?3:1;const shiny=Math.random()<charm/64;
+  const iv=[0,0,0,0,0,0].map(()=>Math.floor(Math.random()*32));for(let i=0;i<3;i++)iv[Math.floor(Math.random()*6)]=31;
+  sfx("surprise");await say(ph.kind==="grass"?"Das Gras raschelt ... ein Pokémon springt heraus!":ph.kind==="dust"?"Aus der Staubwolke stürmt ein Pokémon hervor!":"Im sprudelnden Wasser zeigt sich ein Pokémon!");
+  W.encCool=4;const mon=makeMon(sp,lv,{mgm:false,shiny,iv});
+  await startBattle({type:"wild",foes:[mon],bg:ph.kind==="water"?"water":m.cave?(m.bg||"cave"):(m.bg||"grass"),area:m.id});}
+{const _os=onStep;onStep=function(){
+  try{if(G.save&&PH.cur){const t=tileAt(PL.x,PL.y);
+      if(!t||t.m.id!==PH.cur.map||(G.save.steps||0)-PH.cur.born>140)PH.cur=null;
+      else if(PL.x===PH.cur.x&&PL.y===PH.cur.y&&partyAlive()){G.save.steps=(G.save.steps||0)+1;script(phEncounter,PH.cur);return;}}}catch(e){console.warn(e);}
+  _os.apply(this,arguments);
+  try{if(!G.save||PH.cur||OPT.phen===false)return;if(typeof topScene==="function"&&topScene()!==WorldScene)return;
+    PH.cnt++;if(PH.cnt>=30&&Math.random()<.12){PH.cnt=0;trySpawn();}}catch(e){console.warn(e);}};}
+// Zeichnen
+function scr(x,y,z){if(V3.ok)return projectToScreen(x,z,y);const[cx,cy]=camera();return[x*16-cx,y*16-cy-z*16];}
+function drawPh(){const p=PH.cur;if(!p)return;p.t++;const[sx,sy]=scr(p.x+.5,p.y+.62,0);if(sx<-30||sx>SW+30||sy<-30||sy>SH+30)return;
+  const t=p.t;ctx.save();
+  if(p.kind==="grass"){const ssn=typeof seasonNow==="function"?seasonNow():"summer",win=ssn==="winter",aut=ssn==="autumn";const sh=Math.sin(t*.55)*(t%60<34?3.2:.8);
+    for(let i=-3;i<=3;i++){const bx=sx+i*2.4,h=8+((i*7+9)%4);ctx.strokeStyle=i%2?(win?"#cfe3ea":aut?"#b08a34":"#3d9a3a"):(win?"#eef6fa":aut?"#e0c060":"#6cc84e");ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(bx,sy+2);ctx.quadraticCurveTo(bx+sh*.4,sy-h*.5,bx+sh*(1+Math.abs(i)*.15),sy-h);ctx.stroke();}
+    if(t%14===0)WLIFE.bits.push({x:sx+(Math.random()-.5)*10,y:sy-6,vx:(Math.random()-.5)*.8,vy:-1-Math.random(),t:0,c:win?"#ffffff":aut?"#e8b040":"#7ad85a"});}
+  else if(p.kind==="dust"){for(let i=0;i<5;i++){const k=((t*.02+i/5)%1);const a=(1-k)*.55;ctx.fillStyle=`rgba(200,180,150,${a})`;
+      ctx.beginPath();ctx.arc(sx+Math.sin(i*2.1+t*.03)*6*k+(i-2)*3,sy-k*14,3+k*7,0,7);ctx.fill();}}
+  else{for(let i=0;i<3;i++){const k=((t*.018+i/3)%1);ctx.strokeStyle=`rgba(235,250,255,${.75*(1-k)})`;ctx.lineWidth=1.3;ctx.beginPath();ctx.ellipse(sx,sy,3+k*12,1.5+k*5,0,0,7);ctx.stroke();}
+    if(t%10<5){ctx.fillStyle="rgba(255,255,255,.9)";ctx.fillRect(sx-1+Math.sin(t)*3,sy-3,2,2);}}
+  ctx.restore();}
+/* ---------- Leben in der Welt ---------- */
+const WLIFE={birds:null,bits:[],flies:[],next:300};
+function drawLife(){const cm=curMap();if(!cm||cm.cave||!(cm.world||cm.outside)||OPT.life===false)return;
+  const tod=typeof battleTod==="function"?battleTod():"day";const season=typeof seasonNow==="function"?seasonNow():"summer";
+  // Vogelschwarm (Dusselgurr/Navitaub) zieht tagsüber über den Himmel
+  if(!WLIFE.birds&&tod!=="night"&&--WLIFE.next<=0){WLIFE.next=900+Math.floor(Math.random()*1500);const dir=Math.random()<.5?1:-1;
+    WLIFE.birds={dir,t:0,y:14+Math.random()*40,list:Array.from({length:3+Math.floor(Math.random()*4)},(_,i)=>({sp:i===0&&Math.random()<.4?520:519,dx:i*18+Math.random()*10,dy:(i%2?8:-4)+Math.random()*10,s:.42+Math.random()*.15}))};}
+  if(WLIFE.birds&&IMG.fol&&IMG.fol.complete){const B=WLIFE.birds;B.t++;let any=false;
+    for(const b of B.list){const x=B.dir>0?-40-b.dx+B.t*1.1:SW+40+b.dx-B.t*1.1;if(x>-60&&x<SW+60)any=true;else if(B.t>40)continue;
+      const f=(B.dir>0?6:4)+(Math.floor((B.t+b.dx)/6)%2),fi=folIdx(b.sp),w=64*b.s;const y=B.y+b.dy+Math.sin((B.t+b.dx*3)/14)*3;
+      ctx.drawImage(IMG.fol,((fi%4)*8+f)*64,Math.floor(fi/4)*64,64,64,Math.round(x-w/2),Math.round(y-w/2),w,w);
+}
+    if(!any&&B.t>60)WLIFE.birds=null;}
+  // Schmetterlinge über Blumen (tagsüber, nicht im Winter) – Glühwürmchen nachts im Gras
+  const want=tod==="night"?(season==="winter"?0:10):(season==="winter"?0:5);
+  if(WLIFE.flies.length<want&&FRAME%20===0){for(let k=0;k<12;k++){const x=PL.x+Math.floor(Math.random()*15)-7,y=PL.y+Math.floor(Math.random()*11)-5;const t=tileAt(x,y);if(!t)continue;
+      if(tod==="night"?(t.c===","||t.c==="F"||t.c==="."):(t.c==="F")){WLIFE.flies.push({x:x+.5,y:y+.5,z:.4,ph:Math.random()*7,t:0,night:tod==="night",c:["#ffffff","#ffd84a","#ff9ad0","#9ad8ff"][Math.floor(Math.random()*4)]});break;}}}
+  for(let i=WLIFE.flies.length-1;i>=0;i--){const f=WLIFE.flies[i];f.t++;if(f.t>600||Math.abs(f.x-PL.x)>12||Math.abs(f.y-PL.y)>9||(f.night!==(tod==="night"))){WLIFE.flies.splice(i,1);continue;}
+    f.x+=Math.sin(f.t*.031+f.ph)*.012;f.y+=Math.cos(f.t*.023+f.ph)*.01;const z=f.z+Math.sin(f.t*.09+f.ph)*.15;const[sx,sy]=scr(f.x,f.y,z);
+    const fade=Math.min(1,f.t/30,(600-f.t)/30);
+    if(f.night){const a=(.5+.5*Math.sin(f.t*.12+f.ph))*fade;const g=ctx.createRadialGradient(sx,sy,0,sx,sy,6);g.addColorStop(0,`rgba(230,255,140,${a})`);g.addColorStop(1,"rgba(200,255,100,0)");
+      ctx.globalCompositeOperation="lighter";ctx.fillStyle=g;ctx.fillRect(sx-6,sy-6,12,12);ctx.globalCompositeOperation="source-over";}
+    else{const wing=Math.abs(Math.sin(f.t*.5))*2.4+.6;ctx.globalAlpha=fade;ctx.fillStyle=f.c;ctx.fillRect(sx-wing,sy-1.2,wing,2.2);ctx.fillRect(sx+.6,sy-1.2,wing,2.2);ctx.fillStyle="#3a2a1a";ctx.fillRect(sx-.3,sy-1.4,1,2.6);ctx.globalAlpha=1;}}
+  // aufspritzende Grashalme
+  for(let i=WLIFE.bits.length-1;i>=0;i--){const b=WLIFE.bits[i];b.t++;b.x+=b.vx;b.y+=b.vy;b.vy+=.08;if(b.t>22){WLIFE.bits.splice(i,1);continue;}ctx.globalAlpha=1-b.t/22;ctx.fillStyle=b.c;ctx.fillRect(b.x,b.y,2,2);}
+  ctx.globalAlpha=1;}
+{const _dw=drawWorld;drawWorld=function(){_dw.apply(this,arguments);try{drawPh();drawLife();}catch(e){}};}
+// Beim Kartenwechsel verschwinden Phänomene
+{const _ew=enterMap;enterMap=function(){PH.cur=null;WLIFE.flies.length=0;return _ew.apply(this,arguments);};}
+U.phSpawn=trySpawn;U.phEncounter=phEncounter;
+})();
+
+/* ---------- Arena Nevaio City: Eisrutsche wie im Original (v0.34) ----------
+   Der Boden zwischen Eingangsbereich und Sandro ist spiegelglatt: Man rutscht, bis man gegen einen Eisblock stößt
+   oder wieder festen Boden erreicht. Der Weg zu Sandro ist geprüft lösbar (15 Züge). */
+(function(){const M=REGIONS.unova.maps,m=M.gym_icirrus;if(!m)return;
+  m.tiles=["WWWWWWWWWWWWWW","WWWWWWWWWWWWWW","XXXXX___XXXXXX","X____________X","XX_______X_X_X","X______X_____X","X____________X","X____XX______X","XX_____XX____X","X________X___X","X____________X","X____________X","______DD______"];
+  const SL=(x,y)=>y>=3&&y<=9;m.slip=SL;
+  {const ld=m.npcs.find(n=>n.tr&&n.tr.boss);if(ld)ld.tr.range=-1;}   // Sandro wartet, bis man ihn anspricht (sonst Abkürzung über die Sichtlinie)
+  const tr=m.npcs.filter(n=>n.tr&&!n.tr.boss);
+  const pos=[[1,10,"right",3],[12,11,"left",3],[11,4,"down",-1]];
+  tr.forEach((n,i)=>{const p=pos[i];if(!p)return;n.x=p[0];n.y=p[1];n.dir=p[2];n.tr.range=p[3];if(p[3]<0)n.move="still";});
+  // Trainer auf dem Eisblock (11,4) ersetzt den Block – das Feld ist im Plan ohnehin fest
+  const g=m.npcs.find(n=>n.ch==="guide");if(g)g.text="Tipp: Der Boden ist spiegelglatt! Du rutschst so lange, bis du gegen einen Eisblock stößt. Sandro setzt auf Eis – Feuer, Kampf, Gestein und Stahl helfen!";
+  {const _os=onStep;onStep=function(){W.slide=null;_os.apply(this,arguments);
+    try{const t=tileAt(PL.x,PL.y);if(t&&t.m.slip&&t.m.slip(t.x,t.y)&&!W.lock&&!PL.surf)W.slide=PL.dir;}catch(e){}};}
+  {const _up=updatePlayer;updatePlayer=function(){
+    if(W.slide&&!PL.moving){if(W.lock){W.slide=null;}else{const d=W.slide,[dx,dy]=DIRS[d],nx=PL.x+dx,ny=PL.y+dy,nt=tileAt(nx,ny);
+      if(nt&&!solidAt(nx,ny,true)&&!npcAt(nx,ny)){PL.dir=d;startMove(nx,ny,false);PL.sp=2;PL.slid=1;return;}
+      W.slide=null;PL.slid=0;sfx("bump");return;}}
+    if(!W.slide)PL.slid=0;return _up.apply(this,arguments);};}
+})();
+
+/* ---------- Arena Septerna: Bücher-Rätsel (v0.34) ----------
+   Wie im Original muss man in Aloes Bibliothek das richtige Buch finden. Ein Bücherregal versperrt den Weg zu Aloe –
+   erst wenn man das Buch mit dem passenden Titel aufschlägt, rückt das Regal zur Seite. Falsche Bücher geben Hinweise. */
+(function(){const M=REGIONS.unova.maps,m=M.gym_nacrene;if(!m)return;
+  // Reihe 3 wird geschlossen (nur Regal-Durchgang in der Mitte), das bewegliche Regal steht bei (6,3)/(7,3)
+  m.tiles=m.tiles.slice();m.tiles[3]="K_KKKK__KKKK_K".split("").map((c,x)=>x===1||x===12?"K":c).join("");
+  const mk=(w,h,f)=>{const c=document.createElement("canvas");c.width=w;c.height=h;f(c.getContext("2d"));const i=new Image();i.src=c.toDataURL();return i;};
+  IMG.obj_shelf=mk(32,40,g=>{g.fillStyle="rgba(0,0,0,.25)";g.fillRect(2,34,28,5);g.fillStyle="#6a4424";g.fillRect(2,2,28,34);g.fillStyle="#8a5c34";g.fillRect(4,4,24,30);
+    const C=["#c84a3a","#3a7ac8","#e8c040","#4aa85a","#8a4ac8","#e88a3a","#f0f0f0"];for(let r=0;r<3;r++){g.fillStyle="#5a3418";g.fillRect(4,13+r*10,24,2);for(let i=0;i<7;i++){g.fillStyle=C[(i*3+r*2)%7];g.fillRect(5+i*3.3,5+r*10,2.6,8-((i+r)%3));}}});
+  if(typeof OBJ_SIZE!=="undefined")OBJ_SIZE.shelf=[1.05,1.3,.66];
+  const open=()=>flag("nacrene_book");
+  const shelf=(x)=>({x,y:3,obj:"shelf",fixed:1,move:"still",dir:"down",sid:"shelf",show:()=>!open(),text:"Ein schweres Bücherregal. Es versperrt den Weg ... Vielleicht gibt es irgendwo einen Mechanismus?"});
+  const BOOKS=[[1,10,"„Die Geschichte von Einall“ – Vor langer Zeit lebten zwei Brüder und ein Drachen-Pokémon ... (Ein dickes Buch. Nichts passiert.)"],
+    [3,10,"„Normal ist nicht langweilig“ – von Aloe. Ein Zettel fällt heraus: »Das richtige Buch erzählt von der Zeit, in der die Brüder stritten.«"],
+    [10,10,"„Kochen mit Beeren“ – 101 Rezepte. Lecker, aber nicht das Richtige."],
+    [12,4,"„Die Zerstörung“ – Die Brüder stritten, der Drache teilte sich in zwei ... Klick! Irgendwo bewegt sich etwas!"],
+    [12,10,"„Pokémon-Kampf für Anfänger“ – Kapitel 1: Typen. Kapitel 2: Mehr Typen."],
+    [0,8,"„Das Ewigenwald-Rätsel“ – Wer suchet, der findet ... nur nicht in diesem Buch."]];
+  const book=([x,y,t],i)=>({x,y,obj:"book",fixed:1,move:"still",dir:"down",sid:"book",run:async()=>{
+    sfx("select");await say("Du schlägst ein Buch auf: "+t);
+    if(i===3&&!open()){setFlag("nacrene_book");sfx("door");await wait(20);await say("Das Bücherregal vor Aloe rückt zur Seite!");}
+    else if(i===3)await say("Das Regal ist schon zur Seite gerückt.");}});
+  IMG.obj_book=mk(32,32,g=>{g.fillStyle="rgba(0,0,0,.25)";g.beginPath();g.ellipse(16,27,12,3,0,0,7);g.fill();g.fillStyle="#7a4a2a";g.fillRect(6,14,20,12);g.fillStyle="#9a6a3a";g.fillRect(6,12,20,4);
+    g.fillStyle="#f4ecd8";g.fillRect(8,6,8,9);g.fillRect(16,6,8,9);g.fillStyle="#b0a080";g.fillRect(15.5,6,1,9);g.fillStyle="#6a6a7a";for(let i=0;i<3;i++){g.fillRect(9,8+i*2,6,.8);g.fillRect(17,8+i*2,6,.8);}});
+  if(typeof OBJ_SIZE!=="undefined")OBJ_SIZE.book=[.8,.8,.7];
+  m.npcs.push(shelf(6),shelf(7),...BOOKS.map(book));
+  const g=m.npcs.find(n=>n.ch==="guide");if(g){const t0=g.text;g.text=()=>open()?t0:"Tipp: Aloe wartet hinter dem Bücherregal. Lies die Bücher auf den Pulten – eines davon öffnet den Weg! Aloe mag übrigens Geschichte.";}
+})();
+
+/* ===== regions/unova_h_musical.js ===== */
+/* ================================ EINALL · POKÉMON-MUSICAL (v0.35) ================================
+   Wie in Schwarz/Weiß im Musical-Theater von Rayono City: Pokémon mit Accessoires schmücken (Kopf, Gesicht, Hand),
+   dann auf die Bühne! Vier Pokémon treten auf, das Publikum verteilt Herzen. Wer zum Tagesthema passt
+   (Süß, Cool, Elegant, Lustig), gewinnt – und bekommt neue Accessoires. */
+(function(){
+const U=REGIONS.unova,M=U.maps;
+if(typeof MOODS!=="undefined"&&MOODS.victory)MOODS.musical=Object.assign({},MOODS.victory,{bpm:116,steps:16,arp:.8,bell:.55,drums:1.2,motif:1,cut:2600,crackle:0});
+const CAT={cute:["SÜSS","#ff7ab8"],cool:["COOL","#4a8aff"],elegant:["ELEGANT","#c89a2a"],funny:["LUSTIG","#3ab85a"]};
+// Zeichenfunktionen: (x,y) = Ankerpunkt, k = Größe
+const P={
+  tophat:{n:"Zylinder",c:"cool",slot:"head",d:(g,x,y,k)=>{g.fillStyle="#1a1a22";g.fillRect(x-9*k,y-2*k,18*k,3*k);g.fillRect(x-6*k,y-14*k,12*k,12*k);g.fillStyle="#c83a3a";g.fillRect(x-6*k,y-5*k,12*k,2.5*k);}},
+  bow:{n:"Rosa Schleife",c:"cute",slot:"head",d:(g,x,y,k)=>{g.fillStyle="#ff7ab8";g.beginPath();g.moveTo(x,y-3*k);g.lineTo(x-9*k,y-9*k);g.lineTo(x-9*k,y+2*k);g.closePath();g.fill();g.beginPath();g.moveTo(x,y-3*k);g.lineTo(x+9*k,y-9*k);g.lineTo(x+9*k,y+2*k);g.closePath();g.fill();g.fillStyle="#ffb0d8";g.fillRect(x-2.5*k,y-5.5*k,5*k,5*k);}},
+  shades:{n:"Sonnenbrille",c:"cool",slot:"face",d:(g,x,y,k)=>{g.fillStyle="#111";g.fillRect(x-11*k,y-1*k,22*k,2*k);g.beginPath();g.ellipse(x-6*k,y+1.5*k,5*k,3.5*k,0,0,7);g.ellipse(x+6*k,y+1.5*k,5*k,3.5*k,0,0,7);g.fill();g.fillStyle="rgba(255,255,255,.5)";g.fillRect(x-8*k,y,2*k,1.2*k);g.fillRect(x+4*k,y,2*k,1.2*k);}},
+  wreath:{n:"Blumenkranz",c:"elegant",slot:"head",d:(g,x,y,k)=>{const C=["#ffd040","#ff6a8a","#ffffff","#a070ff"];for(let i=0;i<7;i++){const a=Math.PI*(i/6);g.fillStyle="#4aa84a";g.fillRect(x+Math.cos(a)*10*k-1,y-Math.sin(a)*3*k,2,2);g.fillStyle=C[i%4];g.beginPath();g.arc(x-Math.cos(a)*10*k,y-Math.sin(a)*3.5*k,2.4*k,0,7);g.fill();}}},
+  crown:{n:"Krone",c:"elegant",slot:"head",d:(g,x,y,k)=>{g.fillStyle="#f0c030";g.beginPath();g.moveTo(x-9*k,y);g.lineTo(x-9*k,y-9*k);g.lineTo(x-4.5*k,y-4*k);g.lineTo(x,y-11*k);g.lineTo(x+4.5*k,y-4*k);g.lineTo(x+9*k,y-9*k);g.lineTo(x+9*k,y);g.closePath();g.fill();g.fillStyle="#e83a5a";g.fillRect(x-1.5*k,y-4*k,3*k,3*k);g.fillStyle="#fff6a0";g.fillRect(x-8*k,y-2*k,16*k,1*k);}},
+  nose:{n:"Clownsnase",c:"funny",slot:"face",d:(g,x,y,k)=>{g.fillStyle="#e82a2a";g.beginPath();g.arc(x,y+3*k,3.6*k,0,7);g.fill();g.fillStyle="rgba(255,255,255,.7)";g.fillRect(x-1.5*k,y+1*k,1.5*k,1.5*k);}},
+  stache:{n:"Schnurrbart",c:"funny",slot:"face",d:(g,x,y,k)=>{g.fillStyle="#3a2414";g.beginPath();g.ellipse(x-4*k,y+5*k,5*k,2*k,-.3,0,7);g.ellipse(x+4*k,y+5*k,5*k,2*k,.3,0,7);g.fill();}},
+  fan:{n:"Fächer",c:"elegant",slot:"hand",d:(g,x,y,k)=>{for(let i=0;i<6;i++){const a=-2.2+i*.28;g.fillStyle=i%2?"#e84a6a":"#ffe0ea";g.beginPath();g.moveTo(x,y);g.arc(x,y,11*k,a,a+.28);g.closePath();g.fill();}g.fillStyle="#5a3a1a";g.fillRect(x-1,y-1,2.5,5*k);}},
+  mic:{n:"Mikrofon",c:"cool",slot:"hand",d:(g,x,y,k)=>{g.fillStyle="#2a2a32";g.fillRect(x-1.2*k,y-2*k,2.4*k,10*k);g.fillStyle="#b8bcc8";g.beginPath();g.arc(x,y-4*k,3.6*k,0,7);g.fill();g.fillStyle="#7a7e8a";g.fillRect(x-3*k,y-4.5*k,6*k,1*k);}},
+  balloon:{n:"Ballon",c:"cute",slot:"hand",d:(g,x,y,k)=>{const sw=Math.sin(FRAME*.05)*2;g.strokeStyle="#ddd";g.lineWidth=1;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+sw,y-10*k,x+sw*.5,y-18*k);g.stroke();g.fillStyle="#ff5a7a";g.beginPath();g.ellipse(x+sw*.5,y-23*k,5.5*k,6.5*k,0,0,7);g.fill();g.fillStyle="rgba(255,255,255,.6)";g.fillRect(x+sw*.5-3*k,y-27*k,2*k,2*k);}},
+  partyhat:{n:"Partyhut",c:"funny",slot:"head",d:(g,x,y,k)=>{g.fillStyle="#3ab8e8";g.beginPath();g.moveTo(x-7*k,y);g.lineTo(x,y-15*k);g.lineTo(x+7*k,y);g.closePath();g.fill();g.fillStyle="#ffd040";g.fillRect(x-4*k,y-6*k,8*k,2*k);g.fillStyle="#ff5a7a";g.beginPath();g.arc(x,y-15*k,2.4*k,0,7);g.fill();}},
+  hearts:{n:"Herzbrille",c:"cute",slot:"face",d:(g,x,y,k)=>{const h=(cx)=>{g.beginPath();g.moveTo(cx,y+5*k);g.bezierCurveTo(cx-7*k,y,cx-4*k,y-4*k,cx,y-1*k);g.bezierCurveTo(cx+4*k,y-4*k,cx+7*k,y,cx,y+5*k);g.fill();};g.fillStyle="#ff3a8a";h(x-6*k);h(x+6*k);g.fillRect(x-2*k,y-.5*k,4*k,1.2*k);}},
+  wand:{n:"Zauberstab",c:"cute",slot:"hand",d:(g,x,y,k)=>{g.fillStyle="#a07ae8";g.fillRect(x-1,y-12*k,2,13*k);g.fillStyle="#ffe060";star(g,x,y-14*k,4.5*k);}},
+  cape:{n:"Umhang",c:"cool",slot:"hand",d:(g,x,y,k)=>{g.fillStyle="#7a1a2a";g.beginPath();g.moveTo(x-4*k,y-12*k);g.quadraticCurveTo(x+10*k,y,x+4*k,y+10*k);g.lineTo(x-6*k,y+6*k);g.closePath();g.fill();g.fillStyle="#d8b040";g.fillRect(x-5*k,y-13*k,4*k,2*k);}},
+  pearls:{n:"Perlenkette",c:"elegant",slot:"face",d:(g,x,y,k)=>{g.fillStyle="#f6f2ea";for(let i=0;i<9;i++){const a=Math.PI*(.15+i*.0875);g.beginPath();g.arc(x+Math.cos(a)*9*k,y+6*k+Math.sin(a)*4*k,1.6*k,0,7);g.fill();}}},
+  banana:{n:"Bananenschale",c:"funny",slot:"head",d:(g,x,y,k)=>{g.fillStyle="#f0d040";for(let i=-1;i<=1;i++){g.save();g.translate(x,y);g.rotate(i*.7);g.beginPath();g.ellipse(0,-6*k,2.6*k,7*k,0,0,7);g.fill();g.restore();}g.fillStyle="#7a5a1a";g.fillRect(x-1.5*k,y-2*k,3*k,2*k);}},
+};
+function star(g,x,y,r){g.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}g.closePath();g.fill();}
+const START=["tophat","bow","shades","wreath"];
+const ALL=Object.keys(P);
+const owned=()=>{const s=G.save;if(!s.props)s.props=START.slice();return s.props;};
+// sichtbarer Bereich eines Sprites (für Accessoire-Positionen)
+const BOX={};
+function monBox(sp){if(BOX[sp])return BOX[sp];const e=animData(sp,false,false);if(!e||!e.ready)return null;const Mt=e.meta,f=Mt.s[0];
+  const c=document.createElement("canvas");c.width=Mt.w;c.height=Mt.h;const g=c.getContext("2d");g.drawImage(e.img,(f%Mt.c)*Mt.w,Math.floor(f/Mt.c)*Mt.h,Mt.w,Mt.h,0,0,Mt.w,Mt.h);
+  const d=g.getImageData(0,0,Mt.w,Mt.h).data;let t=-1,b=0,l=Mt.w,r=0;const rowX=[];
+  for(let y=0;y<Mt.h;y++){let a=-1,z=-1;for(let x=0;x<Mt.w;x++)if(d[(y*Mt.w+x)*4+3]>60){if(a<0)a=x;z=x;}if(a>=0){if(t<0)t=y;b=y;if(a<l)l=a;if(z>r)r=z;rowX[y]=(a+z)/2;}}
+  if(t<0)return null;let hx=0,n=0;for(let y=t;y<Math.min(b,t+5);y++)if(rowX[y]!=null){hx+=rowX[y];n++;}
+  return BOX[sp]={w:Mt.w,h:Mt.h,cxo:e.cxo||0,bot:e.bot||0,t,b,l,r,hx:n?hx/n:(l+r)/2};}
+// Pokémon mit Accessoires zeichnen; Fußpunkt (cx,by), Skalierung s
+function drawDressed(sp,props,cx,by,s,o={}){drawAnim(sp,cx,by,{s,shiny:o.shiny,t:o.t});const B=monBox(sp);if(!B)return;
+  const x0=Math.round(cx-B.w*s/2-B.cxo*s),y0=Math.round(by-B.h*s+B.bot*s);const X=v=>x0+v*s,Y=v=>y0+v*s;
+  const bw=(B.r-B.l)*s,bh=(B.b-B.t)*s,k=Math.max(.55,Math.min(1.5,bw/42))*(o.k||1);
+  for(const id of props){const p=P[id];if(!p)continue;
+    if(p.slot==="head")p.d(ctx,X(B.hx),Y(B.t)+2*k,k);
+    else if(p.slot==="face")p.d(ctx,X(B.hx),Y(B.t)+Math.min(bh*.28,16*k),k*.9);
+    else p.d(ctx,X(B.r)-2,Y(B.t)+bh*.62,k*.9);}}
+U.drawDressed=drawDressed;
+
+/* ---------- Szene ---------- */
+const STAR_NAMES=["Bühnenstar Lia","Tänzer Marco","Diva Elfriede","Sänger Theo","Idol Mimi","Musical-Fan Ben","Gräfin Viola","Clown Pepe"];
+function rivals(){const pool=DEX.filter(i=>i!==494&&i<638&&SPECIES[i]);const L=[];const names=STAR_NAMES.slice().sort(()=>Math.random()-.5);
+  for(let i=0;i<3;i++){const sp=pool[Math.floor(Math.random()*pool.length)];const props=[];const slots=new Set();
+    const n=1+Math.floor(Math.random()*3);for(let j=0;j<12&&props.length<n;j++){const id=ALL[Math.floor(Math.random()*ALL.length)];if(slots.has(P[id].slot))continue;slots.add(P[id].slot);props.push(id);}
+    L.push({sp,props,name:names[i],me:false});}
+  return L;}
+function score(p,theme){let s=0;for(const id of p.props)s+=P[id].c===theme?4:1;if(p.props.length===3)s+=2;
+  const cats=new Set(p.props.map(id=>P[id].c));if(p.props.length>=2&&cats.size===1)s+=2;   // einheitlicher Stil
+  if(p.sp===648)s+=4;return s+Math.random()*3;}
+async function musical(mon){
+  const theme=["cute","cool","elegant","funny"][Math.floor(Math.random()*4)];
+  const props=owned().slice();
+  const me={sp:mon.sp,shiny:mon.shiny,props:(G.save.lastProps||[]).filter(id=>props.includes(id)),name:G.save.name,mon,me:true};
+  const S={st:"dress",t:0,cur:0,top:0,theme,me,hearts:[],fx:[],res:null};
+  Music.play("musical");
+  const sc={opaque:true,
+    update(){S.t++;
+      if(S.st==="dress"){const n=props.length;
+        if(Input.hit("up")){S.cur=(S.cur-1+n)%n;sfx("select");}
+        if(Input.hit("down")){S.cur=(S.cur+1)%n;sfx("select");}
+        if(S.cur<S.top)S.top=S.cur;if(S.cur>=S.top+7)S.top=S.cur-6;
+        if(Input.hit("a")){const id=props[S.cur],L=me.props;const i=L.indexOf(id);
+          if(i>=0)L.splice(i,1);else{const j=L.findIndex(q=>P[q].slot===P[id].slot);if(j>=0)L.splice(j,1);L.push(id);}sfx("sparkle");}
+        if(Input.hit("start")||Input.hit("b")){sfx("select");G.save.lastProps=me.props.slice();S.list=[me,...rivals()].sort(()=>Math.random()-.5);
+          for(const p of S.list){p.score=score(p,theme);p.got=0;}S.st="show";S.t=0;}
+      }else if(S.st==="show"){
+        const per=90,turn=Math.floor(S.t/per),who=turn%4,rnd=Math.floor(turn/4);
+        if(turn>=12){S.st="result";S.t=0;S.rank=S.list.slice().sort((a,b)=>b.got-a.got||b.score-a.score);sfx(S.rank[0].me?"caught":"select");return;}
+        const p=S.list[who];const ph=S.t%per;
+        if(ph===10){sfx(rnd===2?"sparkle":"whoosh");for(let i=0;i<14;i++)S.fx.push({x:p.x,y:p.y-30,vx:(Math.random()-.5)*2.4,vy:-Math.random()*2.2-.5,t:0,c:p.props.length?CAT[P[p.props[i%p.props.length]].c][1]:"#fff",star:i%2});}
+        if(ph>=20&&ph<70&&ph%6===0){const want=Math.round(p.score*(rnd+1)/3);if(p.got<want){p.got++;S.hearts.push({x:p.x+(Math.random()-.5)*20,y:SH-6,ty:p.y-48-Math.random()*14,t:0,me:p.me});}}
+        if(Input.hit("b")&&S.t>60){S.t=12*per-1;}
+      }else if(S.st==="result"){if(S.t>40&&!S.out&&(Input.hit("a")||Input.hit("b"))){S.out=1;sfx("select");fadeTo(1,12).then(()=>sc.done(S.rank.findIndex(p=>p.me)));}}
+      for(let i=S.fx.length-1;i>=0;i--){const f=S.fx[i];f.t++;f.x+=f.vx;f.y+=f.vy;f.vy+=.06;if(f.t>40)S.fx.splice(i,1);}
+      for(let i=S.hearts.length-1;i>=0;i--){const h=S.hearts[i];h.t++;h.y+=(h.ty-h.y)*.06;if(h.t>70)S.hearts.splice(i,1);}
+    },
+    draw(){const g=ctx;
+      if(S.st==="dress"){
+        const bg=g.createLinearGradient(0,0,0,SH);bg.addColorStop(0,"#2a1638");bg.addColorStop(1,"#5a2a4a");g.fillStyle=bg;g.fillRect(0,0,SW,SH);
+        // Garderobe: Spiegel mit Glühbirnen
+        g.fillStyle="#f6e8c8";g.fillRect(8,14,104,124);g.fillStyle="#1e2a44";g.fillRect(14,20,92,112);
+        for(let i=0;i<6;i++){const on=(Math.floor(S.t/20)+i)%3;g.fillStyle=on?"#ffe890":"#c8a860";g.beginPath();g.arc(14+i*18.4,17,2.5,0,7);g.arc(14+i*18.4,135,2.5,0,7);g.fill();}
+        const sp=g.createRadialGradient(60,110,4,60,110,60);sp.addColorStop(0,"rgba(255,240,200,.35)");sp.addColorStop(1,"rgba(255,240,200,0)");g.fillStyle=sp;g.fillRect(14,20,92,112);
+        g.fillStyle="rgba(0,0,0,.3)";g.beginPath();g.ellipse(60,124,26,5,0,0,7);g.fill();
+        drawDressed(me.sp,me.props,60,126,1,{shiny:me.shiny});
+        txt("THEMA: "+CAT[theme][0],60,2,{size:9,w:800,c:CAT[theme][1],align:"center"});
+        // Liste
+        g.fillStyle="rgba(10,6,20,.82)";g.fillRect(118,8,116,132);g.strokeStyle="#c89a2a";g.lineWidth=1;g.strokeRect(118.5,8.5,115,131);
+        txt("ACCESSOIRES",176,11,{size:7,w:800,c:"#ffe890",align:"center"});
+        for(let r=0;r<7;r++){const i=S.top+r;if(i>=props.length)break;const id=props[i],p=P[id],y=24+r*16,on=me.props.includes(id);
+          if(i===S.cur){g.fillStyle="rgba(255,230,140,.18)";g.fillRect(120,y-1,112,15);}
+          g.save();g.beginPath();g.rect(121,y,14,14);g.clip();p.d(g,128,p.slot==="head"?y+12:p.slot==="face"?y+6:y+9,.45);g.restore();
+          txt(p.n,138,y+1,{size:7,w:on?800:500,c:on?"#ffffff":"#c8c0d8"});
+          txt(CAT[p.c][0]+" · "+({head:"Kopf",face:"Gesicht",hand:"Hand"}[p.slot]),138,y+8,{size:5,c:CAT[p.c][1]});
+          if(on){g.fillStyle="#7aff8a";g.fillRect(226,y+4,4,4);}}
+        txt("A: an/ab   START: auf die Bühne!",120,143,{size:6,c:"#ffe890"});
+        txt("Pro Bereich ein Accessoire · max. 3",120,151,{size:5,c:"#b0a8c0"});
+        return;}
+      // Bühne
+      const k=S.st==="show"?Math.min(1,S.t/60):1;
+      g.fillStyle="#120a1e";g.fillRect(0,0,SW,SH);
+      const wall=g.createLinearGradient(0,0,0,110);wall.addColorStop(0,"#1a1440");wall.addColorStop(1,"#3a2058");g.fillStyle=wall;g.fillRect(0,0,SW,110);
+      for(let i=0;i<40;i++){const x=(i*53)%SW,y=(i*29)%60;g.fillStyle=`rgba(255,255,255,${.3+.3*Math.sin(S.t*.05+i)})`;g.fillRect(x,y,1,1);}
+      // Boden
+      const fl=g.createLinearGradient(0,104,0,140);fl.addColorStop(0,"#8a5a2a");fl.addColorStop(1,"#4a2a12");g.fillStyle=fl;g.fillRect(0,104,SW,36);
+      for(let i=0;i<12;i++){g.fillStyle="rgba(0,0,0,.18)";g.fillRect(i*20,104,1,36);}
+      // Scheinwerfer
+      g.globalCompositeOperation="lighter";
+      const L=S.list||[];L.forEach((p,i)=>{p.x=36+i*56;p.y=122;const act=S.st==="show"&&Math.floor(S.t/90)%4===i;const a=act?.32:.1;
+        const sp=g.createLinearGradient(p.x,0,p.x,p.y);sp.addColorStop(0,`rgba(255,240,180,${a*.3})`);sp.addColorStop(1,`rgba(255,240,180,${a})`);g.fillStyle=sp;
+        g.beginPath();g.moveTo(p.x-6,0);g.lineTo(p.x+6,0);g.lineTo(p.x+26,p.y+4);g.lineTo(p.x-26,p.y+4);g.closePath();g.fill();
+        g.fillStyle=`rgba(255,240,180,${a*.8})`;g.beginPath();g.ellipse(p.x,p.y+2,24,5,0,0,7);g.fill();});
+      g.globalCompositeOperation="source-over";
+      L.forEach((p,i)=>{const act=S.st==="show"&&Math.floor(S.t/90)%4===i;const ph=S.t%90;const jy=act&&ph>8&&ph<40?-Math.abs(Math.sin((ph-8)/32*Math.PI*2))*10:0;
+        g.fillStyle="rgba(0,0,0,.35)";g.beginPath();g.ellipse(p.x,p.y+2,16,3.5,0,0,7);g.fill();
+        drawDressed(p.sp,p.props,p.x,p.y+jy,.62,{shiny:p.shiny,k:.75});
+        txt(p.me?"DU":p.name.split(" ").pop(),p.x,p.y+8,{size:6,w:800,c:p.me?"#7ad8ff":"#ffffff",align:"center"});});
+      // Funken
+      for(const f of S.fx){g.fillStyle=f.c;g.globalAlpha=1-f.t/40;if(f.star)star(g,f.x,f.y,2.5);else g.fillRect(f.x-1,f.y-1,2,2);}g.globalAlpha=1;
+      // Publikum
+      for(let i=0;i<26;i++){const x=i*9.6+4,b=Math.sin(S.t*.15+i)*(S.st==="show"?1.2:.3);g.fillStyle="#0a0614";g.beginPath();g.arc(x,SH-10+b,5,0,7);g.fill();g.fillRect(x-6,SH-6+b,12,8);}
+      // Herzen
+      for(const h of S.hearts){g.globalAlpha=Math.min(1,(70-h.t)/15);g.fillStyle=h.me?"#ff5aa0":"#ff8ab8";const x=h.x,y=h.y;g.beginPath();g.moveTo(x,y+3);g.bezierCurveTo(x-5,y-1,x-3,y-4,x,y-1.5);g.bezierCurveTo(x+3,y-4,x+5,y-1,x,y+3);g.fill();}g.globalAlpha=1;
+      // Vorhang
+      const cv=S.st==="show"?Math.max(0,1-S.t/50):0;const cw=SW/2*(.12+.88*cv);
+      for(const side of[0,1]){const x0=side?SW-cw:0;const cg=g.createLinearGradient(x0,0,x0+cw,0);cg.addColorStop(0,"#7a0a1a");cg.addColorStop(.5,"#c8203a");cg.addColorStop(1,"#6a0816");g.fillStyle=cg;g.fillRect(x0,0,cw,SH-14);
+        for(let i=0;i<6;i++){g.fillStyle="rgba(0,0,0,.18)";g.fillRect(x0+i*cw/6,0,2,SH-14);}}
+      g.fillStyle="#9a0c22";g.fillRect(0,0,SW,10);g.fillStyle="#e8b030";g.fillRect(0,10,SW,2);
+      txt("THEMA: "+CAT[theme][0],SW/2,1,{size:7,w:800,c:"#ffe890",align:"center"});
+      if(S.st==="show"&&S.t>60){const turn=Math.floor(S.t/90);txt(`Akt ${Math.min(3,Math.floor(turn/4)+1)} / 3`,SW-6,14,{size:6,c:"#ffffff",align:"right"});}
+      if(S.st==="result"){g.fillStyle="rgba(8,4,16,.86)";g.fillRect(40,22,160,92);g.strokeStyle="#e8b030";g.strokeRect(40.5,22.5,159,91);
+        txt("ERGEBNIS",120,26,{size:9,w:800,c:"#ffe890",align:"center"});
+        S.rank.forEach((p,i)=>{const y=42+i*17;txt(`${i+1}.`,50,y,{size:8,w:800,c:i===0?"#ffd040":"#ffffff"});txt(p.me?`${monName(p.mon)} (DU)`:p.name,64,y,{size:7,w:p.me?800:500,c:p.me?"#7ad8ff":"#ffffff"});
+          txt("♥ "+p.got,190,y,{size:7,w:800,c:"#ff7ab8",align:"right"});});
+        if(S.t>40&&Math.floor(S.t/20)%2)txt("A: weiter",120,104,{size:6,c:"#c8c0d8",align:"center"});}
+    }};
+  await fadeTo(1,12);const pr=run(sc);await fadeTo(0,12);const place=await pr;await fadeTo(0,12);
+  return place;}
+
+async function reception(){
+  if(!G.save.party.length){await say("Empfang: Ohne Pokémon kannst du leider nicht auftreten.");return;}
+  if(!flag("musical_intro")){setFlag("musical_intro");
+    await say("Empfang: Willkommen im Pokémon-Musical! Hier treten Pokémon mit Accessoires auf – und das Publikum verteilt Herzen.");
+    await say("Empfang: Zum Start bekommst du vier Accessoires: Zylinder, Rosa Schleife, Sonnenbrille und Blumenkranz!");owned();sfx("item");
+    await say("Empfang: Jeden Auftritt gibt es ein Thema. Passen deine Accessoires dazu, gibt es mehr Herzen. Gewinnst du, bekommst du neue!");}
+  const c=await ask("Empfang: Möchtest du mit einem Pokémon auftreten?",["AUFTRETEN","ACCESSOIRES","NEIN"]);
+  if(c===1){const o=owned();await say(`Du hast ${o.length} von ${ALL.length} Accessoires: ${o.map(id=>P[id].n).join(", ")}.`);return;}
+  if(c!==0)return;
+  const i=await partyMenu({mode:"pick",title:"Wer tritt auf?"});if(i==null||i<0)return;const mon=G.save.party[i];
+  const prevMusic=Music.cur;
+  const place=await musical(mon);
+  if(prevMusic)Music.play(prevMusic);
+  G.save.musical=G.save.musical||{shows:0,wins:0};G.save.musical.shows++;
+  if(place===0){G.save.musical.wins++;const left=ALL.filter(id=>!owned().includes(id));
+    await say(`Empfang: Bravo! ${monName(mon)} war der Star des Abends!`);
+    if(left.length){const id=left[Math.floor(Math.random()*left.length)];owned().push(id);sfx("item");Music.jingle&&Music.jingle("caught");await say(`{P} erhält das Accessoire „${P[id].n}“!`);}
+    else await U.giveItem("nugget");
+    if(G.save.musical.wins===3)await U.giveItem("rare-candy",3);
+  }else if(place===1){await say("Empfang: Platz 2 – fast! Das Publikum war begeistert.");if(Math.random()<.5)await U.giveItem("heart-scale");}
+  else await say(`Empfang: Platz ${place+1}. Probier doch mal Accessoires, die zum Thema passen!`);}
+
+if(M.musical){const m=M.musical;const idol=(m.npcs||[]).find(n=>n.ch==="idol");
+  if(idol){delete idol.text;idol.run=reception;}
+  else m.npcs.push({x:5,y:3,ch:"idol",dir:"down",move:"still",run:reception});
+  {const[fx,fy]=U.freeSpot("musical",7,5);m.npcs.push({x:fx,y:fy,ch:"lady",move:"look",text:()=>{const s=G.save.musical;return s&&s.shows?`Du bist schon ${s.shows}× aufgetreten und hast ${s.wins}× gewonnen! Ich bin ein großer Fan!`:"Das Musical ist das Schönste in ganz Rayono City! Sprich mit der Dame am Empfang."}});}}
+U.musicalProps=P;U.musical=musical;
+})();
+
+/* ===== regions/unova_i_royal.js ===== */
+/* ================================ EINALL · ROYAL EINALL (v0.35) ================================
+   Wie in Schwarz/Weiß: Am Hafen von Stratos City legt das Ausflugsschiff „Royal Einall“ ab. An Bord warten
+   sechs Trainer (jeden Tag neu herausforderbar, Level passend zu den Orden). Wer alle besiegt, bekommt vom Kapitän
+   ein Tagesgeschenk. Von Deck aus sieht man den Sonnenuntergang über dem Meer. */
+(function(){
+const U=REGIONS.unova,M=U.maps;if(!M.castelia)return;
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();};
+const lvl=()=>{if(!G.save)return 12;if(flag("champion")||flag("story_done"))return 62;return Math.min(50,12+Math.round((G.save.badges||[]).length*4.3));};
+const team=(...L)=>()=>{const b=lvl();return L.map((sp,i)=>[sp,b+(i===L.length-1?2:0)]);};
+const IDS=[];
+const T=(cls,name,L,npc,dir,range=3)=>{const id="royal_"+name.toLowerCase().replace(/[^a-z]/g,"");IDS.push(id);return U.trainer(cls,name,team(...L),{id,dir,range,npc,bg:"water",prize:120*lvl()});};
+M.royal={name:"ROYAL EINALL",floor:"wood",wall:"house:blue",entry:[6,9],music:"sea",bg:"water",
+  tiles:["WWWWWWWWWWWWWW","WWwwWWwwWWwwWW","______________","_RRRR____RRRR_","_RttR____RttR_","_RRRR____RRRR_","______________","_____RRRR_____","______________","______D_______"],
+  onEnter:async()=>{const g=G.save;if(g.royalDay!==today()){g.royalDay=today();for(const id of IDS)delete g.def[id];delete g.flags.royal_gift;}
+    if(!W.royalSaid){W.royalSaid=1;await say("Die Royal Einall legt ab ... Das Meer glitzert in der Abendsonne.");}},
+  npcs:[
+    T("Gentleman","Edgar",[580,581],{x:2,y:6},"right"),
+    T("Dame","Rosalie",[531,573],{x:11,y:6},"left"),
+    T("Schwimmer","Kai",[550,594,593],{x:1,y:2},"down"),
+    T("Schwimmerin","Marina",[592,565],{x:12,y:2},"down"),
+    T("Society-Dame","Charlotte",[587,549],{x:4,y:8},"right",2),
+    T("Schnösel","Philipp",[612,571],{x:9,y:8},"left",2),
+    {x:7,y:2,ch:"sailor",dir:"down",move:"still",id:"royal_captain",run:async()=>{const left=IDS.filter(id=>!G.save.def[id]).length;
+      if(left){await say(`Kapitän: Willkommen an Bord! ${left} Trainer an Deck suchen noch einen Gegner. Besiegst du alle, habe ich etwas für dich.`);return;}
+      if(flag("royal_gift")){await say("Kapitän: Morgen sind wieder neue Gäste an Bord. Komm gern wieder!");return;}
+      setFlag("royal_gift");const it=["rare-candy","pp-up","nugget","max-revive","heart-scale","star-piece"].filter(k=>typeof ITEMS==="undefined"||ITEMS[k]);
+      await say("Kapitän: Alle Gäste besiegt? Respekt! Hier, ein kleines Andenken an die Fahrt.");await U.giveItem(it[Math.floor(Math.random()*it.length)]);}},
+    {x:6,y:4,ch:"lady",move:"look",text:"Wie romantisch ... Stratos City sieht vom Wasser aus wie ein Meer aus Lichtern."},
+    {x:12,y:7,ch:"gent",move:"look",text:"Jeden Tag sind andere Gäste an Bord. Wer alle besiegt, bekommt vom Kapitän ein Geschenk!"}]};
+// Matrose am Hafen von Stratos City
+{const m=M.castelia;const[sx,sy]=U.freeSpot("castelia",37,29);
+  m.npcs.push({x:sx,y:sy,ch:"sailor",dir:"down",move:"still",run:async()=>{
+    if(!G.save.party.length){await say("Matrose: Ohne Pokémon an Bord? Lieber nicht ...");return;}
+    const c=await ask("Matrose: Die Royal Einall macht eine Rundfahrt durch die Bucht. Möchtest du an Bord gehen?",["JA","NEIN"]);if(c!==0)return;
+    G.save.ret={map:"castelia",x:sx,y:sy+1,dir:"down"};W.royalSaid=0;sfx("splash");await warp("royal",6,8,"up",{sound:"door"});}});}
+// Sonnenuntergang über dem Meer (Licht durch die Fenster)
+{const _dw=drawWorld;drawWorld=function(){_dw.apply(this,arguments);try{if(curMap().id!=="royal")return;const g=ctx;
+  const t=FRAME*.01;g.save();g.globalCompositeOperation="soft-light";const gr=g.createLinearGradient(0,0,0,SH);gr.addColorStop(0,"rgba(255,140,60,.55)");gr.addColorStop(1,"rgba(120,60,160,.35)");g.fillStyle=gr;g.fillRect(0,0,SW,SH);
+    g.globalCompositeOperation="lighter";for(let i=0;i<6;i++){const x=((i*47+FRAME*.3)%(SW+60))-30;g.fillStyle=`rgba(255,220,150,${.05+.03*Math.sin(t*3+i)})`;g.beginPath();g.moveTo(x,0);g.lineTo(x+18,0);g.lineTo(x+60,SH);g.lineTo(x+30,SH);g.closePath();g.fill();}
+    g.restore();
+    // leichtes Schaukeln des Schiffs
+    }catch(e){}};}
+})();
+
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.32";
+const VERSION="0.35";
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
   return{v:1,mapv:3,region:o.region||"unova",story:o.story!==false,ver:o.ver||"b",name:o.name,gender:o.gender,rival:"Cheren",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
