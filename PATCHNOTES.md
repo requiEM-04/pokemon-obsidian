@@ -2,6 +2,22 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.38 (02.11.2026)
+- Neu: Soul-Link online – als Duo (2 Spieler) oder Trio (3 Spieler)! Titel → ONLINE → SOUL-LINK STARTEN: Story oder Frei, Randomizer oder normal, Edition wählen und den 4-stelligen Code an deine Mitspieler geben. Die treten über SOUL-LINK BEITRETEN bei.
+- Jeder spielt sein eigenes Nuzlocke-Spiel. Die erste Begegnung jedes Gebiets (und die Starter) sind per Seelenband verbunden: Fällt ein Pokémon oder geht ein Fang schief, fallen die verbundenen Pokémon der anderen ebenfalls.
+- Im Randomizer-Soul-Link bekommen alle Spieler dieselben zufälligen Pokémon (gemeinsamer Startwert) – wie bei den bekannten Soul-Link-Challenges.
+- Startmenü → SEELENBAND zeigt alle Gebiete mit den Pokémon jedes Spielers, wer online ist und wer schon gefallen ist. Neue Fänge der Partner erscheinen als Hinweis.
+- War jemand offline, gleichen sich die Spiele automatisch ab, sobald wieder alle online sind. Zum Spielen müsst ihr angemeldet sein.
+
+## v0.37 (01.11.2026)
+- Neu: das Einall-Turnier im Großen Stadion von Rayono City (ab 8 Orden). Drei Runden gegen Arenaleiter mit vollen Teams, geheilt wird zwischen den Kämpfen. Im Finale wartet der Legenden-Leiter – nach dem Champ-Titel Lauro! Die Gegner passen sich deinem stärksten Pokémon an. Sieger bekommen seltene Items, einen Pokal für zu Hause und einen Eintrag in der Ehrentafel.
+- Stimmung in der Welt: Rauch steigt aus den Schornsteinen (im Herbst, Winter und abends mehr), Wolkenschatten ziehen an sonnigen Tagen über das Land und auf dem Wasser glitzert die Sonne.
+
+## v0.36 (01.11.2026)
+- Sichtbare wilde Pokémon: Auf den Routen laufen wilde Pokémon aus der Begegnungstabelle sichtbar durchs hohe Gras. Lauf hinein, um zu kämpfen. Schillernde Pokémon funkeln schon von Weitem! Alle ~250 Schritte tauchen neue auf. Zufallsbegegnungen bleiben (abschaltbar: Optionen → SPIEL → Sichtbare Wilde).
+- Tagesaufgaben: In jedem Pokémon-Center hängt eine Aufgaben-Tafel mit drei Aufgaben pro Tag (Pokémon fangen, Trainer besiegen, Schritte laufen, Phänomene, Musical …). Belohnungen an der Tafel abholen. Alle drei geschafft = Bonus, jeder 7. komplette Tag bringt einen Meisterball.
+- Arena Orion City: Ein roter Vorhang versperrt den Weg zu den Brüdern. Der Oberkellner stellt drei Fragen – alle richtig, und der Vorhang öffnet sich.
+
 ## v0.35 (01.11.2026)
 - Neu: das Pokémon-Musical in Rayono City! Schmücke ein Pokémon mit Accessoires (Kopf, Gesicht, Hand) und tritt gegen drei andere auf. Jeder Auftritt hat ein Thema (Süß, Cool, Elegant, Lustig) – passende Accessoires bringen mehr Herzen vom Publikum. Siege schalten neue Accessoires frei (16 insgesamt).
 - Neu: die Royal Einall! Am Hafen von Stratos City nimmt dich ein Matrose mit auf Rundfahrt. An Bord warten sechs Trainer, die jeden Tag neu kämpfen wollen, und der Kapitän hat ein Tagesgeschenk für alle, die sie besiegen. Mit Abendstimmung über dem Meer.
