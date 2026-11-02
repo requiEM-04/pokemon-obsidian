@@ -7666,6 +7666,13 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.39",d:"02.11.2026",items:[
+    "Soul-Link mit allen Regeln: Verbundene Pokémon sind jetzt immer gemeinsam im Team. Ins Team dürfen nur Paare (bzw. Trios), bei denen jeder Spieler sein verbundenes Pokémon noch hat – alles andere wandert automatisch in die Box.",
+    "Team-Spiegel: Wer sein Team zuletzt ändert, gibt es vor. Die Spiele der Partner stellen ihr Team automatisch genauso zusammen (gleiche Gebiete, gleiche Reihenfolge).",
+    "Neue Raum-Option Typ-Regel: Im Team darf kein Primärtyp doppelt vorkommen – bei keinem Spieler.",
+    "Verliert ein Spieler alle Pokémon, ist der Soul-Link für alle vorbei (wie im Original).",
+    "Geschenkte Pokémon (z. B. die Affen in Orion City) und Story-Legenden werden jetzt ebenfalls verbunden.",
+    "Seelenband-Übersicht: ★ zeigt, welche Pokémon gerade im Team sind, dazu die aktiven Regeln."]},
   {v:"0.38",d:"02.11.2026",items:[
     "Neu: Soul-Link online – als Duo (2 Spieler) oder Trio (3 Spieler)! Titel → ONLINE → SOUL-LINK STARTEN: Story oder Frei, Randomizer oder normal, Edition wählen und den 4-stelligen Code an deine Mitspieler geben. Die treten über SOUL-LINK BEITRETEN bei.",
     "Jeder spielt sein eigenes Nuzlocke-Spiel. Die erste Begegnung jedes Gebiets (und die Starter) sind per Seelenband verbunden: Fällt ein Pokémon oder geht ein Fang schief, fallen die verbundenen Pokémon der anderen ebenfalls.",
@@ -12294,7 +12301,7 @@ const SLV=1;
 const SL={tr:null,state:"off",lastTx:0,dirty:true,queue:[],seen:{},on:{}};window.SL=SL;
 const sl=()=>G.save&&G.save.sl;
 const myId=()=>sl()&&sl().me;
-const areaName=a=>a==="starter"?"Starter":(typeof mapById==="function"&&mapById(a)&&mapById(a).name)?mapById(a).name.replace(/^ROUTE /,"Route "):String(a);
+const areaName=a=>a==="starter"?"Starter":/^gift:/.test(a)?"Geschenk":/^legend:/.test(a)?"Legende":(typeof mapById==="function"&&mapById(a)&&mapById(a).name)?mapById(a).name.replace(/^ROUTE /,"Route "):String(a);
 const titleCase=s=>String(s).toLowerCase().replace(/(^|[\s-])\S/g,c=>c.toUpperCase());
 const allMons=()=>[...(G.save.party||[]),...(G.save.box||[])].filter(Boolean);
 const findMon=uid=>allMons().find(m=>m&&m.uid===uid);
@@ -12317,8 +12324,12 @@ function refreshMine(){const s=sl();if(!s)return;const E=myEnc();
   try{if(first&&(G.save.runArea||{})[a]&&!myEnc()[a]){
       if(r==="caught"){const m=findMon(foeUid)||allMons().slice().sort((x,y)=>y.uid-x.uid)[0];myEnc()[a]={sp:m?m.sp:foeSp,uid:m?m.uid:null,lv:m?m.lv:0,st:"caught",nick:""};}
       else myEnc()[a]={sp:foeSp,st:"failed"};
-      SL.dirty=true;slSend();}}catch(e){console.warn(e);}
+      SL.dirty=true;slSend();}
+    else if(s&&cfg&&cfg.legend&&r==="caught"&&a&&!myEnc()["legend:"+a]&&!first){const m=findMon(foeUid)||allMons().slice().sort((x,y)=>y.uid-x.uid)[0];
+      if(m){myEnc()["legend:"+a]={sp:m.sp,uid:m.uid,lv:m.lv,st:"caught",nick:""};SL.dirty=true;slSend();}}}catch(e){console.warn(e);}
   return r;};}
+{const U=REGIONS.unova;const _gm=U.giftMon;if(_gm)U.giftMon=async function(sp,lv,flagId){const m=await _gm.apply(this,arguments);
+  try{if(sl()&&m&&m.uid!=null&&!myEnc()["gift:"+flagId]){myEnc()["gift:"+flagId]={sp:m.sp,uid:m.uid,lv:m.lv,st:"caught",nick:""};SL.dirty=true;}}catch(e){}return m;};}
 
 /* ---------- Seelenband anwenden ---------- */
 function peersEnc(){const P=sl().peers||{};return P;}
@@ -12334,12 +12345,47 @@ function applyLinks(){const s=sl();if(!s)return;refreshMine();const E=myEnc();co
         SL.queue.push(`Seelenband gerissen! ${P[pid].name}s ${pm} ist gefallen – und mit ihm dein ${m?monName(m):SPECIES[mine.sp]?SPECIES[mine.sp].n:"Pokémon"} (${areaName(a)}).`);}}}
   // Team darf nicht leer sein
   if(G.save.party&&!G.save.party.length){const bx=allMons().find(m=>alive(m));if(bx){G.save.box=G.save.box.filter(x=>x!==bx);G.save.party.push(bx);}}}
+/* ---------- Team-Regel: verbundene Pokémon sind gemeinsam im Team ----------
+   Nur Paare (bzw. Trios), bei denen ALLE Spieler ihr verbundenes Pokémon noch haben, dürfen ins Team.
+   Wer sein Team zuletzt ändert, gibt es vor – die Spiele der Partner stellen ihr Team automatisch genauso zusammen
+   (gleiche Gebiete, gleiche Reihenfolge). Optional: Typ-Regel (kein Primärtyp doppelt im Team – bei keinem Spieler). */
+const areaOf=m=>{const E=myEnc();for(const a in E)if(E[a].uid===m.uid&&E[a].st==="caught")return a;return null;};
+const others=()=>(sl().members||[]).filter(x=>x.id!==sl().me);
+const haveAll=()=>others().every(x=>sl().peers&&sl().peers[x.id]);
+function paired(a){const E=myEnc();if(!E[a]||E[a].st!=="caught")return false;const m=findMon(E[a].uid);if(!m||!alive(m))return false;
+  return others().every(x=>{const q=sl().peers[x.id]&&sl().peers[x.id].enc&&sl().peers[x.id].enc[a];return q&&q.st==="caught";});}
+const ptype=sp=>SPECIES[sp]&&SPECIES[sp].t?SPECIES[sp].t[0]:0;
+function buildTeam(list){const out=[];const used={};const typ=sl().rules&&sl().rules.typ;
+  for(const a of list){if(out.length>=6)break;if(out.includes(a)||!paired(a))continue;
+    if(typ){const sps=[findMon(myEnc()[a].uid).sp,...others().map(x=>sl().peers[x.id].enc[a].sp)];const keys=sps.map((sp,i)=>i+":"+ptype(sp));
+      if(keys.some(k=>used[k]))continue;keys.forEach(k=>used[k]=1);}
+    out.push(a);}
+  return out;}
+const teamSig=()=>(G.save.party||[]).map(m=>areaOf(m)||("u"+m.uid)).join("|");
+function enforceTeam(){const s=sl();if(!s||s.ended||!haveAll())return;
+  {const sig0=teamSig();if(s.teamSig!=null&&sig0!==s.teamSig){s.teamAt=Date.now();SL.dirty=true;}s.teamSig=sig0;}   // eigene Änderung (PC, Team-Menü, Fang, Tod)
+  const mine=(G.save.party||[]).map(areaOf).filter(Boolean);
+  // Anführer: wer sein Team zuletzt geändert hat
+  let lead={id:s.me,at:s.teamAt||0,team:mine};
+  for(const x of others()){const p=s.peers[x.id];if(p&&(p.teamAt||0)>lead.at&&Array.isArray(p.team))lead={id:x.id,at:p.teamAt,team:p.team};}
+  const target=buildTeam(lead.team);
+  const newParty=target.map(a=>findMon(myEnc()[a].uid)).filter(m=>m&&alive(m));
+  if(!newParty.length){s.teamWarn=1;return;}s.teamWarn=0;
+  const cur=G.save.party||[];const same=cur.length===newParty.length&&cur.every((m,i)=>m===newParty[i]);
+  if(!same){const kicked=cur.filter(m=>!newParty.includes(m));const added=newParty.filter(m=>!cur.includes(m));
+    G.save.box=(G.save.box||[]).filter(m=>!newParty.includes(m)).concat(kicked);G.save.party=newParty.slice();
+    if(lead.id!==s.me){typeof showToast==="function"&&showToast(`Team an ${memberName(lead.id)} angeglichen`,160);}
+    else if(kicked.length){SL.queue.push(`Seelenband-Regel: ${kicked.map(monName).join(", ")} ${kicked.length>1?"haben":"hat"} keinen lebenden Partner bei allen Mitspielern${s.rules&&s.rules.typ?" oder verletzt die Typ-Regel":""} und ${kicked.length>1?"wurden":"wurde"} in die Box geschickt.`);}
+    if(added.length&&lead.id!==s.me)SL.dirty=true;}
+  if(lead.id!==s.me)s.teamAt=lead.at;
+  const sig=teamSig();if(sig!==s.teamSig){s.teamSig=sig;SL.dirty=true;}}
 async function flushQueue(){if(!SL.queue.length)return;const L=SL.queue.splice(0);sfx("faint");for(const t of L)await say(t);
   if(G.save.party&&!G.save.party.some(alive)&&!allMons().some(alive)){await say("Alle Pokémon sind gefallen ... Der Soul-Link ist für dich vorbei.");if(typeof nuzOver==="function")await nuzOver();}
   saveGame();}
 
 /* ---------- Netzwerk ---------- */
 function snapshot(){const s=sl();refreshMine();return{t:"st",f:s.me,name:s.myName,v:SLV,enc:myEnc(),party:(G.save.party||[]).map(m=>({sp:m.sp,lv:m.lv,a:Object.keys(myEnc()).find(k=>myEnc()[k].uid===m.uid)||null,ok:alive(m)})),
+  team:(G.save.party||[]).map(areaOf).filter(Boolean),teamAt:s.teamAt||0,over:!!s.over,overBy:s.over?(s.overBy||s.me):null,
   badges:(G.save.badges||[]).length,loc:curMap?curMap().name:"",at:Date.now()};}
 function slSend(){if(!SL.tr||SL.state!=="joined")return;try{SL.tr.send(snapshot());SL.lastTx=Date.now();SL.dirty=false;}catch(e){}}
 function onMsg(m){const s=sl();if(!s||!m||m.f===s.me||m.v!==SLV)return;if(!(s.members||[]).some(x=>x.id===m.f))return;
@@ -12347,7 +12393,9 @@ function onMsg(m){const s=sl();if(!s||!m||m.f===s.me||m.v!==SLV)return;if(!(s.me
   if(m.t==="st"){const P=s.peers=s.peers||{};const old=P[m.f];const enc=m.enc&&typeof m.enc==="object"?m.enc:{};
     // Neuigkeiten als Hinweis
     if(old&&old.enc){for(const a in enc){const o=old.enc[a],n=enc[a];if(!o&&n&&n.st==="caught"&&SPECIES[n.sp]){typeof showToast==="function"&&showToast(`${m.name}: ${SPECIES[n.sp].n} in ${areaName(a)}`.slice(0,40),180);}}}
-    P[m.f]={name:String(m.name||"?").slice(0,12),enc,party:Array.isArray(m.party)?m.party.slice(0,6):[],badges:+m.badges||0,loc:String(m.loc||"").slice(0,24),at:Date.now()};
+    P[m.f]={name:String(m.name||"?").slice(0,12),enc,party:Array.isArray(m.party)?m.party.slice(0,6):[],team:Array.isArray(m.team)?m.team.slice(0,6).map(String):[],teamAt:+m.teamAt||0,over:!!m.over,
+      badges:+m.badges||0,loc:String(m.loc||"").slice(0,24),at:Date.now()};
+    if(m.over&&!(old&&old.over)&&!s.over&&!s.ended){s.overBy=(s.members||[]).some(x=>x.id===m.overBy)?m.overBy:m.f;SL.overPending=true;}
     applyLinks();if(!old)slSend();}
   else if(m.t==="hi")slSend();}
 function connect(){const s=sl();if(!s||SL.tr||Date.now()<(SL.next||0))return;if(typeof onTransport!=="function")return;SL.state="connecting";
@@ -12357,9 +12405,15 @@ setInterval(()=>{try{const s=sl();
     if(!s||!Scenes.includes(WorldScene)){if(SL.tr)disconnect();return;}
     if(!SL.tr)connect();
     if(SL.state==="joined"&&(SL.dirty||Date.now()-SL.lastTx>15000))slSend();
-    if(SL.queue.length&&topScene()===WorldScene&&!W.lock&&!PL.moving)script(flushQueue);
+    const idle=topScene()===WorldScene&&!W.lock&&!PL.moving;
+    if(idle&&!s.ended)enforceTeam();
+    if(SL.overPending&&idle){SL.overPending=false;script(async()=>{const n=memberName(s.overBy);sfx("faint");
+      await say(`${n} hat keine Pokémon mehr ... Im Soul-Link verlieren alle gemeinsam. Euer Abenteuer ist vorbei.`);s.over=true;s.ended=true;slSend();if(typeof nuzOver==="function")await nuzOver();});return;}
+    if(SL.queue.length&&idle)script(flushQueue);
   }catch(e){console.warn(e);}},1500);
 // beim Speichern Änderungen sofort melden
+if(typeof nuzOver==="function"){const _no=nuzOver;nuzOver=async function(){const s=sl();if(s&&!s.over){s.over=true;s.ended=true;SL.dirty=true;slSend();await new Promise(r=>setTimeout(r,300));}
+  const r=await _no.apply(this,arguments);if(G.save&&G.save.sl){G.save.sl.ended=true;}return r;};}
 {const _sv=saveGame;saveGame=function(){const r=_sv.apply(this,arguments);if(sl())SL.dirty=true;return r;};}
 
 /* ---------- Lobby: Raum erstellen / beitreten ---------- */
@@ -12371,7 +12425,7 @@ function lobby(code,host,me,n,rules){return new Promise(res=>{let done=false,iv=
     st=>{if(st==="joined"){const tick=()=>{if(host)tr.send({t:"room",f:me.id,v:SLV,members:L.members,n:L.n,rules:L.rules,rid:L.rid,go:L.go});else if(!L.members.some(x=>x.id===me.id))tr.send({t:"join",f:me.id,name:me.name,v:SLV});};tick();iv=setInterval(tick,900);}
       else fin("Keine Verbindung zum Server.");});
   const w=onWait(()=>[host?(L.members.length<L.n?`Warte auf Mitspieler … (${L.members.length}/${L.n})`:"Alle da! Gleich geht's los …"):(L.members.length?`Im Raum: ${L.members.length}/${L.n}`:"Verbinde mit Raum …"),
-      "Spieler: "+(L.members.map(x=>x.name).join(", ")||"–"),L.rules?`${L.rules.story?"Story":"Frei"} · ${L.rules.rand?"Randomizer":"normale Pokémon"} · Edition ${L.rules.ver==="w"?"Weiß":"Schwarz"}`:""],
+      "Spieler: "+(L.members.map(x=>x.name).join(", ")||"–"),L.rules?`${L.rules.story?"Story":"Frei"} · ${L.rules.rand?"Randomizer":"Normal"} · ${L.rules.ver==="w"?"Weiß":"Schwarz"}${L.rules.typ?" · Typ-Regel":""}`:""],
     {title:"SOUL-LINK "+(n===3||L.n===3?"TRIO":"DUO"),right:me.name,code:host?code:null});
   const t0=Date.now();
   const chk=setInterval(()=>{if(w.cancel)return fin("cancel");
@@ -12390,7 +12444,8 @@ async function slFlow(kind){if(ON.busy)return;
     const m=await onMenu("SOUL-LINK","",[["STORY","news"],["FREI","map"],["ZURÜCK","back"]],["Story: mit Geschichte und Team Plasma.","Frei: offene Welt ohne Story-Sperren."]);if(m<0||m===2)return;
     const r=await onMenu("SOUL-LINK","",[["RANDOMIZER","shard"],["NORMAL","mon"],["ZURÜCK","back"]],["Randomizer: Alle Pokémon zufällig – für alle Spieler gleich.","Normal: Original-Begegnungen."]);if(r<0||r===2)return;
     const v=await onMenu("SOUL-LINK","",[["SCHWARZ","shard"],["WEISS","shard"],["ZURÜCK","back"]],["Edition für alle Spieler"]);if(v<0||v===2)return;
-    rules={story:m===0,rand:r===0,ver:v===1?"w":"b",seed:(Math.random()*2147483647)|0};code=String(1000+Math.floor(Math.random()*9000));}
+    const ty=await onMenu("SOUL-LINK","",[["MIT TYP-REGEL","shard"],["OHNE TYP-REGEL","mon"],["ZURÜCK","back"]],["Typ-Regel: Im Team darf kein Primärtyp doppelt vorkommen – bei keinem Spieler.","Verbundene Pokémon sind immer gemeinsam im Team."]);if(ty<0||ty===2)return;
+    rules={story:m===0,rand:r===0,ver:v===1?"w":"b",typ:ty===0,seed:(Math.random()*2147483647)|0};code=String(1000+Math.floor(Math.random()*9000));}
   else{const f=await onForm({title:"SOUL-LINK BEITRETEN",ok:"Beitreten",fields:[{id:"c",label:"Raum-Code (4 Ziffern)",max:4,mode:"numeric"}],check:v=>/^\d{4}$/.test(v.c.trim())?null:"Der Code hat 4 Ziffern."});if(!f)return;code=f.c.trim();}
   ON.busy=true;let res;try{res=await lobby(code,host,me,n,rules);}finally{ON.busy=false;}
   if(res==="cancel")return;if(typeof res==="string"){await onMsgBox(res);return;}
@@ -12399,13 +12454,13 @@ async function slFlow(kind){if(ON.busy)return;
   const gender=await pickGender();const R=res.rules;
   G.save=newSave({name:me.name.slice(0,10),gender,mode:"nuz",diff:"normal",mgm:false,rand:!!R.rand,expAll:true,story:!!R.story,ver:R.ver||"b",bonus:{}});
   G.save.seed=R.seed>>>0||G.save.seed;G.save.slot=slot;G.save.tmv=1;
-  G.save.sl={rid:res.rid,code,n:res.n,members:res.members,me:me.id,myName:me.name,enc:{},peers:{},created:Date.now()};
+  G.save.sl={rid:res.rid,code,n:res.n,members:res.members,me:me.id,myName:me.name,enc:{},peers:{},rules:{typ:!!R.typ,rand:!!R.rand,story:!!R.story},teamAt:0,created:Date.now()};
   saveGame();await fadeTo(1,16);pop(TitleScene);await startWorld(true);}
 U_SL_FLOW=slFlow;
 
 /* ---------- Übersicht (Startmenü → SEELENBAND) ---------- */
 async function slScreen(){const s=sl();if(!s)return;applyLinks();let sc=0;
-  const cols=()=>[{id:s.me,name:s.myName,enc:myEnc()},...(s.members||[]).filter(x=>x.id!==s.me).map(x=>({id:x.id,name:x.name,enc:(s.peers&&s.peers[x.id]&&s.peers[x.id].enc)||{}}))];
+  const cols=()=>[{id:s.me,name:s.myName,enc:myEnc(),team:(G.save.party||[]).map(areaOf).filter(Boolean)},...(s.members||[]).filter(x=>x.id!==s.me).map(x=>{const p=(s.peers&&s.peers[x.id])||{};return{id:x.id,name:x.name,enc:p.enc||{},team:p.team||[]};})];
   const areas=()=>{const set=new Set();for(const c of cols())for(const a in c.enc)set.add(a);const L=[...set];L.sort((a,b)=>a==="starter"?-1:b==="starter"?1:0);return L;};
   await run({opaque:true,update(){const n=areas().length;if(Input.nav("down"))sc=Math.min(Math.max(0,n-6),sc+1);if(Input.nav("up"))sc=Math.max(0,sc-1);if(Input.hit("b")||Input.hit("a")){sfx("back");this.done();}},
     draw(){obBg();obHeader("SEELENBAND",`${s.n===3?"TRIO":"DUO"} · Raum ${s.code}`);const C=cols(),A=areas();const cw=(PRW-96)/C.length;
@@ -12416,10 +12471,12 @@ async function slScreen(){const s=sl();if(!s)return;applyLinks();let sc=0;
         let dead=false;C.forEach(c=>{const e=c.enc[a];if(e&&(e.st==="dead"||e.st==="failed"||e.st==="blocked"))dead=true;});
         C.forEach((c,i)=>{const x=92+i*cw,e=c.enc[a];if(!e){prT("–",x+8,y+14,{size:11,c:OB.dim});return;}
           if(e.sp&&SPECIES[e.sp]){const k=e.sp-1;ctx.globalAlpha=e.st==="caught"&&!dead?1:.35;ctx.drawImage(IMG.icon,(k%16)*40,Math.floor(k/16)*30,40,30,x,y-3,32,24);ctx.globalAlpha=1;}
+          if(c.team.includes(a)&&!dead)prT("★",x-6,y+10,{size:10,c:OB.gold,sh:"transparent"});
           const lbl=e.st==="caught"?(dead?"✝":`Lv.${e.lv||"?"}`):e.st==="dead"?"✝":e.st==="failed"?"verpasst":"gesperrt";
           prT(lbl,x+34,y+14,{size:10,c:e.st==="caught"&&!dead?"#fff":"#ff8a7a"});});});
       const alive_=A.filter(a=>C.every(c=>c.enc[a]&&c.enc[a].st==="caught")).length;
-      obFoot(`Verbundene Paare: ${alive_} · Gefallen: ${A.length-alive_}${SL.state!=="joined"?" · offline":""}`,"▲▼ blättern · B: zurück");prEnd();}});}
+      const rl=[s.rules&&s.rules.typ?"Typ-Regel":"",haveAll()?"":"warte auf Partner-Daten",s.teamWarn?"Team-Regel ausgesetzt (kein Paar übrig)":"",SL.state!=="joined"?"offline":""].filter(Boolean).join(" · ");
+      obFoot(`Paare: ${alive_} · Gefallen: ${A.length-alive_} · ★ = im Team${rl?" · "+rl:""}`,s.ended?"Soul-Link beendet · B: zurück":"▲▼ blättern · B: zurück");prEnd();}});}
 U_SL_SCREEN=slScreen;
 REGIONS.unova.slApply=applyLinks;REGIONS.unova.slSnapshot=snapshot;
 })();
@@ -12427,7 +12484,7 @@ var U_SL_FLOW,U_SL_SCREEN;
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.38";
+const VERSION="0.39";
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
   return{v:1,mapv:3,region:o.region||"unova",story:o.story!==false,ver:o.ver||"b",name:o.name,gender:o.gender,rival:"Cheren",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
