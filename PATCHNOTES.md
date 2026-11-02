@@ -2,6 +2,28 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.35 (01.11.2026)
+- Neu: das Pokémon-Musical in Rayono City! Schmücke ein Pokémon mit Accessoires (Kopf, Gesicht, Hand) und tritt gegen drei andere auf. Jeder Auftritt hat ein Thema (Süß, Cool, Elegant, Lustig) – passende Accessoires bringen mehr Herzen vom Publikum. Siege schalten neue Accessoires frei (16 insgesamt).
+- Neu: die Royal Einall! Am Hafen von Stratos City nimmt dich ein Matrose mit auf Rundfahrt. An Bord warten sechs Trainer, die jeden Tag neu kämpfen wollen, und der Kapitän hat ein Tagesgeschenk für alle, die sie besiegen. Mit Abendstimmung über dem Meer.
+- Musical: eigene Musik, Bühne mit Vorhang, Scheinwerfern, Publikum und fliegenden Herzen.
+
+## v0.34 (01.11.2026)
+- Arena-Rätsel wie im Original: In Stratos City versperren Honigwände den Weg (vor die Wand stellen und A drücken), in Rayono City öffnen und schließen Schalter die Absperrungen, in Septerna musst du in Aloes Bibliothek das richtige Buch finden, und in Nevaio City rutschst du übers Eis, bis du gegen einen Eisblock stößt.
+- Phänomene wie in Schwarz/Weiß: Raschelndes Gras, Staubwolken in Höhlen und sprudelndes Wasser. Lauf hinein, um seltene und stärkere Pokémon zu treffen (Ohrdoch, Emolga, Rotomurf, Mamolida …) – mit erhöhter Shiny-Chance und guten Werten. In Staubwolken liegen oft Items wie Sonderbonbons, Nuggets oder Entwicklungssteine.
+- Liga-Revanche: Nach dem Champ-Titel kannst du die Top Vier und Lauro erneut herausfordern. Sie kämpfen mit 6 Pokémon auf Lv. 70+ und zahlen deutlich mehr Preisgeld.
+- Leben in der Welt: Vogelschwärme ziehen über den Himmel, Schmetterlinge flattern über Blumen und nachts leuchten Glühwürmchen im Gras.
+- Konfetti beim Orden-Gewinn und beim Einzug in die Ruhmeshalle.
+
+## v0.33 (01.11.2026)
+- Wetter: Sandsturm auf Route 4, im Wüstenresort und im Alten Palast, Nebel an der Drachenstiege, Regentage (im Norden öfter) und Schnee im Winter. Sandsturm und Regen gelten auch im Kampf (wie im Original). In den Optionen abschaltbar.
+- Welt-Effekte: Fenster leuchten abends und nachts, Fußspuren im Sand und im Schnee, Blätter fliegen beim Laufen durchs hohe Gras, Wellen beim Surfen.
+- Jahreszeit jetzt passend zum Monat: Im November ist Herbst – Einall färbt sich rot und gold.
+- Tauschpartner: In Orion City, Stratos City, Marea City, Nevaio City und Ondula wollen Leute Pokémon tauschen (z. B. Zorua gegen Dusselgurr). Im Randomizer nehmen sie jedes Pokémon.
+- In jedem Pokémon-Center: der Attacken-Erinnerer (vergessene Attacken gegen eine Herzschuppe) und der Namensbewerter (Spitznamen ändern).
+- Prof. Esche bewertet deinen Pokédex und belohnt dich: bei 30, 60 und 100 gefangenen Pokémon Items, bei 140 den Schillerpin (dreifache Shiny-Chance).
+- Arena Panaero City wie im Original: Kanonen schießen dich durch die Halle – nur so kommst du zu Géraldine.
+- Winter in Nevaio City: Teiche, Moor und Wasser an der Drachenstiege frieren zu – du kannst übers Eis laufen.
+
 ## v0.32 (31.10.2026)
 - Neu nach der Story: Ost-Einall! Route 11 bis 16, die Dorfbrücke, Tessera (mit Mauer und alter Drachen-Legende), der Ferienort Ondula am Meer, der Schrein der Ernte und die Wunderbrücke.
 - Editionsorte wie im Original: In Schwarz die Schwarze Stadt (starke Trainer und ein Händler mit seltenen Waren), in Weiß der Weiße Wald (seltene Pokémon wie Kapuno, Milza, Ignivor, Lichtel und Zorua).
