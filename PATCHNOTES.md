@@ -2,6 +2,12 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.43 (03.11.2026)
+- Hotfix: Die Pokémon-Center-Dame bietet kein Training mehr an (kein Hochziehen aufs Level-Cap, kein Wesen-Ändern) – nur noch Heilen.
+
+## v0.42 (03.11.2026)
+- Hotfix: Steigt ein Pokémon im Kampf ein Level auf, das gerade nicht kämpft (Team-EP), erscheint nur noch die Meldung – das Werte-Fenster gibt es nur noch für das aktive Pokémon.
+
 ## v0.41 (03.11.2026)
 - Neu: Generationen! Beim neuen Spiel unter „Generationen“ wählbar: Gen 5 (nur Einall) · Gen 4–5 · Gen 3–5 · ALLE (Gen 1–5, alle 649 Pokémon).
 - Mit mehreren Generationen tauchen Pokémon der anderen Gens in Einall mit auf – im hohen Gras, im Wasser und in Höhlen, passend zum Gebiet und zum Level (keine Legenden). Im Randomizer kommen alle eingeschalteten Gens vor, auch bei Startern, Trainern und Arenen.
