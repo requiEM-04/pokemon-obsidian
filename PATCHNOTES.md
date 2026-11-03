@@ -2,6 +2,14 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.41 (03.11.2026)
+- Neu: Generationen! Beim neuen Spiel unter „Generationen“ wählbar: Gen 5 (nur Einall) · Gen 4–5 · Gen 3–5 · ALLE (Gen 1–5, alle 649 Pokémon).
+- Mit mehreren Generationen tauchen Pokémon der anderen Gens in Einall mit auf – im hohen Gras, im Wasser und in Höhlen, passend zum Gebiet und zum Level (keine Legenden). Im Randomizer kommen alle eingeschalteten Gens vor, auch bei Startern, Trainern und Arenen.
+- Der Pokédex zeigt bei mehreren Gens alle Pokémon in nationaler Reihenfolge (bei ALLE: 649).
+- Neue Edition „BEIDE“: Schwarz- und Weiß-Exklusive gleichzeitig, Schwarze Stadt und Weißer Wald sind beide offen, Boreos und Voltolos erscheinen beide.
+- Soul-Link: Beim Erstellen eines Raums lassen sich jetzt auch Edition „Beide“ und die Generationen wählen.
+- Web-Version: Die Grafiken der Gen 1–4 werden erst geladen, wenn ein solches Pokémon auftaucht – der Start bleibt schnell.
+
 ## v0.40 (03.11.2026)
 - Hotfix: Die sichtbar herumlaufenden wilden Pokémon sind wieder entfernt. Wilde Begegnungen gibt es wie gewohnt im hohen Gras.
 - Folge-Pokémon entfernt: Das erste Pokémon im Team läuft dir nicht mehr hinterher.
