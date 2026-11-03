@@ -2,6 +2,12 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.40 (03.11.2026)
+- Hotfix: Die sichtbar herumlaufenden wilden Pokémon sind wieder entfernt. Wilde Begegnungen gibt es wie gewohnt im hohen Gras.
+- Folge-Pokémon entfernt: Das erste Pokémon im Team läuft dir nicht mehr hinterher.
+- Die Vogelschwärme, die über den Bildschirm geflogen sind, sind entfernt.
+- Das raschelnde Gras (Phänomene) bleibt.
+
 ## v0.39 (02.11.2026)
 - Soul-Link mit allen Regeln: Verbundene Pokémon sind jetzt immer gemeinsam im Team. Ins Team dürfen nur Paare (bzw. Trios), bei denen jeder Spieler sein verbundenes Pokémon noch hat – alles andere wandert automatisch in die Box.
 - Team-Spiegel: Wer sein Team zuletzt ändert, gibt es vor. Die Spiele der Partner stellen ihr Team automatisch genauso zusammen (gleiche Gebiete, gleiche Reihenfolge).
