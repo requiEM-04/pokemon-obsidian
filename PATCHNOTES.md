@@ -2,6 +2,9 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.44 (03.11.2026)
+- Hotfix Arena Orion City: Der rote Vorhang und das Quiz sind wieder raus – die Arena ist wie vorher, die Brüder sind direkt zu sehen und erreichbar.
+
 ## v0.43 (03.11.2026)
 - Hotfix: Die Pokémon-Center-Dame bietet kein Training mehr an (kein Hochziehen aufs Level-Cap, kein Wesen-Ändern) – nur noch Heilen.
 
