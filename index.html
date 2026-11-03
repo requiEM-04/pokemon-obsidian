@@ -1198,7 +1198,7 @@ function gPath(g,ox,oy,wx,wy,nb){gPathBase(g,ox,oy,wx,wy,nb);
 const STAT_N=["KP","Angriff","Verteid.","Sp.-Ang.","Sp.-Vert.","Init."];
 const STAT_LONG=["KP","Angriff","Verteidigung","Spezial-Angriff","Spezial-Verteidigung","Initiative"];
 let G={save:null};                  // globaler Spielstand (siehe main.js)
-const OPT=Object.assign({text:2,anim:true,autorun:false,follow:true,sfx:.6,mus:.45,repel:false,style:"set",daynight:true,light:true,look:"classic",view:"full"},LS.get("saga_opt",{}));
+const OPT=Object.assign({text:2,anim:true,autorun:false,follow:true,sfx:.6,mus:.45,repel:false,style:"set",daynight:true,light:true,look:"classic",view:"full"},LS.get("saga_opt",{}));OPT.follow=false;   // v0.40: Folge-Pokémon entfernt
 if(OPT.lookV!==2){OPT.look="classic";OPT.lookV=2;} // v0.9: Standard wieder Retro-3D
 function saveOpt(){LS.set("saga_opt",OPT);applyVolume();}
 
@@ -7372,9 +7372,7 @@ function optionsMenu(){
         ["Kampfanimation",()=>onoff(OPT.anim),()=>OPT.anim=!OPT.anim,"Attacken-Animationen im Kampf zeigen oder überspringen."],
         ["Kampfstil",()=>G.save&&G.save.diff==="normal"?"Folge (Normal)":OPT.style==="shift"?"Wechsel":"Folge",()=>{if(!G.save||G.save.diff!=="normal")OPT.style=OPT.style==="shift"?"set":"shift";},"Wechsel: Nach einem K.O. des Gegners darfst du tauschen (nur Leicht)."],
         ["Auto-Rennen",()=>onoff(OPT.autorun),()=>OPT.autorun=!OPT.autorun,"Immer rennen, Shift läuft dann langsam."],
-        ["Folge-Pokémon",()=>onoff(OPT.follow),()=>OPT.follow=!OPT.follow,"Das erste Pokémon im Team läuft hinter dir her."],
-        ["Unendl. Schutz",()=>onoff(OPT.repel),()=>OPT.repel=!OPT.repel,"Keine wilden Begegnungen (praktisch zum Erkunden)."],
-        ["Sichtbare Wilde",()=>onoff(OPT.wildvis!==false),()=>OPT.wildvis=OPT.wildvis===false,"Wilde Pokémon laufen sichtbar durchs hohe Gras – lauf hinein, um zu kämpfen. Zufallsbegegnungen gibt es weiterhin."]]],
+        ["Unendl. Schutz",()=>onoff(OPT.repel),()=>OPT.repel=!OPT.repel,"Keine wilden Begegnungen (praktisch zum Erkunden)."]]],
       ["GRAFIK",[
         ["Ansicht",()=>OPT.view==="frame"?"Rahmen + Panels":"Vollbild",()=>{OPT.view=OPT.view==="frame"?"full":"frame";setTimeout(fitScreen,0);},"Vollbild oder Rahmen mit Team- und Orden-Panels am Rand."],
         ["Grafikstil",()=>OPT.look==="classic"?"Klassisch":"Y2K",()=>{OPT.look=OPT.look==="classic"?"y2k":"classic";if(typeof BV!=="undefined")BV.bgKind=null;},"Klassische Pixel-Welt oder Y2K-Look mit Neon-Kampfbühne."],
@@ -7666,6 +7664,11 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.40",d:"03.11.2026",items:[
+    "Hotfix: Die sichtbar herumlaufenden wilden Pokémon sind wieder entfernt. Wilde Begegnungen gibt es wie gewohnt im hohen Gras.",
+    "Folge-Pokémon entfernt: Das erste Pokémon im Team läuft dir nicht mehr hinterher.",
+    "Die Vogelschwärme, die über den Bildschirm geflogen sind, sind entfernt.",
+    "Das raschelnde Gras (Phänomene) bleibt."]},
   {v:"0.39",d:"02.11.2026",items:[
     "Soul-Link mit allen Regeln: Verbundene Pokémon sind jetzt immer gemeinsam im Team. Ins Team dürfen nur Paare (bzw. Trios), bei denen jeder Spieler sein verbundenes Pokémon noch hat – alles andere wandert automatisch in die Box.",
     "Team-Spiegel: Wer sein Team zuletzt ändert, gibt es vor. Die Spiele der Partner stellen ihr Team automatisch genauso zusammen (gleiche Gebiete, gleiche Reihenfolge).",
@@ -11749,7 +11752,8 @@ const WLIFE={birds:null,bits:[],flies:[],next:300};
 function drawLife(){const cm=curMap();if(!cm||cm.cave||!(cm.world||cm.outside)||OPT.life===false)return;
   const tod=typeof battleTod==="function"?battleTod():"day";const season=typeof seasonNow==="function"?seasonNow():"summer";
   // Vogelschwarm (Dusselgurr/Navitaub) zieht tagsüber über den Himmel
-  if(!WLIFE.birds&&tod!=="night"&&--WLIFE.next<=0){WLIFE.next=900+Math.floor(Math.random()*1500);const dir=Math.random()<.5?1:-1;
+  if(false&&!WLIFE.birds&&tod!=="night"&&--WLIFE.next<=0){   // v0.40: Vogelschwärme entfernt
+  WLIFE.next=900+Math.floor(Math.random()*1500);const dir=Math.random()<.5?1:-1;
     WLIFE.birds={dir,t:0,y:14+Math.random()*40,list:Array.from({length:3+Math.floor(Math.random()*4)},(_,i)=>({sp:i===0&&Math.random()<.4?520:519,dx:i*18+Math.random()*10,dy:(i%2?8:-4)+Math.random()*10,s:.42+Math.random()*.15}))};}
   if(WLIFE.birds&&IMG.fol&&IMG.fol.complete){const B=WLIFE.birds;B.t++;let any=false;
     for(const b of B.list){const x=B.dir>0?-40-b.dx+B.t*1.1:SW+40+b.dx-B.t*1.1;if(x>-60&&x<SW+60)any=true;else if(B.t>40)continue;
@@ -12051,69 +12055,6 @@ M.royal={name:"ROYAL EINALL",floor:"wood",wall:"house:blue",entry:[6,9],music:"s
     }catch(e){}};}
 })();
 
-/* ===== regions/unova_j_wild.js ===== */
-/* ================================ EINALL · SICHTBARE WILDE POKÉMON (v0.36) ================================
-   Wie in Let's Go / Karmesin & Purpur: Auf Routen laufen wilde Pokémon sichtbar durchs hohe Gras (aus der
-   Begegnungstabelle der Route). Läuft man in eines hinein, beginnt der Kampf. Schillernde Pokémon funkeln.
-   Alle ~250 Schritte tauchen neue auf. Zufallsbegegnungen bleiben wie gewohnt (abschaltbar über Schutz).
-   Die Figuren blockieren keine Wege (man läuft hindurch = Kampf). Optionen → SPIEL → „Sichtbare Wilde“. */
-(function(){
-const U=REGIONS.unova,M=U.maps;const H=U.hash;
-const CYC=250;
-const cyc=()=>Math.floor(((G.save&&G.save.steps)||0)/CYC);
-function speciesFor(n){const m=n.m,enc=m.enc;if(!enc||!enc.list||!enc.list.length)return null;const c=cyc();
-  if(n._c===c&&n._sp)return n._sp;
-  const r=seeded(((G.save&&G.save.seed)||1)^H(n.id+":"+c));const tot=enc.list.reduce((a,e)=>a+e[3],0);let x=r()*tot,e=enc.list[0];
-  for(const q of enc.list){x-=q[3];if(x<0){e=q;break;}}
-  let sp=typeof e[0]==="function"?e[0]():e[0];if(!SPECIES[sp])return null;
-  if(G.save&&G.save.rand)sp=randomSpecies(sp,m.id);
-  n._c=c;n._sp=sp;n._lv=Math.round(e[1]+(e[2]-e[1])*r());n._shiny=r()<shinyRate()*4;return sp;}
-const gone=()=>{G.save._wg=G.save._wg||{};return G.save._wg;};
-let added=0;
-for(const id in M){const m=M[id];if(!m.enc||m.cave||!(m.world||m.outside)||!Array.isArray(m.tiles))continue;
-  const T=m.tiles,h=T.length,w=T[0].length;const spots=[];
-  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(T[y][x]!==",")continue;const n4=[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dy])=>(T[y+dy]||"")[x+dx]===",").length;if(n4<3)continue;
-    if((m.warps||[]).some(q=>Math.abs(q.x-x)+Math.abs(q.y-y)<3))continue;spots.push([x,y]);}
-  if(!spots.length)continue;
-  const want=Math.min(3,Math.max(1,Math.floor(spots.length/18)));const pick=[];
-  for(let k=0;k<spots.length&&pick.length<want;k++){const s=spots[(H(id+":w"+k)%spots.length)];if(pick.some(([a,b])=>Math.abs(a-s[0])+Math.abs(b-s[1])<6))continue;pick.push(s);}
-  m.npcs=m.npcs||[];
-  pick.forEach(([x,y],i)=>{const d={x,y,id:"wild_"+id+"_"+i,move:"wander",dir:"down",wildw:1,
-      show(){if(OPT.wildvis===false||!G.save||!G.save.party.length)return false;if(U.story()&&!flag("st_dex"))return false;const g=gone()[this.id];return g==null||g!==cyc();}};
-    Object.defineProperty(d,"mon",{get(){const n=(W.npcs[id]||[]).find(q=>q.d===d);return n?speciesFor(n):null;},enumerable:true});
-    m.npcs.push(d);added++;});}
-U.wildWalkers=added;
-// nicht fest: man läuft hindurch (npcAt ignoriert sie, außer bei der eigenen Bewegung der Wilden)
-{const _na=npcAt;npcAt=function(x,y){const n=_na(x,y);if(n&&n.d.wildw&&!W._wildSolid){const all=activeNpcs().filter(q=>!q.d.wildw&&((q.x===x&&q.y===y)||(q.moving&&q.tx===x&&q.ty===y)));return all[0];}return n;};}
-// Bewegung: nur im hohen Gras bleiben
-{const _un=updateNpcs;updateNpcs=function(){W._wildSolid=1;try{
-    for(const n of activeNpcs()){if(!n.d.wildw||n.moving)continue;n.d.move=W.lock?"still":"wander";}
-    _un.apply(this,arguments);
-    for(const n of activeNpcs()){if(!n.d.wildw||!n.moving||n.prog!==0)continue;const t=tileAt(n.tx,n.ty);if(!t||t.c!==","||(n.tx===PL.x&&n.ty===PL.y)){n.moving=false;}}
-  }finally{W._wildSolid=0;}};}
-async function wildBattle(n){const sp=speciesFor(n);if(!sp)return;if(U.dailyBump)U.dailyBump("visible");const m=n.m;
-  gone()[n.d.id]=cyc();W.encCool=4;
-  const mon=makeMon(sp,Math.max(2,n._lv||5),{mgm:false,shiny:n._shiny||undefined});
-  sfx("surprise");await startBattle({type:"wild",foes:[mon],bg:m.bg||"grass",area:m.id});}
-// Hineinlaufen = Kampf (auch wenn das Pokémon in den Spieler läuft)
-{const _os=onStep;onStep=function(){
-  try{if(G.save&&partyAlive()&&!W.lock){const n=activeNpcs().find(q=>q.d.wildw&&((q.x===PL.x&&q.y===PL.y)||(q.moving&&q.tx===PL.x&&q.ty===PL.y)));
-      if(n){G.save.steps=(G.save.steps||0)+1;script(wildBattle,n);return;}}}catch(e){console.warn(e);}
-  return _os.apply(this,arguments);};}
-{const _up=updatePlayer;updatePlayer=function(){
-  if(G.save&&!W.lock&&!PL.moving&&partyAlive()){const n=activeNpcs().find(q=>q.d.wildw&&!q.moving&&q.x===PL.x&&q.y===PL.y);if(n){script(wildBattle,n);return;}}
-  return _up.apply(this,arguments);};}
-// Funkeln bei Schillernden + kleine Gras-Wellen bei der Bewegung
-{const _dw=drawWorld;drawWorld=function(){_dw.apply(this,arguments);try{if(!V3.ok)return;const cm=curMap();if(!(cm.world||cm.outside))return;
-  for(const n of activeNpcs()){if(!n.d.wildw)continue;const[x,y]=charWorldPos(n);
-    if(n._shiny&&FRAME%40<24){const[sx,sy]=projectToScreen(x+.5,1.0,y+.6);ctx.save();ctx.globalCompositeOperation="lighter";
-      for(let i=0;i<4;i++){const a=FRAME*.08+i*1.57,r=7+Math.sin(FRAME*.2+i)*2;ctx.fillStyle="rgba(255,250,170,.9)";const px=sx+Math.cos(a)*r,py=sy+Math.sin(a)*r*.7;ctx.fillRect(px-1,py-1,2,2);ctx.fillRect(px-.5,py-2.5,1,5);ctx.fillRect(px-2.5,py-.5,5,1);}
-      ctx.restore();}
-    if(n.moving&&n.prog%8===0&&typeof WLIFE==="undefined"){/* Partikel über unova_g_life */}}}catch(e){}};}
-// Im 2D-Modus (ohne WebGL) als kleines Symbol zeichnen
-U.wildBattle=wildBattle;U.wildSpecies=speciesFor;
-})();
-
 /* ===== regions/unova_k_daily.js ===== */
 /* ================================ EINALL · TAGESAUFGABEN & ARENA ORION CITY (v0.36) ================================
    1) Tagesaufgaben: In jedem Pokémon-Center hängt eine Aufgaben-Tafel mit drei Aufgaben pro Tag (fangen, Trainer
@@ -12131,7 +12072,6 @@ const TASKS=[
   {k:"wild",n:c=>`Besiege ${c} wilde Pokémon`,need:[4,6,10]},
   {k:"steps",n:c=>`Laufe ${c} Schritte`,need:[300,600,1000]},
   {k:"phen",n:c=>`Untersuche ${c} Phänomen${c>1?"e":""}`,need:[1,2]},
-  {k:"visible",n:c=>`Kämpfe gegen ${c} sichtbare Wilde`,need:[2,3,4]},
   {k:"evolve",n:c=>`Lass ${c} Pokémon sich entwickeln`,need:[1]},
   {k:"musical",n:()=>"Tritt im Musical auf",need:[1],post:()=>flag("musical_intro")||(G.save.badges||[]).length>=4},
 ];
@@ -12140,6 +12080,7 @@ function daily(){const s=G.save;if(!s.daily||s.daily.day!==today()){const r=seed
     while(L.length<3&&pool.length){const t=pool.splice(Math.floor(r()*pool.length),1)[0];const c=t.need[Math.floor(r()*t.need.length)];
       const it=REW[Math.floor(r()*REW.length)];L.push({k:t.k,c,have:0,it,n:["rare-candy","pp-up","max-revive","nugget","heart-scale"].includes(it)?1:3,done:false});}
     s.daily={day:today(),steps0:s.steps||0,tasks:L};}
+  s.daily.tasks=s.daily.tasks.filter(t=>TASKS.some(x=>x.k===t.k));
   return s.daily;}
 function bump(k,n=1){if(!G.save||!G.save.party)return;const d=daily();for(const t of d.tasks)if(t.k===k&&!t.done){t.have=Math.min(t.c,t.have+n);if(t.have>=t.c&&!t.toast){t.toast=1;if(typeof showToast==="function")showToast("Tagesaufgabe erfüllt!",150);}}}
 U.dailyBump=bump;
@@ -12484,7 +12425,7 @@ var U_SL_FLOW,U_SL_SCREEN;
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.39";
+const VERSION="0.40";
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
   return{v:1,mapv:3,region:o.region||"unova",story:o.story!==false,ver:o.ver||"b",name:o.name,gender:o.gender,rival:"Cheren",tid:rint(1,65535),money:3000+(o.bonus&&o.bonus.money?2000:0),
