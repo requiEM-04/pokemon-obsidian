@@ -2,6 +2,11 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.45 (03.11.2026)
+- Handy-Modus überarbeitet: Spielbild und Tasten passen sich jetzt an jeden Bildschirm an (hochkant und quer, kleine Handys bis Tablets). Nichts verschwindet mehr hinter dem Bildschirmrand oder der Browserleiste, Notch und Home-Leiste werden freigehalten.
+- Steuerkreuz: Du kannst den Finger jetzt gleiten lassen – die Richtung wechselt, ohne neu zu tippen (wie bei einem echten Steuerkreuz).
+- Tablets bekommen jetzt auch die Touch-Tasten.
+
 ## v0.44 (03.11.2026)
 - Hotfix Arena Orion City: Der rote Vorhang und das Quiz sind wieder raus – die Arena ist wie vorher, die Brüder sind direkt zu sehen und erreichbar.
 
