@@ -7669,6 +7669,8 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.44",d:"03.11.2026",items:[
+    "Hotfix Arena Orion City: Der rote Vorhang und das Quiz sind wieder raus – die Arena ist wie vorher, die Brüder sind direkt zu sehen und erreichbar."]},
   {v:"0.43",d:"03.11.2026",items:[
     "Hotfix: Die Pokémon-Center-Dame bietet kein Training mehr an (kein Hochziehen aufs Level-Cap, kein Wesen-Ändern) – nur noch Heilen."]},
   {v:"0.42",d:"03.11.2026",items:[
@@ -12125,7 +12127,7 @@ for(const id in M){if(!/^center_/.test(id))continue;const m=M[id];if(!m.tiles)co
   const sp=[[4,5],[11,5],[4,6],[11,6],[5,7],[10,7],[1,7]].find(([x,y])=>free(x,y));
   if(sp)m.npcs.push({x:sp[0],y:sp[1],obj:"board",fixed:1,move:"still",dir:"down",sid:"daily",run:board});}
 /* ---------- Arena Orion City: Vorhang + Quiz ---------- */
-{const m=M.gym_striaton;if(m){
+{const m=false&&M.gym_striaton;if(m){   // v0.44: Vorhang + Quiz entfernt (verdeckte die Arena)
   const Q=[["Welcher Typ ist sehr effektiv gegen Pflanze?",["Feuer","Wasser","Boden"],0],
     ["Welcher Typ ist sehr effektiv gegen Wasser?",["Feuer","Pflanze","Normal"],1],
     ["Welcher Typ ist sehr effektiv gegen Feuer?",["Käfer","Pflanze","Wasser"],2],
@@ -12485,7 +12487,7 @@ U.genMixed=mixed;
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.43";
+const VERSION="0.44";
 const GEN_OPTS=[["GEN 5",[5]],["GEN 4–5",[4,5]],["GEN 3–5",[3,4,5]],["ALLE (1–5)",[1,2,3,4,5]]];
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
