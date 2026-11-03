@@ -3192,7 +3192,7 @@ async function giveExp(foe){
       B.lvUps.add(m.uid);
       if(isAct)B.hpD[0]=m.hp;
       sfx("lvup");await msg(`${monName(m)} erreicht Level ${u.lv}!`,true);
-      await statWindow(u.old,u.nw);
+      if(isAct)await statWindow(u.old,u.nw);   // v0.42: Werte-Fenster nur für das aktive Pokémon
       for(const id of movesAt(m.sp,u.lv))await learnMove(m,id,true);
     }
     if(m.lv>=cap&&ups.length)await msg(`Level-Cap erreicht! Mehr EXP gibt es nach dem nächsten Orden.`);
@@ -7669,6 +7669,10 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.43",d:"03.11.2026",items:[
+    "Hotfix: Die Pokémon-Center-Dame bietet kein Training mehr an (kein Hochziehen aufs Level-Cap, kein Wesen-Ändern) – nur noch Heilen."]},
+  {v:"0.42",d:"03.11.2026",items:[
+    "Hotfix: Steigt ein Pokémon im Kampf ein Level auf, das gerade nicht kämpft (Team-EP), erscheint nur noch die Meldung – das Werte-Fenster gibt es nur noch für das aktive Pokémon."]},
   {v:"0.41",d:"03.11.2026",items:[
     "Neu: Generationen! Beim neuen Spiel unter „Generationen“ wählbar: Gen 5 (nur Einall) · Gen 4–5 · Gen 3–5 · ALLE (Gen 1–5, alle 649 Pokémon).",
     "Mit mehreren Generationen tauchen Pokémon der anderen Gens in Einall mit auf – im hohen Gras, im Wasser und in Höhlen, passend zum Gebiet und zum Level (keine Legenden). Im Randomizer kommen alle eingeschalteten Gens vor, auch bei Startern, Trainern und Arenen.",
@@ -9886,8 +9890,7 @@ const cave=o=>Object.assign({music:"cave",bg:"cave",outside:true,cave:true},o);U
 
 /* ---------- Pokémon-Center (Einall-Stil: Heilen + Markt in einem Gebäude) ---------- */
 async function nurseHeal3(){const cap=levelCap();
-  const c=await ask("Willkommen im Pokémon-Center! Was darf ich für dich tun?",["HEILEN","TRAINING","NICHTS"]);
-  if(c===1){await say(`Training: Ich bringe ein Pokémon aufs Level-Cap (Lv ${cap}) oder ändere sein Wesen.`);return capNurse();}
+  const c=await ask("Willkommen im Pokémon-Center! Möchtest du deine Pokémon heilen?",["HEILEN","NICHTS"]);   // v0.43: Training entfernt
   if(c!==0){await say("Bis bald!");return;}
   await fadeTo(.5,8);Music.jingle("heal");sfx("heal");await wait(100);await fadeTo(0,8);
   healParty();if(G.save.vial>=0)G.save.vial=3;if(G.save.ret)G.save.lastHeal={map:G.save.ret.map,x:G.save.ret.x,y:G.save.ret.y};
@@ -12482,7 +12485,7 @@ U.genMixed=mixed;
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.41";
+const VERSION="0.43";
 const GEN_OPTS=[["GEN 5",[5]],["GEN 4–5",[4,5]],["GEN 3–5",[3,4,5]],["ALLE (1–5)",[1,2,3,4,5]]];
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
