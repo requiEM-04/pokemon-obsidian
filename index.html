@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Pokémon Obsidian</title>
 <meta name="description" content="Pokémon Obsidian – inoffizielles, nicht kommerzielles Fan-Spiel im Browser (Kanto, Retro-Pixel-3D).">
 <meta name="theme-color" content="#0b0718">
@@ -81,23 +81,22 @@ body{background:radial-gradient(ellipse at 50% 35%,#2a2350 0%,#16122c 55%,#0b091
 
 
 #pad{display:none}
-@media (pointer:coarse) and (max-width:900px), (pointer:coarse) and (max-height:560px){
-  #keys{display:none}
-  #wrap{justify-content:flex-start;padding:6px}
-  #frame{padding:4px;border-radius:6px}
-  #frame::before,#frame::after,.corner,.side,#title,#deco{display:none}
-  #pad{display:block;position:fixed;left:0;right:0;bottom:0;height:42vh;user-select:none;-webkit-user-select:none;touch-action:none}
-  #pad button{position:absolute;border:0;background:rgba(255,255,255,.12);color:#fff;font:600 18px 'Pixelify Sans',sans-serif;border-radius:50%;touch-action:none}
-  #pad button.on{background:rgba(255,255,255,.32)}
-  #dpad{position:absolute;left:18px;bottom:40px;width:150px;height:150px}
-  #dpad button{width:52px;height:52px;border-radius:10px}
-  #dpad [data-k=up]{left:49px;top:0}#dpad [data-k=down]{left:49px;bottom:0}#dpad [data-k=left]{left:0;top:49px}#dpad [data-k=right]{right:0;top:49px}
-  #abtn{position:absolute;right:18px;bottom:60px;width:150px;height:110px}
-  #abtn [data-k=a]{right:0;top:0;width:66px;height:66px;background:rgba(224,64,64,.45)}
-  #abtn [data-k=b]{left:0;bottom:0;width:58px;height:58px;background:rgba(64,96,224,.45)}
-  #sbtn{position:absolute;left:50%;bottom:12px;transform:translateX(-50%)}
-  #sbtn button{position:static;border-radius:12px;padding:6px 16px;font-size:13px}
-}
+/* v0.45: Touch-Steuerung – Größe und Position berechnet fitScreen() aus dem sichtbaren Bildschirm (auch Notch/Home-Leiste) */
+body.touch #keys{display:none}
+body.touch #wrap{justify-content:flex-start}
+body.touch #frame{padding:0;border-radius:0}
+body.touch #frame::before,body.touch #frame::after,body.touch .corner,body.touch .side,body.touch #title,body.touch #deco{display:none}
+body.touch #pad{display:block;position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;user-select:none;-webkit-user-select:none;touch-action:none;z-index:50}
+body.touch #pad>div{position:absolute;pointer-events:auto;transform-origin:0 0;touch-action:none}
+body.touch #pad button{position:absolute;border:0;background:rgba(255,255,255,.14);color:#fff;font:600 18px 'Pixelify Sans',sans-serif;border-radius:50%;touch-action:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.16);-webkit-tap-highlight-color:transparent}
+body.touch #pad button.on{background:rgba(255,255,255,.36)}
+body.touch #dpad{width:150px;height:150px}
+body.touch #dpad button{width:52px;height:52px;border-radius:10px}
+body.touch #dpad [data-k=up]{left:49px;top:0}body.touch #dpad [data-k=down]{left:49px;bottom:0}body.touch #dpad [data-k=left]{left:0;top:49px}body.touch #dpad [data-k=right]{right:0;top:49px}
+body.touch #abtn{width:150px;height:110px}
+body.touch #abtn [data-k=a]{right:0;top:0;width:66px;height:66px;background:rgba(224,64,64,.45)}
+body.touch #abtn [data-k=b]{left:0;bottom:0;width:58px;height:58px;background:rgba(64,96,224,.45)}
+body.touch #sbtn button{position:static;border-radius:12px;padding:6px 16px;font-size:13px;white-space:nowrap}
 
 #stats .goal{margin-top:8px;padding:8px 10px;border-radius:6px;background:rgba(255,216,138,.08);border:1px solid rgba(255,216,138,.25);color:#f3ead6;font-size:17px;line-height:1.3}
 #stats .goal span{display:block;color:#ffd88a;font-size:15px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
@@ -114,13 +113,7 @@ body.full #amb{display:block;position:fixed;inset:-8%;width:116%;height:116%;z-i
 
 /* ---------- Touch (Handy/Tablet): randloses Spielbild, Tasten außerhalb des Bildes ---------- */
 body.touch #wrap{padding:0;align-items:center;justify-content:center}
-body.tport #wrap{align-items:center;padding-top:max(8px,env(safe-area-inset-top));padding-bottom:max(250px,40vh);box-sizing:border-box;height:100%}
-body.touch #pad{display:block}
-body.tport #pad{height:40vh;min-height:250px}
-body.tland #pad{top:0;height:100%}
-body.tland #dpad{left:max(14px,env(safe-area-inset-left));bottom:auto;top:50%;transform:translateY(-35%)}
-body.tland #abtn{right:max(14px,env(safe-area-inset-right));bottom:auto;top:50%;transform:translateY(-30%)}
-body.tland #sbtn{left:auto;right:max(14px,env(safe-area-inset-right));top:10px;bottom:auto;transform:none}
+body.touch #wrap{box-sizing:border-box}
 body.touch #amb{display:none}
 </style>
 </head>
@@ -264,9 +257,13 @@ const SW=240,SH=160,SC=4;                       // GBA-Auflösung, interne Vergr
 const cv=document.getElementById("screen"),ctx=cv.getContext("2d");
 ctx.imageSmoothingEnabled=false;
 // Touch-Steuerung nur auf Handy/Tablet (kleiner Bildschirm), nicht auf großen Touch-Laptops
-const IS_TOUCH=()=>matchMedia("(pointer:coarse) and (max-width:900px), (pointer:coarse) and (max-height:560px)").matches;
+const IS_TOUCH=()=>matchMedia("(pointer:coarse)").matches&&!matchMedia("(any-pointer:fine) and (min-width:1100px)").matches;   // v0.45: auch Tablets
 function viewMode(){try{if(typeof OPT!=="undefined")return OPT.view||"full";const o=JSON.parse(localStorage.getItem("saga_opt")||"{}");return o.view||"full";}catch(e){return"full";}}
+// sichtbarer Bereich + sichere Ränder (Notch, Home-Leiste)
+function safeInsets(){let p=document.getElementById("_safe");if(!p){p=document.createElement("div");p.id="_safe";p.style.cssText="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";document.body.appendChild(p);}
+  const c=getComputedStyle(p);return{t:parseFloat(c.paddingTop)||0,r:parseFloat(c.paddingRight)||0,b:parseFloat(c.paddingBottom)||0,l:parseFloat(c.paddingLeft)||0};}
 function fitScreen(){
+  if(IS_TOUCH()){fitTouch();return;}
   const W=window.innerWidth,H=window.innerHeight,touch=IS_TOUCH(),full=touch||viewMode()==="full",land=touch&&W>H;
   document.body.classList.toggle("full",full);document.body.classList.toggle("touch",touch);document.body.classList.toggle("tland",land);document.body.classList.toggle("tport",touch&&!land);
   // Seitenpanels (Team / Orden) nur im Rahmen-Modus auf breiten Bildschirmen
@@ -280,6 +277,35 @@ function fitScreen(){
   cv.style.width=Math.floor(SW*k)+"px";cv.style.height=Math.floor(SH*k)+"px";
   const gl=document.getElementById("gl");if(gl){gl.style.width=cv.style.width;gl.style.height=cv.style.height;gl.style.left=cv.offsetLeft+"px";gl.style.top=cv.offsetTop+"px";}
 }
+// v0.45: Handy/Tablet – Spielbild und Tasten passend zum sichtbaren Bildschirm (hochkant: Spiel oben, Tasten unten; quer: Tasten links/rechts)
+function fitTouch(){const vv=window.visualViewport;const W=Math.round(vv?vv.width:window.innerWidth),H=Math.round(vv?vv.height:window.innerHeight),land=W>H,ins=safeInsets();
+  const B=document.body;B.classList.add("full","touch");B.classList.toggle("tland",land);B.classList.toggle("tport",!land);
+  for(const id of["sideL","sideR"]){const e=document.getElementById(id);if(e)e.hidden=true;}const t=document.getElementById("title");if(t)t.style.display="none";
+  const wrap=document.getElementById("wrap"),dp=document.getElementById("dpad"),ab=document.getElementById("abtn"),sb=document.getElementById("sbtn");
+  const place=(el,x,y,s)=>{if(!el)return;el.style.left=Math.round(x)+"px";el.style.top=Math.round(y)+"px";el.style.right="auto";el.style.bottom="auto";el.style.transform="scale("+s.toFixed(3)+")";};
+  let k,cx,cy;
+  if(!land){ // hochkant
+    const ctrl=Math.max(220,Math.min(H*.42,H-ins.t-SH*1.4));       // Tastenbereich unten
+    k=Math.min((W-ins.l-ins.r)/SW,(H-ctrl-ins.t-8)/SH);const cw=SW*k,ch=SH*k;cx=(W-cw)/2;cy=ins.t+4;
+    const top=cy+ch+6,bot=H-ins.b-6,A=Math.max(150,bot-top);     // Höhe für die Tasten
+    const s=Math.max(.55,Math.min(1.5,Math.min((A-34)/160,(W-ins.l-ins.r)/340)));
+    const mid=top+(A-34)/2+34;                                   // oben Platz für MENÜ
+    place(dp,ins.l+12*s,mid-75*s,s);place(ab,W-ins.r-12*s-150*s,mid-50*s,s);
+    if(sb){sb.style.transform="none";sb.style.left="50%";sb.style.top=Math.round(top+4)+"px";sb.style.transform="translateX(-50%) scale("+Math.min(1.2,Math.max(.8,s)).toFixed(2)+")";sb.style.transformOrigin="50% 0";}
+  }else{ // quer
+    const side=Math.max(110,Math.min(W*.24,220));
+    k=Math.min((W-2*side)/SW,(H-ins.t-ins.b)/SH);const cw=SW*k,ch=SH*k;cx=(W-cw)/2;cy=(H-ch)/2;
+    const L=Math.max(ins.l,0),R=Math.max(ins.r,0),avail=Math.min(cx-L,W-cx-cw-R);
+    const s=Math.max(.5,Math.min(1.4,Math.min((avail-12)/150,(H-ins.t-ins.b-60)/170)));
+    place(dp,L+(cx-L-150*s)/2,H/2-75*s+14*s,s);place(ab,cx+cw+(W-cx-cw-R-150*s)/2,H/2-55*s+14*s,s);
+    if(sb){sb.style.left=Math.round(cx+cw+(W-cx-cw-R)/2)+"px";sb.style.top=Math.round(ins.t+8)+"px";sb.style.transform="translateX(-50%) scale("+Math.min(1.1,Math.max(.8,s)).toFixed(2)+")";sb.style.transformOrigin="50% 0";}
+  }
+  if(wrap){wrap.style.padding="0";wrap.style.height=H+"px";wrap.style.alignItems="flex-start";wrap.style.justifyContent="flex-start";}
+  cv.style.width=Math.floor(SW*k)+"px";cv.style.height=Math.floor(SH*k)+"px";
+  const fr=document.getElementById("frame");if(fr){fr.style.position="fixed";fr.style.left=Math.round(cx)+"px";fr.style.top=Math.round(cy)+"px";}
+  const gl=document.getElementById("gl");if(gl){gl.style.width=cv.style.width;gl.style.height=cv.style.height;gl.style.left=cv.offsetLeft+"px";gl.style.top=cv.offsetTop+"px";}}
+if(window.visualViewport){visualViewport.addEventListener("resize",()=>fitScreen());}
+window.addEventListener("orientationchange",()=>setTimeout(fitScreen,250));
 // F: Browser-Vollbild ein/aus (blendet auch die Browserleisten aus)
 window.addEventListener("keydown",e=>{if(e.code!=="KeyF"||e.repeat||(typeof Input!=="undefined"&&Input.textMode))return;
   try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen({navigationUI:"hide"});}catch(err){}});
@@ -332,8 +358,16 @@ window.addEventListener("keydown",e=>{
 window.addEventListener("keyup",e=>{const k=KEYMAP[e.code];if(k){if(k==="run"&&Input._down.run&&performance.now()-(Input._runT0||0)<230)Input.runTap=true;Input._down[k]=false;}if(e.code==="Escape")Input._down.esc=false;});
 window.addEventListener("pointerdown",()=>{Input.anyKey=true;});
 window.addEventListener("blur",()=>{for(const k in Input._down)Input._down[k]=false;});
+// v0.45: Steuerkreuz als Fläche – Richtung folgt dem Finger (gleiten wie auf einem echten Steuerkreuz)
+{const dp=document.getElementById("dpad");if(dp){const dirs=["up","down","left","right"];let cur=null;
+  const set=d=>{if(d===cur)return;for(const k of dirs){Input._down[k]=false;const b=dp.querySelector('[data-k="'+k+'"]');if(b)b.classList.toggle("on",k===d);}cur=d;if(d){Input._down[d]=true;Input._tap[d]=true;}};
+  const at=(x,y)=>{const r=dp.getBoundingClientRect();const dx=x-(r.left+r.width/2),dy=y-(r.top+r.height/2);if(Math.hypot(dx,dy)<r.width*.12)return cur;return Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");};
+  const mv=e=>{e.preventDefault();const t=[...e.touches].find(t=>{const r=dp.getBoundingClientRect();return t.clientX>r.left-40&&t.clientX<r.right+40&&t.clientY>r.top-40&&t.clientY<r.bottom+40;});if(t)set(at(t.clientX,t.clientY));else set(null);};
+  dp.addEventListener("touchstart",e=>{audioUnlock();mv(e);},{passive:false});dp.addEventListener("touchmove",mv,{passive:false});
+  dp.addEventListener("touchend",e=>{e.preventDefault();if(!e.touches.length)set(null);else mv(e);},{passive:false});dp.addEventListener("touchcancel",()=>set(null));
+  dp.dataset.area="1";}}
 document.querySelectorAll("#pad button").forEach(b=>{
-  const k=b.dataset.k;
+  const k=b.dataset.k;if(b.closest("#dpad")&&"ontouchstart" in window){b.addEventListener("mousedown",e=>{Input._down[k]=true;Input._tap[k]=true;});b.addEventListener("mouseup",()=>Input._down[k]=false);return;}
   const on=e=>{e.preventDefault();Input._down[k]=true;Input._tap[k]=true;b.classList.add("on");audioUnlock();};
   const off=e=>{e.preventDefault();Input._down[k]=false;b.classList.remove("on");};
   b.addEventListener("touchstart",on,{passive:false});b.addEventListener("touchend",off,{passive:false});b.addEventListener("touchcancel",off);
@@ -7669,6 +7703,10 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.45",d:"03.11.2026",items:[
+    "Handy-Modus überarbeitet: Spielbild und Tasten passen sich jetzt an jeden Bildschirm an (hochkant und quer, kleine Handys bis Tablets). Nichts verschwindet mehr hinter dem Bildschirmrand oder der Browserleiste, Notch und Home-Leiste werden freigehalten.",
+    "Steuerkreuz: Du kannst den Finger jetzt gleiten lassen – die Richtung wechselt, ohne neu zu tippen (wie bei einem echten Steuerkreuz).",
+    "Tablets bekommen jetzt auch die Touch-Tasten."]},
   {v:"0.44",d:"03.11.2026",items:[
     "Hotfix Arena Orion City: Der rote Vorhang und das Quiz sind wieder raus – die Arena ist wie vorher, die Brüder sind direkt zu sehen und erreichbar."]},
   {v:"0.43",d:"03.11.2026",items:[
@@ -12487,7 +12525,7 @@ U.genMixed=mixed;
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.44";
+const VERSION="0.45";
 const GEN_OPTS=[["GEN 5",[5]],["GEN 4–5",[4,5]],["GEN 3–5",[3,4,5]],["ALLE (1–5)",[1,2,3,4,5]]];
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
