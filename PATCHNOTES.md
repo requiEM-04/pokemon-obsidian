@@ -2,6 +2,11 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.46 (05.11.2026)
+- Soul-Link in Echtzeit: Die Spiele gleichen sich jetzt laufend ab (alle paar Sekunden und sofort bei jeder Änderung). Die Seelenband-Übersicht zeigt, wo deine Partner gerade sind oder ob sie kämpfen.
+- Soul-Link: Arenaleiter, Top Vier und Champ kämpft ihr gleichzeitig. Wer zuerst beim Gegner ist, wartet („Warte auf …“), bis alle bereit sind – dann startet der Kampf bei allen zusammen. Mit B kannst du das Warten abbrechen.
+- Soul-Link: Fällt bei deinem Partner ein Pokémon, während du gerade kämpfst, wird dein verbundenes Pokémon erst nach dem Kampf entfernt.
+
 ## v0.45 (03.11.2026)
 - Handy-Modus überarbeitet: Spielbild und Tasten passen sich jetzt an jeden Bildschirm an (hochkant und quer, kleine Handys bis Tablets). Nichts verschwindet mehr hinter dem Bildschirmrand oder der Browserleiste, Notch und Home-Leiste werden freigehalten.
 - Steuerkreuz: Du kannst den Finger jetzt gleiten lassen – die Richtung wechselt, ohne neu zu tippen (wie bei einem echten Steuerkreuz).
