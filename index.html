@@ -7703,6 +7703,10 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.46",d:"05.11.2026",items:[
+    "Soul-Link in Echtzeit: Die Spiele gleichen sich jetzt laufend ab (alle paar Sekunden und sofort bei jeder Änderung). Die Seelenband-Übersicht zeigt, wo deine Partner gerade sind oder ob sie kämpfen.",
+    "Soul-Link: Arenaleiter, Top Vier und Champ kämpft ihr gleichzeitig. Wer zuerst beim Gegner ist, wartet („Warte auf …“), bis alle bereit sind – dann startet der Kampf bei allen zusammen. Mit B kannst du das Warten abbrechen.",
+    "Soul-Link: Fällt bei deinem Partner ein Pokémon, während du gerade kämpfst, wird dein verbundenes Pokémon erst nach dem Kampf entfernt."]},
   {v:"0.45",d:"03.11.2026",items:[
     "Handy-Modus überarbeitet: Spielbild und Tasten passen sich jetzt an jeden Bildschirm an (hochkant und quer, kleine Handys bis Tablets). Nichts verschwindet mehr hinter dem Bildschirmrand oder der Browserleiste, Notch und Home-Leiste werden freigehalten.",
     "Steuerkreuz: Du kannst den Finger jetzt gleiten lassen – die Richtung wechselt, ohne neu zu tippen (wie bei einem echten Steuerkreuz).",
@@ -12329,7 +12333,8 @@ function refreshMine(){const s=sl();if(!s)return;const E=myEnc();
 
 /* ---------- Seelenband anwenden ---------- */
 function peersEnc(){const P=sl().peers||{};return P;}
-function applyLinks(){const s=sl();if(!s)return;refreshMine();const E=myEnc();const P=peersEnc();
+const inFight=()=>!!((typeof B!=="undefined"&&B)||(typeof BattleScene!=="undefined"&&Scenes.includes(BattleScene)));
+function applyLinks(){const s=sl();if(!s)return;if(inFight()){SL.pendApply=true;return;}SL.pendApply=false;refreshMine();const E=myEnc();const P=peersEnc();
   for(const pid in P){const pe=(P[pid]&&P[pid].enc)||{};
     for(const a in pe){const q=pe[a];if(q.st!=="dead"&&q.st!=="failed")continue;const mine=E[a];
       if(!mine){E[a]={st:"blocked",by:pid};if(!G.save.runArea)G.save.runArea={};G.save.runArea[a]=1;SL.dirty=true;
@@ -12381,7 +12386,8 @@ async function flushQueue(){if(!SL.queue.length)return;const L=SL.queue.splice(0
 
 /* ---------- Netzwerk ---------- */
 function snapshot(){const s=sl();refreshMine();return{t:"st",f:s.me,name:s.myName,v:SLV,enc:myEnc(),party:(G.save.party||[]).map(m=>({sp:m.sp,lv:m.lv,a:Object.keys(myEnc()).find(k=>myEnc()[k].uid===m.uid)||null,ok:alive(m)})),
-  team:(G.save.party||[]).map(areaOf).filter(Boolean),teamAt:s.teamAt||0,over:!!s.over,overBy:s.over?(s.overBy||s.me):null,
+  team:(G.save.party||[]).map(areaOf).filter(Boolean),teamAt:s.teamAt||0,ready:s.ready||null,fight:inFight(),
+  def:Object.keys(G.save.def||{}).filter(k=>LEAD_RE.test(k)).slice(0,40),over:!!s.over,overBy:s.over?(s.overBy||s.me):null,
   badges:(G.save.badges||[]).length,loc:curMap?curMap().name:"",at:Date.now()};}
 function slSend(){if(!SL.tr||SL.state!=="joined")return;try{SL.tr.send(snapshot());SL.lastTx=Date.now();SL.dirty=false;}catch(e){}}
 function onMsg(m){const s=sl();if(!s||!m||m.f===s.me||m.v!==SLV)return;if(!(s.members||[]).some(x=>x.id===m.f))return;
@@ -12389,24 +12395,47 @@ function onMsg(m){const s=sl();if(!s||!m||m.f===s.me||m.v!==SLV)return;if(!(s.me
   if(m.t==="st"){const P=s.peers=s.peers||{};const old=P[m.f];const enc=m.enc&&typeof m.enc==="object"?m.enc:{};
     // Neuigkeiten als Hinweis
     if(old&&old.enc){for(const a in enc){const o=old.enc[a],n=enc[a];if(!o&&n&&n.st==="caught"&&SPECIES[n.sp]){typeof showToast==="function"&&showToast(`${m.name}: ${SPECIES[n.sp].n} in ${areaName(a)}`.slice(0,40),180);}}}
-    P[m.f]={name:String(m.name||"?").slice(0,12),enc,party:Array.isArray(m.party)?m.party.slice(0,6):[],team:Array.isArray(m.team)?m.team.slice(0,6).map(String):[],teamAt:+m.teamAt||0,over:!!m.over,
+    P[m.f]={name:String(m.name||"?").slice(0,12),enc,ready:m.ready&&typeof m.ready==="object"?{id:String(m.ready.id||"").slice(0,40),at:+m.ready.at||0}:null,fight:!!m.fight,
+      def:Array.isArray(m.def)?m.def.map(String).slice(0,40):[],party:Array.isArray(m.party)?m.party.slice(0,6):[],team:Array.isArray(m.team)?m.team.slice(0,6).map(String):[],teamAt:+m.teamAt||0,over:!!m.over,
       badges:+m.badges||0,loc:String(m.loc||"").slice(0,24),at:Date.now()};
     if(m.over&&!(old&&old.over)&&!s.over&&!s.ended){s.overBy=(s.members||[]).some(x=>x.id===m.overBy)?m.overBy:m.f;SL.overPending=true;}
     applyLinks();if(!old)slSend();}
   else if(m.t==="hi")slSend();}
-function connect(){const s=sl();if(!s||SL.tr||Date.now()<(SL.next||0))return;if(typeof onTransport!=="function")return;SL.state="connecting";
+function connect(){const s=sl();if(!s||SL.tr||Date.now()<(SL.next||0))return;if(!inFight()&&s.ready&&!W.lock)s.ready=null;if(typeof onTransport!=="function")return;SL.state="connecting";
   SL.tr=onTransport("obs-sl-"+s.rid,onMsg,st=>{if(st==="joined"){SL.state="joined";SL.tr.send({t:"hi",f:s.me,v:SLV});slSend();}else{SL.state="off";SL.next=Date.now()+8000;const t=SL.tr;SL.tr=null;try{t&&t.close();}catch(e){}}});}
 function disconnect(){if(SL.tr){try{SL.tr.close();}catch(e){}}SL.tr=null;SL.state="off";}
 setInterval(()=>{try{const s=sl();
     if(!s||!Scenes.includes(WorldScene)){if(SL.tr)disconnect();return;}
     if(!SL.tr)connect();
-    if(SL.state==="joined"&&(SL.dirty||Date.now()-SL.lastTx>15000))slSend();
+    if(SL.state==="joined"&&(SL.dirty||Date.now()-SL.lastTx>4000))slSend();
+    if(SL.pendApply&&!inFight())applyLinks();
     const idle=topScene()===WorldScene&&!W.lock&&!PL.moving;
     if(idle&&!s.ended)enforceTeam();
     if(SL.overPending&&idle){SL.overPending=false;script(async()=>{const n=memberName(s.overBy);sfx("faint");
       await say(`${n} hat keine Pokémon mehr ... Im Soul-Link verlieren alle gemeinsam. Euer Abenteuer ist vorbei.`);s.over=true;s.ended=true;slSend();if(typeof nuzOver==="function")await nuzOver();});return;}
     if(SL.queue.length&&idle)script(flushQueue);
-  }catch(e){console.warn(e);}},1500);
+  }catch(e){console.warn(e);}},600);
+/* ---------- Arenaleiter & Liga: alle starten gleichzeitig ----------
+   Spricht ein Spieler einen Arenaleiter (oder Top Vier / Champ) an, wartet er, bis alle Partner beim selben Gegner stehen –
+   dann beginnt der Kampf bei allen zur selben Zeit. B bricht das Warten ab. */
+const LEAD_RE=/^(trio|aloe|artie|kamilla|turner|geraldine|sandro|legenden|e4_ghost|e4_dark|e4_psychic|e4_fight|lauro)$/;
+function syncReady(id){const s=sl();return others().every(x=>{const p=s.peers&&s.peers[x.id];if(!p)return false;
+  if(p.over)return true;if((p.def||[]).includes(id))return true;return!!(p.ready&&p.ready.id===id&&Date.now()-(p.at||0)<20000);});}
+async function syncStart(tr){const s=sl();if(!s||s.ended||!others().length)return true;
+  s.ready={id:tr.id,at:Date.now()};SL.dirty=true;slSend();
+  if(!syncReady(tr.id)){const names=()=>others().filter(x=>{const p=s.peers&&s.peers[x.id];return!(p&&((p.def||[]).includes(tr.id)||(p.ready&&p.ready.id===tr.id&&Date.now()-(p.at||0)<20000)));}).map(x=>x.name);
+    const w=onWait(()=>[`Warte auf ${names().join(" und ")||"…"}`,`Der Kampf gegen ${tr.name} beginnt, sobald alle bereit sind.`,...others().map(x=>{const p=s.peers&&s.peers[x.id];
+        const on=Date.now()-(SL.on[x.id]||0)<15000;return`${x.name}: ${!on?"offline":p&&p.ready&&p.ready.id===tr.id?"bereit ✔":p&&p.fight?"im Kampf":(p&&p.loc)||"unterwegs"}`;})],
+      {title:"SOUL-LINK",right:tr.name,foot:"Soul-Link: Arenaleiter und Liga kämpft ihr gleichzeitig."});
+    const r=await new Promise(res=>{run(w).then(v=>{if(v==="cancel")res("cancel");});const iv=setInterval(()=>{if(syncReady(tr.id)){clearInterval(iv);res("go");}else if(w.cancel){clearInterval(iv);res("cancel");}},250);});
+    if(Scenes.includes(w)&&w.done)w.done();
+    if(r==="cancel"){s.ready=null;SL.dirty=true;slSend();await say("Du hast das Warten abgebrochen. Sprich den Arenaleiter erneut an, wenn alle bereit sind.");return false;}
+    sfx("select");}
+  return true;}
+{const _stb=startTrainerBattle;startTrainerBattle=async function(tr,ch){
+  if(tr&&sl()&&LEAD_RE.test(tr.id||"")){const ok=await syncStart(tr);if(!ok)return"cancel";
+    try{return await _stb.apply(this,arguments);}finally{const s=sl();if(s){s.ready=null;SL.dirty=true;}}}
+  return _stb.apply(this,arguments);};}
 // beim Speichern Änderungen sofort melden
 if(typeof nuzOver==="function"){const _no=nuzOver;nuzOver=async function(){const s=sl();if(s&&!s.over){s.over=true;s.ended=true;SL.dirty=true;slSend();await new Promise(r=>setTimeout(r,300));}
   const r=await _no.apply(this,arguments);if(G.save&&G.save.sl){G.save.sl.ended=true;}return r;};}
@@ -12462,7 +12491,8 @@ async function slScreen(){const s=sl();if(!s)return;applyLinks();let sc=0;
   await run({opaque:true,update(){const n=areas().length;if(Input.nav("down"))sc=Math.min(Math.max(0,n-6),sc+1);if(Input.nav("up"))sc=Math.max(0,sc-1);if(Input.hit("b")||Input.hit("a")){sfx("back");this.done();}},
     draw(){obBg();obHeader("SEELENBAND",`${s.n===3?"TRIO":"DUO"} · Raum ${s.code}`);const C=cols(),A=areas();const cw=(PRW-96)/C.length;
       C.forEach((c,i)=>{const x=92+i*cw;const on=c.id===s.me?SL.state==="joined":(Date.now()-(SL.on[c.id]||0)<40000);
-        ctx.fillStyle=on?"#5ad87a":"#7a7a8a";ctx.beginPath();ctx.arc(x+6,34,3,0,7);ctx.fill();prT(c.id===s.me?"DU":c.name,x+12,38,{size:12,c:c.id===s.me?"#9ad0ff":"#fff"});});
+        ctx.fillStyle=on?"#5ad87a":"#7a7a8a";ctx.beginPath();ctx.arc(x+6,34,3,0,7);ctx.fill();prT(c.id===s.me?"DU":c.name,x+12,38,{size:12,c:c.id===s.me?"#9ad0ff":"#fff"});
+        const p=c.id===s.me?null:s.peers&&s.peers[c.id];const where=c.id===s.me?(curMap().name||""):p?(p.fight?"im Kampf":p.loc||""):"";if(where)prT(String(where).slice(0,14),x+12,27,{size:9,c:OB.dim,sh:"transparent"});});
       if(!A.length)prT("Noch keine Begegnungen. Fangt euer erstes Pokémon!",PRW/2,90,{align:"center",size:13,c:OB.dim});
       A.slice(sc,sc+6).forEach((a,j)=>{const y=46+j*24;obCard(6,y,PRW-12,22,false);prT(areaName(a).slice(0,13),10,y+14,{size:11,c:OB.dim});
         let dead=false;C.forEach(c=>{const e=c.enc[a];if(e&&(e.st==="dead"||e.st==="failed"||e.st==="blocked"))dead=true;});
@@ -12525,7 +12555,7 @@ U.genMixed=mixed;
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.45";
+const VERSION="0.46";
 const GEN_OPTS=[["GEN 5",[5]],["GEN 4–5",[4,5]],["GEN 3–5",[3,4,5]],["ALLE (1–5)",[1,2,3,4,5]]];
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
