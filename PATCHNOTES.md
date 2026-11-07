@@ -2,6 +2,9 @@
 
 Grob, was in jeder Version behoben und neu ist. Im Spiel: Titelmenü → PATCH-INFO.
 
+## v0.47 (07.11.2026)
+- Hotfix Nuzlocke/Run/Soul-Link: Sonder-Begegnungen (z. B. Somniam in der Traumbrache, die Legenden) zählen jetzt extra und sind immer fangbar – auch wenn du im selben Gebiet schon deine normale Begegnung hattest.
+
 ## v0.46 (05.11.2026)
 - Soul-Link in Echtzeit: Die Spiele gleichen sich jetzt laufend ab (alle paar Sekunden und sofort bei jeder Änderung). Die Seelenband-Übersicht zeigt, wo deine Partner gerade sind oder ob sie kämpfen.
 - Soul-Link: Arenaleiter, Top Vier und Champ kämpft ihr gleichzeitig. Wer zuerst beim Gegner ist, wartet („Warte auf …“), bis alle bereit sind – dann startet der Kampf bei allen zusammen. Mit B kannst du das Warten abbrechen.
