@@ -7703,6 +7703,8 @@ for(const id of[524,480])if(MOVES[id])MOVES[id].m[8]=3;
    Grobe Liste, was in jeder Version behoben/neu ist. Erscheint einmal nach jedem Update (Titel → Taste drücken)
    und jederzeit über Titelmenü → PATCH-INFO. tools/build_web.py schreibt daraus auch PATCHNOTES.md. */
 const PATCH=[
+  {v:"0.47",d:"07.11.2026",items:[
+    "Hotfix Nuzlocke/Run/Soul-Link: Sonder-Begegnungen (z. B. Somniam in der Traumbrache, die Legenden) zählen jetzt extra und sind immer fangbar – auch wenn du im selben Gebiet schon deine normale Begegnung hattest."]},
   {v:"0.46",d:"05.11.2026",items:[
     "Soul-Link in Echtzeit: Die Spiele gleichen sich jetzt laufend ab (alle paar Sekunden und sofort bei jeder Änderung). Die Seelenband-Übersicht zeigt, wo deine Partner gerade sind oder ob sie kämpfen.",
     "Soul-Link: Arenaleiter, Top Vier und Champ kämpft ihr gleichzeitig. Wer zuerst beim Gegner ist, wartet („Warte auf …“), bis alle bereit sind – dann startet der Kampf bei allen zusammen. Mit B kannst du das Warten abbrechen.",
@@ -9883,7 +9885,7 @@ Object.assign(HM,{cut:{item:"hm01",badge:"Trio",n:"Zerschneider"},fly:{item:"hm0
 /* ---------- Hilfsfunktionen ---------- */
 async function giveItem(it,n=1){addItem(it,n);sfx("item");Music.jingle&&Music.jingle("caught");await say(`{P} erhält ${n>1?n+"× ":""}${itemName(it)}!`);}
 async function staticMon(sp,lv,flagId,intro,o={}){if(G.save.rand&&!o.keep)sp=randomSpecies(sp,"static:"+flagId);if(intro)await say(intro);
-  const m=makeMon(sp,lv,Object.assign({mgm:false},o.mon||{}));const res=await startBattle({type:"wild",foes:[m],bg:curMap().bg||"grass",area:curMap().id,legend:true});
+  const m=makeMon(sp,lv,Object.assign({mgm:false},o.mon||{}));const res=await startBattle({type:"wild",foes:[m],bg:curMap().bg||"grass",area:"static:"+flagId,legend:true});   // v0.47: Sonder-Begegnungen zählen extra (nicht als Gebiets-Begegnung)
   if(res==="caught"||res==="win"){setFlag(flagId);}if(res==="win"&&o.again){delete G.save.flags[flagId];}return res;}
 async function giftMon(sp,lv,flagId,text,o={}){if(G.save.rand)sp=randomSpecies(sp,"gift:"+flagId);const m=makeMon(sp,lv,Object.assign({met:curMap().name},o));const w=addToParty(m);markCaught(sp);setFlag(flagId);Music.jingle("caught");
   await say(text||`{P} erhält ${SPECIES[sp].n}!`);if(w==="box")await say(`${SPECIES[sp].n} wurde in die Box geschickt.`);return m;}
@@ -12301,7 +12303,7 @@ const SLV=1;
 const SL={tr:null,state:"off",lastTx:0,dirty:true,queue:[],seen:{},on:{}};window.SL=SL;
 const sl=()=>G.save&&G.save.sl;
 const myId=()=>sl()&&sl().me;
-const areaName=a=>a==="starter"?"Starter":/^gift:/.test(a)?"Geschenk":/^legend:/.test(a)?"Legende":(typeof mapById==="function"&&mapById(a)&&mapById(a).name)?mapById(a).name.replace(/^ROUTE /,"Route "):String(a);
+const areaName=a=>a==="starter"?"Starter":/^gift:/.test(a)?"Geschenk":/^static:/.test(a)?"Sonder-Begegnung":/^legend:/.test(a)?"Legende":(typeof mapById==="function"&&mapById(a)&&mapById(a).name)?mapById(a).name.replace(/^ROUTE /,"Route "):String(a);
 const titleCase=s=>String(s).toLowerCase().replace(/(^|[\s-])\S/g,c=>c.toUpperCase());
 const allMons=()=>[...(G.save.party||[]),...(G.save.box||[])].filter(Boolean);
 const findMon=uid=>allMons().find(m=>m&&m.uid===uid);
@@ -12555,7 +12557,7 @@ U.genMixed=mixed;
 
 /* ===== main.js ===== */
 /* ================================ START: Titel, Neues Spiel, Run-Modus, Spielschleife ================================ */
-const VERSION="0.46";
+const VERSION="0.47";
 const GEN_OPTS=[["GEN 5",[5]],["GEN 4–5",[4,5]],["GEN 3–5",[3,4,5]],["ALLE (1–5)",[1,2,3,4,5]]];
 function newSave(o){
   const R=REGIONS[o.region||"unova"];
